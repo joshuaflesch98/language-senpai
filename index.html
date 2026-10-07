@@ -37,6 +37,21 @@
   .brand .crumb{color:var(--muted);font-size:13.5px}
   .tally{display:flex;align-items:center;gap:5px;flex-shrink:0}
   /* v20: shurikens replace crowns — silver per mastered day, all three gold at mastery */
+  /* v22.4: welcome, Help, study-bar links, accent chips */
+  .modal.welcome{max-width:470px}
+  .wl-sub{font-family:var(--serif);font-size:19px;color:var(--indigo);margin:0 0 8px}
+  .wl-fix{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .modal.help{max-height:86vh;overflow:auto}
+  .helpnav{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+  .helpnav .chip.on{border-color:var(--indigo);background:var(--indigo-soft);color:var(--ink)}
+  #helpBody{font-size:14px;color:var(--ink);line-height:1.55}
+  #helpBody h4{margin:14px 0 6px}
+  #helpBody ul,#helpBody ol{padding-left:20px;margin:6px 0}
+  #helpBody li{margin:5px 0}
+  #helpBody p{margin:6px 0}
+  .backbar .bbr{display:flex;gap:16px;align-items:center}
+  .hdr-right #helpBtnHdr{margin-right:12px}
+  .preset.auto,.preset.mine{border-style:dashed}
   /* v22.2: slots, linkish buttons, More options, duplicates question, What's new */
   .slot.droptarget{border-color:var(--indigo);background:var(--indigo-soft)}
   .tile.droptarget{box-shadow:0 0 0 2px var(--indigo)}
@@ -358,7 +373,7 @@
 <div class="wrap">
   <header>
     <div class="brand" id="brand"><h1>Language <span class="accent">Senpai</span></h1><span class="crumb" id="crumb"></span></div>
-    <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
+    <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="helpBtnHdr">Help</button><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
   </header>
   <div id="stage"></div>
 </div>
@@ -475,6 +490,25 @@
   </div>
 </div>
 
+<!-- v22.4: welcome (first visit) and Help -->
+<div class="overlay" id="wlOverlay">
+  <div class="modal welcome" role="dialog" aria-labelledby="wlTitle">
+    <h3 id="wlTitle">Welcome to Language Senpai</h3>
+    <p class="wl-sub">Your language journey begins here.</p>
+    <p class="hint">Train words and sentences in two dojos, with practice that keeps bringing back what's hard until it sticks. Your progress stays in this browser — nothing leaves your device.</p>
+    <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" id="wlSkip">I know my way</button><button class="btn" id="wlTour">Show me around</button></div></div>
+    <p class="hint wl-fix">Seeing this every time you open the app? Then your browser is deleting what this page saves. <button type="button" class="linkish" id="wlFix">Here's how to fix it</button></p>
+  </div>
+</div>
+<div class="overlay" id="helpOverlay">
+  <div class="modal help" role="dialog" aria-labelledby="helpTitle">
+    <h3 id="helpTitle">Help</h3>
+    <div class="helpnav" id="helpNav"></div>
+    <div id="helpBody"></div>
+    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="helpClose">Close</button></div>
+  </div>
+</div>
+
 <!-- v22.2: what's new -->
 <div class="overlay" id="wnOverlay">
   <div class="modal wn" role="dialog" aria-labelledby="wnTitle">
@@ -488,8 +522,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="22.3";
+  const APP_VERSION="22.4";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"22.4", items:["A welcome screen and a Help page (the Help button) that explain every part of the app.","If your browser keeps deleting your progress, Help explains why and how to fix it, and can ask the browser to protect this page's data.","Phone: the keyboard's Go key checks your answer, and the keyboard stays open from card to card.","Accent bar: off by default for new users, more languages, \u201cFrom my lists\u201d (the special letters your words use) and \u201cMy own\u201d (never lost when you try a preset)."]},
     {v:"22.3", items:["Get sentences: other word orders are recognised even when the AI puts them after the translation, and Dutch paraphrases no longer leak into the prompt. Lists already imported that way are repaired automatically."]},
     {v:"22.2", items:["Sentence Dojo: every word stays exactly where you put it. Drag a word onto any slot — onto another word and the two swap.","\u201cMy order is also correct\u201d: when your word order is right but the card didn't know it, one tap teaches the card.","Get sentences now asks the AI for every other correct word order.","Parentheses are never required: \u201c(zich) wassen\u201d accepts \u201cwassen\u201d and \u201czich wassen\u201d.","Get words: one simple question about words you already have, smaller sentence lists, and your own list size.","With \u201cA slip resets the word\u201d off, one slip on a word you knew costs one step, not three.","Fewer settings up front (the rest is under More options); punctuation tiles are gone."]},
     {v:"22.1", items:["Get words keeps lists at a clean size and fills up a topic's last list first."]},
@@ -502,7 +537,9 @@
   const BOLT='<svg viewBox="0 0 20 20"><path d="M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z"/></svg>';
   const PENCIL='<svg viewBox="0 0 20 20"><path d="M13.6 3.4a1.9 1.9 0 0 1 2.7 2.7L7 15.4l-3.6.9.9-3.6 9.3-9.3Z"/><path d="M12.2 4.8l3 3"/></svg>';
   const DEFAULT_ACCENTS="é è ë ï ö ü á à '";
-  const ACCENT_PRESETS={ Dutch:"é è ë ï ö ü á à '", German:"ä ö ü ß", French:"à â ç é è ê ë î ï ô û ù œ", Spanish:"á é í ó ú ñ ¿ ¡" };
+  const ACCENT_PRESETS={ Dutch:"é è ë ï ö ü á à '", German:"ä ö ü ß", French:"à â ç é è ê ë î ï ô û ù œ", Spanish:"á é í ó ú ñ ¿ ¡",
+    Italian:"à è é ì ò ù", Portuguese:"á â ã à ç é ê í ó ô õ ú", Polish:"ą ć ę ł ń ó ś ź ż", Czech:"á č ď é ě í ň ó ř š ť ú ů ý ž",
+    Turkish:"ç ğ ı ö ş ü", Swedish:"å ä ö", "Danish / Norwegian":"å æ ø", Romanian:"ă â î ș ț", Hungarian:"á é í ó ö ő ú ü ű" };
   const SET_SIZE=6, FRESH=3, REFRESH=1, FAST_MS=5000, RT_CAP=10000, ENDGAME_MAX=2, SPACER_MAX=2;
 
   // v22: on-brand sample lists for new users — Japanese in Latin letters, English meanings, kanji as hints.
@@ -538,17 +575,18 @@
       lists:[demoWords()],
       sLists:[demoSentences()], sGroupOrder:{learn:[],learned:[]}, dojo:"word",
       activeListId:null, view:"library", groupOrder:{learn:[],learned:[]}, collapsed:{},
-      settings:{ typeDutch:true, typoTolerance:false, strictSpelling:false, accentChars:DEFAULT_ACCENTS, timeMatters:false, slipResets:true, retypeOnError:false }
+      settings:{ typeDutch:true, typoTolerance:false, strictSpelling:false, accentChars:"", timeMatters:false, slipResets:true, retypeOnError:false }
     };
   }
   function uid(){ return "l"+Math.random().toString(36).slice(2,9); }
   function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
-  function fixSettings(s){ s=s||{}; return { wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
+  function fixSettings(s){ s=s||{}; return { wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
   function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
 
   let rescued=null, saveBlocked=false, bootSave=false, saveWarned=false;   // v22: declared before load/save first run
   let S = load();
   if(bootSave) save();   // a fix applied while loading is written straight away
+  let showWelcome = !S.welcomed && !rescued;   // v22.4: first visit (and once for everyone updating)
   function load(){
     let raw=null;
     try{ raw=localStorage.getItem(KEY); }catch(e){}
@@ -563,7 +601,7 @@
   function save(){
     if(saveBlocked) return;                       // the unreadable save hasn't been exported yet
     try{ localStorage.setItem(KEY, JSON.stringify(S)); saveWarned=false; }
-    catch(e){ if(!saveWarned){ saveWarned=true; alert("Language Senpai couldn't save your progress: the browser's storage is full or blocked.\n\nOpen Settings & backup and export a backup now so nothing is lost."); } }
+    catch(e){ if(!saveWarned){ saveWarned=true; alert("Language Senpai couldn't save your progress: the browser's storage is full or blocked (a private window can do this).\n\nOpen Settings & backup and export a backup now so nothing is lost. Help \u2192 \u201cSaving your progress\u201d explains how to fix it."); } }
   }
 
   let hardList=null;
@@ -691,9 +729,9 @@
     paintHeader();
   }
   function paintHeader(){
-    const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr");
-    if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; }
-    else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; }
+    const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr"), helpH=document.getElementById("helpBtnHdr");
+    if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; }
+    else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; if(helpH) helpH.style.display=""; }
   }
   function shuriRow(lvl,n){ let h=""; for(let i=0;i<3;i++){ const k = lvl==="gold" ? "gold" : (i<n ? "silver" : "ghost"); h+='<span class="shuri '+k+'">'+SHURI+'</span>'; } return h; }
 
@@ -894,31 +932,49 @@
     const l=activeList(); const w=l.words[cur]; const guided=!w.everSeen;
     const accs=[...(S.settings.accentChars||"")].filter(c=>c.trim());
     const pp=promptParts(w);
-    stage.innerHTML=`
-      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><button class="link quiet" id="setBtn">Settings</button></div>
+    const html=`
+      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><span class="bbr"><button class="link quiet" id="helpBtn">Help</button><button class="link quiet" id="setBtn">Settings</button></span></div>
       <div class="card" id="card">
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New word — type it once":"Translate"}</span></span><span class="rightgrp"><span class="dir">${dirText()}</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
         <div class="term">${esc(pp.green.join(" / ")||promptText(w))}</div>
         ${pp.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
         ${guided?`<div class="show-answer">${esc(answerPrimary(w))}</div><span class="new-tag">copy it to learn it</span>`:``}
-        <div class="answer-row">
-          <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${guided?'type it here…':'type your answer…'}">
-          <button class="btn" id="go">${guided?"Got it":"Check"}</button>
-        </div>
+        <form class="answer-row" id="ansForm" autocomplete="off" novalidate>
+          <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="${guided?'type it here…':'type your answer…'}">
+          <button type="button" class="btn" id="go">${guided?"Got it":"Check"}</button>
+        </form>
         ${accs.length?'<div class="accents" id="accents"><span class="lbl2">insert</span></div>':''}
         <div class="feedback" id="fb"></div>
         ${masteryHtml()}
       </div>`+dotsHtml(l);
+    // v22.4: if a word card is already showing, rebuild everything AROUND its answer row, so the same field keeps focus
+    // and a phone keyboard stays open from card to card (phones only reopen a keyboard on a direct tap)
+    const oldCard=document.getElementById("card"), oldRow=oldCard && oldCard.querySelector("form.answer-row");
+    if(oldRow && document.getElementById("ans")){
+      const tmp=document.createElement("div"); tmp.innerHTML=html;
+      const newCard=tmp.querySelector("#card"), newRow=newCard.querySelector("form.answer-row");
+      [...oldCard.childNodes].forEach(n=>{ if(n!==oldRow) n.remove(); });
+      let before=true; [...newCard.childNodes].forEach(n=>{ if(n===newRow){ before=false; return; } if(before) oldCard.insertBefore(n, oldRow); else oldCard.appendChild(n); });
+      oldCard.className=newCard.className;
+      const ki=document.getElementById("ans"); ki.value=""; ki.readOnly=false; ki.placeholder=newRow.querySelector("#ans").placeholder;
+      document.getElementById("go").textContent=newRow.querySelector("#go").textContent;
+      [...stage.childNodes].forEach(n=>{ if(n!==oldCard) n.remove(); });
+      let pre=true; [...tmp.childNodes].forEach(n=>{ if(n===newCard){ pre=false; return; } if(pre) stage.insertBefore(n, oldCard); else stage.appendChild(n); });
+    } else stage.innerHTML=html;
     phase = guided ? "guided" : "answer";
     const input=document.getElementById("ans"); input.focus();
     shownAt=performance.now(); firstKey=0;
-    input.addEventListener("input",()=>{ if(!firstKey) firstKey=performance.now(); },{once:true});
+    input.oninput=()=>{ if(!firstKey) firstKey=performance.now(); };
     updateMastery(w);
     if(accs.length){ const ac=document.getElementById("accents"); accs.forEach(c=>{ const b=document.createElement("button"); b.className="ch"; b.textContent=c; b.tabIndex=-1; b.addEventListener("click",()=>insertChar(c)); ac.appendChild(b); }); }
-    document.getElementById("go").onclick=action;
-    input.addEventListener("keydown",e=>{ if(e.key==="Enter") action(); });
+    const goB=document.getElementById("go");
+    goB.onmousedown=e=>e.preventDefault();                                  // tapping Check doesn't steal the field's focus
+    goB.onclick=()=>{ action(); const i=document.getElementById("ans"); if(i) i.focus({preventScroll:true}); };
+    input.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); action(); } };              // Enter (cancels the form's own submit, so it never runs twice)
+    document.getElementById("ansForm").onsubmit=e=>{ e.preventDefault(); action(); };   // phone keyboards whose Go key sends no Enter keystroke
     document.getElementById("backBtn").onclick=leaveStudy;
     document.getElementById("setBtn").onclick=openSettings;
+    document.getElementById("helpBtn").onclick=()=>openHelp(listKind(activeList())==="sentence"?"sentence":"word");
     document.getElementById("editBtn").onclick=()=>openCardEditor(w);
     wireHard(l,w);
   }
@@ -1221,7 +1277,7 @@
          bank:shuffledIds(B.tiles,B.orders), slots:new Array(B.tiles.length).fill(null), pins:{}, missed:false, done:false, hinted:false,
          snap:{streak:w.streak, misses:w.misses, mastered:w.mastered, everSeen:w.everSeen, _seen:w._seen, _aced:w._aced} };
     stage.innerHTML=`
-      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><button class="link quiet" id="setBtn">Settings</button></div>
+      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><span class="bbr"><button class="link quiet" id="helpBtn">Help</button><button class="link quiet" id="setBtn">Settings</button></span></div>
       <div class="card scard" id="card">
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New sentence — build it once":"Build the sentence"}</span></span><span class="rightgrp"><span class="dir">word order</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
         <div class="sprompt">${esc(B.prompt)}</div>
@@ -1240,6 +1296,7 @@
     document.getElementById("hintBtn").onclick=sentHint;
     document.getElementById("backBtn").onclick=leaveStudy;
     document.getElementById("setBtn").onclick=openSettings;
+    document.getElementById("helpBtn").onclick=()=>openHelp(listKind(activeList())==="sentence"?"sentence":"word");
     document.getElementById("editBtn").onclick=()=>openCardEditor(w);
     wireHard(l,w);
     const sl=document.getElementById("sline"); if(sl) sl.focus({preventScroll:true});
@@ -1684,6 +1741,69 @@
   gwe("gwCreate").onclick=gwCreate;
   gwe("gwClose").onclick=()=>gwOverlay.classList.remove("open");   // no closing on a stray backdrop click: a pasted answer would be lost
 
+
+  // ======================= v22.4: welcome + Help =======================
+  const HELP=[
+    {id:"start", t:"Getting started", h:`<p>Language Senpai trains vocabulary and sentences with spaced practice. Everything happens in this browser; nothing leaves your device.</p><ol>
+      <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words) or the <b>Sentence Dojo</b> (you build sentences from word tiles).</li>
+      <li><b>Try the sample list</b>, or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
+      <li>Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
+      <li><b>Back up</b> now and then (Settings &amp; backup → Export backup).</li></ol>`},
+    {id:"word", t:"Word Dojo", h:`<ul>
+      <li>You see the prompt and type the answer. A brand-new word is shown once so you can copy it.</li>
+      <li>Each word needs a few correct answers; words you already mastered come back now and then to space out the hard ones.</li>
+      <li>A wrong answer shows the right one. With "Make me retype words I get wrong" on, you type it once to continue.</li>
+      <li><b>Teal</b> means: valid, but this card wants a different word — type the one it asks for.</li>
+      <li>The <b>pencil</b> edits the card you're on; the <b>bolt</b> makes it a rival.</li>
+      <li>On a phone, the keyboard's <b>Go</b> key checks your answer.</li></ul>`},
+    {id:"sentence", t:"Sentence Dojo", h:`<ul>
+      <li>You see a translation and build the sentence from word tiles.</li>
+      <li><b>Tap</b> a word to place it in the next free slot; tap it again to send it back. Or <b>drag</b> it onto any slot — onto another word and the two swap.</li>
+      <li><b>Check</b>: words in the right place turn green and stay put. <b>Hint</b> places the next word for you (that sentence then counts as a miss).</li>
+      <li>If your word order is also correct but the card didn't know it, press <b>My order is also correct</b> — the card learns it.</li></ul>`},
+    {id:"rivals", t:"Rivals", h:`<p>Mark any card with the <b>bolt</b> to make it a rival. The red Rivals card at the top lets you challenge all of them at once. Afterwards you can leave behind the ones you got right on the first try.</p>`},
+    {id:"lists", t:"Your lists", h:`<ul>
+      <li>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</li>
+      <li><code>/</code> — either counts: <code>lopen / gaan = gehen</code></li>
+      <li><code>[ ]</code> — also valid, shown in teal: <code>dichtbij [nabij] = nahe</code></li>
+      <li><code>( )</code> — never required: a hint in the question, optional in your answer: <code>(zich) wassen</code></li>
+      <li>Sentences: other correct word orders (same words) go after <code>/</code>.</li>
+      <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Groups and folders fold away.</li></ul>`},
+    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats.</p>`},
+    {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>. The accent bar adds one-tap special letters — try <b>From my lists</b>. Backups are shared by both dojos.</p>`},
+    {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
+      <li><b>Back up regularly</b> — once a week is a good habit (Settings &amp; backup → Export backup). A backup restores everything, in any browser.</li>
+      <li><b>Use a normal window.</b> Private or incognito windows forget everything when they close.</li>
+      <li><b>Always open the same address</b> — bookmark it. A different address, or a newly downloaded copy of the file, starts empty.</li>
+      <li><b>If your progress disappears when you close the browser</b>, a privacy setting or extension is deleting what websites save. Allow this site to keep its data — in many browsers through the small icon to the left of the address — or switch that setting off.</li>
+      <li><b>Safari can delete a website's data</b> after about a week without a visit. On an iPhone or iPad, add the page to your Home Screen — and keep backing up.</li></ul>
+      <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
+      <p class="hint">If saving is blocked completely, Language Senpai tells you straight away.</p>`}
+  ];
+  const helpOverlay=document.getElementById("helpOverlay"), wlOverlay=document.getElementById("wlOverlay");
+  function openHelp(id){
+    const sec=HELP.find(x=>x.id===id)||HELP[0];
+    document.getElementById("helpNav").innerHTML=HELP.map(x=>`<button type="button" class="chip${x.id===sec.id?" on":""}" data-help="${x.id}">${x.t}</button>`).join("");
+    document.getElementById("helpBody").innerHTML=`<h4>${sec.t}</h4>`+sec.h;
+    document.querySelectorAll("#helpNav [data-help]").forEach(b=>b.onclick=()=>openHelp(b.dataset.help));
+    const pb=document.getElementById("persistBtn"); if(pb) pb.onclick=askPersist;
+    helpOverlay.classList.add("open");
+  }
+  async function askPersist(){
+    const st=document.getElementById("persistStatus");
+    try{
+      if(navigator.storage && navigator.storage.persist){ const ok=await navigator.storage.persist(); st.textContent = ok ? "Done — your browser will protect this page's data." : "Your browser decided not to (some only allow it for sites you visit often). Keep exporting backups."; }
+      else st.textContent="This browser can't do that — keep exporting backups.";
+    }catch(e){ st.textContent="That didn't work here — keep exporting backups."; }
+  }
+  document.getElementById("helpClose").onclick=()=>helpOverlay.classList.remove("open");
+  helpOverlay.addEventListener("click",e=>{ if(e.target===helpOverlay) helpOverlay.classList.remove("open"); });
+  document.getElementById("helpBtnHdr").onclick=()=>openHelp(isSent()?"sentence":"start");
+  function closeWelcome(){ wlOverlay.classList.remove("open"); S.welcomed=true; save(); }
+  document.getElementById("wlSkip").onclick=closeWelcome;
+  document.getElementById("wlTour").onclick=()=>{ closeWelcome(); openHelp("start"); };
+  document.getElementById("wlFix").onclick=()=>{ closeWelcome(); openHelp("save"); };
+
   // ---- settings ----
   const setOverlay=document.getElementById("setOverlay");
   const tg={dir:"dirToggle",typo:"typoToggle",strict:"strictToggle",time:"timeToggle",slip:"slipToggle",retype:"retypeToggle"};
@@ -1710,8 +1830,24 @@
   document.getElementById("dirToggle").onclick=()=>{ S.settings.typeDutch=!S.settings.typeDutch; save(); paintSettings(); };
   document.getElementById("typoToggle").onclick=()=>{ S.settings.typoTolerance=!S.settings.typoTolerance; save(); paintSettings(); };
   document.getElementById("strictToggle").onclick=()=>{ S.settings.strictSpelling=!S.settings.strictSpelling; save(); paintSettings(); };
-  document.getElementById("accentField").oninput=(e)=>{ S.settings.accentChars=e.target.value; save(); };
-  (function(){ const pr=document.getElementById("accentPresets"); const mk=(name,val)=>{ const b=document.createElement("button"); b.type="button"; b.className="preset"; b.textContent=name; b.onclick=()=>{ S.settings.accentChars=val; save(); document.getElementById("accentField").value=val; }; pr.appendChild(b); }; Object.keys(ACCENT_PRESETS).forEach(n=>mk(n,ACCENT_PRESETS[n])); mk("None",""); })();
+  document.getElementById("accentField").oninput=(e)=>{ S.settings.accentChars=e.target.value; S.settings.accentCustom=e.target.value; save(); };   // v22.4: typed sets are remembered as "My own"
+  // v22.4: "From my lists" (the Latin-script special letters your words actually use), "My own" (whatever you typed), more presets
+  function charsFromLists(){
+    const side = S.settings.typeDutch!==false ? "nl" : "de", counts=new Map();
+    S.lists.forEach(l=>(l.words||[]).forEach(w=>{ for(const ch of parseSide(w[side]).green.join(" ")){
+      let c=null; if(ch==="'"||ch==="\u2019") c="'"; else if(/\p{Script=Latin}/u.test(ch) && !/[a-z]/i.test(ch)) c=ch.toLowerCase();
+      if(c) counts.set(c,(counts.get(c)||0)+1); } }));
+    return [...counts.entries()].sort((x,y)=>y[1]-x[1]).slice(0,16).map(e=>e[0]).join(" ");
+  }
+  function paintAccentPresets(){
+    const pr=document.getElementById("accentPresets"); pr.innerHTML="";
+    const mk=(name,get,cls)=>{ const b=document.createElement("button"); b.type="button"; b.className="preset"+(cls?" "+cls:""); b.textContent=name; b.onclick=()=>{ const val=get(); S.settings.accentChars=val; save(); document.getElementById("accentField").value=val; }; pr.appendChild(b); };
+    mk("From my lists", charsFromLists, "auto");
+    mk("My own", ()=>S.settings.accentCustom||"", "mine");
+    Object.keys(ACCENT_PRESETS).forEach(n=>mk(n,()=>ACCENT_PRESETS[n]));
+    mk("None",()=>"");
+  }
+  paintAccentPresets();
   document.getElementById("timeToggle").onclick=()=>{ S.settings.timeMatters=!S.settings.timeMatters; save(); paintSettings(); };
   document.getElementById("slipToggle").onclick=()=>{ S.settings.slipResets=!S.settings.slipResets; save(); paintSettings(); };
   document.querySelectorAll("#setDojo [data-sd]").forEach(b=>b.onclick=()=>{ setDojo=b.dataset.sd; paintSettings(); });
@@ -1753,6 +1889,8 @@
   function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
   requestAnimationFrame(render);
+
+  if(showWelcome) requestAnimationFrame(()=>wlOverlay.classList.add("open"));
 })();
 </script>
 </body>
