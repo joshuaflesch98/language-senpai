@@ -488,8 +488,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="22.2";
+  const APP_VERSION="22.3";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"22.3", items:["Get sentences: other word orders are recognised even when the AI puts them after the translation, and Dutch paraphrases no longer leak into the prompt. Lists already imported that way are repaired automatically."]},
     {v:"22.2", items:["Sentence Dojo: every word stays exactly where you put it. Drag a word onto any slot — onto another word and the two swap.","\u201cMy order is also correct\u201d: when your word order is right but the card didn't know it, one tap teaches the card.","Get sentences now asks the AI for every other correct word order.","Parentheses are never required: \u201c(zich) wassen\u201d accepts \u201cwassen\u201d and \u201czich wassen\u201d.","Get words: one simple question about words you already have, smaller sentence lists, and your own list size.","With \u201cA slip resets the word\u201d off, one slip on a word you knew costs one step, not three.","Fewer settings up front (the rest is under More options); punctuation tiles are gone."]},
     {v:"22.1", items:["Get words keeps lists at a clean size and fills up a topic's last list first."]},
     {v:"22", items:["Get words and Get sentences.","Japanese sample lists for new users.","The Sentence Dojo's own rhythm: no copying first, one clean build is enough.","Safety nets: unreadable saves are set aside, a version number, and a backup reminder."]},
@@ -552,7 +553,7 @@
     let raw=null;
     try{ raw=localStorage.getItem(KEY); }catch(e){}
     if(raw){
-      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__"){ s.view="library"; s.activeListId=null; } return s; } }catch(e){}
+      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); repairSentenceOrders(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__"){ s.view="library"; s.activeListId=null; } return s; } }catch(e){}
       // v22: a save exists but this version can't read it — set it aside first, never overwrite it
       const rk=KEY+"_rescued_"+Date.now();
       try{ localStorage.setItem(rk, raw); rescued={key:rk, raw}; }catch(e){ rescued={key:null, raw}; saveBlocked=true; }
@@ -1483,12 +1484,35 @@
     for(const sep of ["\t"," — "," – "," - "]){ const j=t.indexOf(sep); if(j>0) return [t.slice(0,j).trim(), t.slice(j+sep.length).trim()]; }
     return null;
   }
+  // v22.3: AIs sometimes write "sentence = translation / other order". A segment after "=" that uses exactly the
+  // sentence's words is another word order → moved to the sentence side; one that is mostly the same words (a paraphrase
+  // in the language being learned) can't be built from the tiles and would give the answer away → dropped.
+  function wordBag(x){ return normSent(x).split(" ").filter(Boolean).sort().join(" "); }
+  function fixMisplacedOrders(pr){
+    const left=parseSide(pr[0]), alts=left.green.length?left.green:[left.primary];
+    const bags=new Set(alts.map(wordBag)), vocab=new Set(alts.join(" ").split(/\s+/).map(x=>normSent(x)).filter(Boolean));
+    const keep=[], move=[];
+    String(pr[1]).split("/").map(x=>x.trim()).filter(Boolean).forEach(sg=>{
+      const core=parseSide(sg).primary||sg, words=normSent(core).split(" ").filter(Boolean);
+      if(bags.has(wordBag(core))) move.push(core);
+      else if(!(words.length && words.filter(x=>vocab.has(x)).length/words.length>=0.6)) keep.push(sg);
+    });
+    if(keep.length && keep.length+move.length<String(pr[1]).split("/").filter(x=>x.trim()).length+1){
+      if(move.length) pr[0]=pr[0]+" / "+move.join(" / ");
+      pr[1]=keep.join(" / ");
+    }
+    return pr;
+  }
+  function repairSentenceOrders(st){   // v22.3: also repairs lists imported that way before this fix
+    (st.sLists||[]).forEach(l=>(l.words||[]).forEach(w=>{ const pr=[w.nl,w.de]; fixMisplacedOrders(pr); if(pr[0]!==w.nl||pr[1]!==w.de){ w.nl=pr[0]; w.de=pr[1]; bootSave=true; } }));
+  }
   function parseAnswer(text, sent){
     const idx=libraryIndex(sent), seen=new Set(), out={fresh:[], dups:[], inBatch:0, junk:[]};
     String(text||"").split("\n").forEach(raw=>{
       const t=cleanLine(raw); if(!t) return;
       const pr=splitPair(t);
       if(!pr || !pr[0] || !pr[1] || !parseSide(pr[0]).primary || !parseSide(pr[1]).primary){ out.junk.push(t); return; }
+      if(sent) fixMisplacedOrders(pr);
       const keys=itemKeys(pr[0],sent);
       if(keys.some(k=>seen.has(k))){ out.inBatch++; return; }
       keys.forEach(k=>seen.add(k));
@@ -1533,10 +1557,11 @@
       L.push(`Topic: ${topic||"everyday life"}.`);
       if(level) L.push(`Level: ${level} (CEFR) — keep the vocabulary and grammar right for that level.`);
       const from=gwFromWords(); if(from.length) L.push(`Each sentence should use at least one of these words: ${from.join(", ")}.`);
-      L.push(`One sentence per line, in exactly this format:`);
-      L.push(`${learn} sentence = ${meaning} translation`);
+      L.push(`One sentence per line, in exactly this format (the part after " / " only when another order is correct):`);
+      L.push(`${learn} sentence / same words in another correct order = ${meaning} translation`);
       L.push(`- 4 to 12 words per sentence.`);
       L.push(`- For EVERY sentence, check whether the same words can go in another order that is also correct and natural. If so, you MUST add each such version after " / " on the left side (at most 3). This is common — for example when a time or place expression moves to the front. Only leave it out when no other order is correct.`);
+      L.push(`- Every ${learn} version goes BEFORE the "=". After the "=" comes only the ${meaning} translation.`);
     }
     if(excl.length) L.push(sent ? `Don't repeat any of these sentences, which I already have: ${excl.join(" | ")}` : `Don't include any of these words, which I already know: ${excl.join(", ")}.`);
     L.push(`No numbering, no headings, no explanations — only the lines.`);
