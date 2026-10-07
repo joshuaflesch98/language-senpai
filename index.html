@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Senpai — vocab trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500&text=%E8%AA%9E%E6%96%87&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Familjen+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* v20 palette: washi paper ground, indigo (藍) primary, vermilion (朱) for rivals + misses, gold for mastery */
+    --bg:#F3EEE4; --surface:#FFFCF7; --surface-2:#F8F3EA; --surface-3:#EFE8DC;
+    --ink:#27231F; --muted:#625A51; --faint:#857B6F;
+    --line:#E7DFD2; --line-2:#D8CEBE;
+    --indigo:#2A4A80; --indigo-dk:#1F3963; --indigo-soft:#E5E9F0;
+    --good:#2F8A5E; --good-soft:#E3F1E8; --bad:#CF4A2E; --bad-soft:#FAEDEA; --almost:#2A4A80;
+    --teal:#1A8578; --teal-soft:#DCEFEA;
+    --gold-1:#F4C44D; --gold-2:#D99A1F; --gold-text:#A87711;
+    --rival:#CF4A2E; --rival-dk:#B03C23; --rival-soft:#FAEDEA; --rival-line:#F1C9C0;
+    --icon-off:#CFC5B5; --shadow:rgba(70,50,30,.26);
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Familjen Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased;
+    min-height:100%; display:flex; flex-direction:column; align-items:center; padding:26px 18px 60px;}
+  .wrap{width:100%;max-width:660px}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px;opacity:0;animation:rise .6s .04s ease forwards}
+  .brand{display:flex;align-items:baseline;gap:10px;cursor:pointer}
+  .brand h1{font-family:var(--serif);font-weight:500;font-size:27px;letter-spacing:-.01em}
+  .brand h1 .accent{color:var(--indigo);font-style:italic}
+  .brand .crumb{color:var(--muted);font-size:13.5px}
+  .tally{display:flex;align-items:center;gap:5px;flex-shrink:0}
+  /* v20: shurikens replace crowns — silver per mastered day, all three gold at mastery */
+  /* v22.2: slots, linkish buttons, More options, duplicates question, What's new */
+  .slot.droptarget{border-color:var(--indigo);background:var(--indigo-soft)}
+  .tile.droptarget{box-shadow:0 0 0 2px var(--indigo)}
+  .linkish{background:none;border:none;padding:0;margin-left:8px;font-family:var(--sans);font-size:13px;color:var(--indigo);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .feedback .linkish{display:inline-block;margin:6px 0 0}
+  .moreopts{margin:12px 0 2px;border-top:1px solid var(--line);padding-top:6px}
+  .moreopts summary{cursor:pointer;color:var(--indigo);font-size:14px;padding:6px 0;list-style:none}
+  .moreopts summary::-webkit-details-marker{display:none}
+  .moreopts summary::before{content:"▸ "}
+  .moreopts[open] summary::before{content:"▾ "}
+  .setsel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--ink);padding:10px 0 4px}
+  .setsel select{width:auto;padding:6px 10px;font-size:14px}
+  .setsel small{flex-basis:100%;color:var(--faint);font-size:12.5px}
+  .gwdupbar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;font-size:13.5px;color:var(--ink);margin:6px 0}
+  .dseg.mini{margin:0;padding:3px;border-radius:10px}
+  .dseg.mini button{padding:5px 11px;font-size:13px;flex:none}
+  .modal.wn{max-height:80vh;overflow:auto}
+  .wnv{margin:14px 0 4px;font-family:var(--serif);font-size:17px;color:var(--ink)}
+  .wn ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;line-height:1.5}
+  .wn li{margin:3px 0}
+  /* v22: notices, Get words panel, beta tag */
+  .notice{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold-2);border-radius:12px;padding:12px 14px;margin:0 0 16px;font-size:13.5px;color:var(--muted);line-height:1.45}
+  .notice b{color:var(--ink);font-weight:600}
+  .notice.warn{border-left-color:var(--bad)}
+  .notice .nbtns{display:flex;gap:8px;flex-wrap:wrap}
+  .addrow{display:flex;gap:8px;flex-wrap:wrap}
+  .modal.gw{max-height:92vh;overflow:auto}
+  .gw h4{margin:18px 0 8px}
+  .gwgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:6px 0 12px}
+  .gwf{display:flex;flex-direction:column;min-width:0}
+  .gwf.wide{grid-column:1/-1}
+  .gwf .flabel{margin:0 0 5px}
+  .gwf[hidden]{display:none}
+  .gwrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .gwstatus{font-size:13px;color:var(--good)}
+  .gwshow{margin:10px 0 2px}
+  .gwshow summary,.gwdet summary{cursor:pointer;font-size:13px;color:var(--indigo)}
+  .gw textarea{width:100%;box-sizing:border-box}
+  #gwPrompt{margin-top:8px;font-size:13px;color:var(--muted)}
+  .gwsum{font-size:13.5px;color:var(--muted);margin:8px 0 4px}
+  .gwsum b{color:var(--ink)}
+  .gwdet{margin:6px 0;font-size:13px}
+  .gwdup{display:flex;gap:8px;align-items:flex-start;padding:5px 0;color:var(--ink);cursor:pointer}
+  .gwdup small{color:var(--muted);display:block}
+  .gwjunk{font-size:12.5px;color:var(--faint);padding:2px 0}
+  .gwmore{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 4px}
+  .gwmore .flabel{margin:0 4px 0 0}
+  .chip{border:1px solid var(--line-2);background:var(--surface-2);border-radius:20px;padding:4px 11px;font-family:var(--sans);font-size:13px;color:var(--ink);cursor:pointer}
+  .chip:hover{border-color:var(--indigo)}
+  .chip small{color:var(--faint)}
+  .dn .beta{display:inline-block;margin-left:7px;padding:0 6px;border:1px solid var(--indigo);border-radius:6px;color:var(--indigo);font-family:var(--sans);font-size:10px;letter-spacing:.06em;text-transform:uppercase;vertical-align:3px;line-height:1.6;font-weight:500}
+  .verline{margin-top:14px}
+  @media (max-width:540px){ .gwgrid{grid-template-columns:1fr} }
+  /* v21: dojo tiles under the wordmark */
+  .dojos{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:0 0 20px;opacity:0;animation:rise .6s .02s ease forwards}
+  .dojo{display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 14px;cursor:pointer;font-family:var(--sans);color:var(--muted);transition:border-color .15s,background .15s,box-shadow .15s}
+  .dojo:hover{border-color:var(--line-2)}
+  .dojo.on{background:var(--indigo-soft);border-color:var(--indigo);color:var(--ink);box-shadow:0 8px 22px -18px var(--shadow);cursor:default}
+  .dojo .dk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-family:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;font-size:20px;line-height:1;color:var(--faint)}
+  .dojo.on .dk{background:var(--indigo);border-color:var(--indigo);color:#fff}
+  .dojo .dt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  .dojo .dn{font-family:var(--serif);font-size:17px;font-weight:500;color:inherit}
+  .dojo .ds{font-size:12px;color:var(--faint)}
+  .dojo:focus-visible,.fhead:focus-visible,.subhead:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+  /* v21: folders and groups fold in place */
+  .fhead{cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:8px}
+  .fhead .chev{display:inline-block;width:12px;font-size:11px;margin-right:1px;transition:transform .2s}
+  .fhead.collapsed .chev{transform:rotate(-90deg)}
+  .fhead:hover{color:var(--indigo)}
+  .fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .28s ease}
+  .fold.shut{grid-template-rows:0fr}
+  .fold>.foldin{min-height:0;overflow:hidden}
+  @media (prefers-reduced-motion: reduce){ .fold,.fhead .chev{transition:none} }
+  #stage.quiet .lib-intro,#stage.quiet .folder,#stage.quiet .hardcard,#stage.quiet .dojos{animation:none;opacity:1}
+  .listcard.here{animation:here 1.9s ease}
+  @keyframes here{0%,30%{box-shadow:0 0 0 2px var(--indigo),0 10px 26px -20px var(--shadow)}100%{box-shadow:0 10px 26px -20px var(--shadow)}}
+  .shuri.mini{width:13px;height:13px;vertical-align:-2px;margin-left:2px}
+  .dseg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px;margin:4px 0 18px}
+  .dseg button{flex:1;border:none;background:none;border-radius:9px;padding:8px 10px;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer}
+  .dseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(40,30,20,.14)}
+  .btn:disabled{opacity:.42;cursor:default}
+  /* v21: Sentence Dojo card */
+  .sprompt{font-family:var(--serif);font-weight:500;font-size:clamp(21px,3.6vw,27px);line-height:1.3;text-align:center;color:var(--ink);padding:2px 4px 4px}
+  .s-answer{font-family:var(--serif);font-size:19px;text-align:center;color:var(--indigo);margin-top:10px}
+  .sline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:64px;padding:12px;margin-top:22px;border:1.5px dashed var(--line-2);border-radius:14px;background:var(--surface-2);outline:none}
+  .sbank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;min-height:42px}
+  .tile{font-family:var(--serif);font-size:18px;line-height:1.2;padding:8px 13px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 2px 0 var(--line);transition:background .15s,border-color .15s,color .15s,opacity .15s;position:relative}
+  .tile:hover{border-color:var(--indigo)}
+  .tile:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+  .tile.punct{font-family:var(--sans);font-weight:600;min-width:36px}
+  .tile.pin{background:var(--good-soft);border-color:#A9D3BB;color:#1F6B45;cursor:default;box-shadow:none}
+  .tile.ghost{color:transparent;background:transparent;border-style:dashed;border-color:var(--line);box-shadow:none;cursor:default}
+  .tile.wrong{animation:wrongflash 1s ease}
+  @keyframes wrongflash{0%,45%{background:var(--bad-soft);border-color:var(--bad)}100%{background:var(--surface);border-color:var(--line-2)}}
+  .tile.dragging{opacity:.3}
+  .dragghost{position:fixed;left:0;top:0;transform:translate(-50%,-60%);pointer-events:none;z-index:300;cursor:grabbing;box-shadow:0 12px 26px -10px rgba(40,30,20,.4)}
+  .slot{display:inline-block;width:48px;height:40px;border-radius:10px;border:1.5px dashed var(--line-2);position:relative}
+  .dropbefore::before{content:"";position:absolute;left:-7px;top:3px;bottom:3px;width:3px;border-radius:2px;background:var(--indigo)}
+  .slot.dropbefore{border-color:var(--indigo);background:var(--indigo-soft)}
+  .slot.dropbefore::before{display:none}
+  .sfin{font-family:var(--serif);font-size:22px;color:var(--faint);margin-left:-3px}
+  .srow{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+  .sfull{font-family:var(--serif);font-size:19px;color:var(--ink);margin-top:8px}
+  .salso{font-size:12.5px;color:var(--muted);margin-top:4px}
+  @media (max-width:540px){ .scard .prompt-meta .dir{display:none} }
+  .shuri{width:18px;height:18px;display:inline-block;flex:none}
+  .shuri svg{width:100%;height:100%;display:block;overflow:visible}
+  .shuri.silver svg path{fill:url(#silvergrad) #AEB5BD;stroke:#7C848D;stroke-width:.7;stroke-linejoin:round}
+  .shuri.gold svg path{fill:url(#shurigold) #E0A92E;stroke:#A8761A;stroke-width:.7;stroke-linejoin:round}
+  .shuri.ghost svg path{fill:none;stroke:var(--line-2);stroke-width:1.3;stroke-linejoin:round}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:36px 32px 28px;
+    box-shadow:0 18px 40px -22px var(--shadow);position:relative;overflow:hidden;
+    opacity:0;animation:rise .6s .12s ease forwards;transition:border-color .25s,box-shadow .25s}
+  .card.flash-good{border-color:#a9ddc3;box-shadow:0 0 0 3px var(--good-soft),0 18px 40px -22px var(--shadow)}
+  .card.flash-almost{border-color:#AAB7CC;box-shadow:0 0 0 3px var(--indigo-soft),0 18px 40px -22px var(--shadow)}
+  .card.flash-teal{border-color:#7fd4c7;box-shadow:0 0 0 3px var(--teal-soft),0 18px 40px -22px var(--shadow)}
+  .card.flash-bad{border-color:#ECB7AB;box-shadow:0 0 0 3px var(--bad-soft),0 18px 40px -22px var(--shadow)}
+
+  .prompt-meta{display:flex;justify-content:space-between;align-items:center;color:var(--faint);font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:20px}
+  .prompt-meta .dir{color:var(--indigo);font-weight:500}
+  /* rivals: study-card flag toggle */
+  .prompt-meta{min-height:26px}
+  .leftgrp{display:flex;align-items:center;gap:10px;min-width:0}
+  .hardtoggle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:1px solid transparent;background:none;cursor:pointer;padding:0;line-height:0;flex:none;transition:background .14s,border-color .14s}
+  .hardtoggle svg{width:15px;height:15px;display:block}
+  .hardtoggle.on{background:var(--rival-soft);border-color:var(--rival-line)}
+  .hardtoggle.on svg{fill:var(--rival)}
+  .hardtoggle.off svg{fill:none;stroke:var(--icon-off);stroke-width:1.6;stroke-linejoin:round}
+  .hardtoggle.off:hover{background:var(--rival-soft)}
+  .hardtoggle.off:hover svg{stroke:var(--rival)}
+  /* v19: edit-this-card pencil, mirrors the bolt on the right */
+  .rightgrp{display:flex;align-items:center;gap:10px;min-width:0}
+  .edittoggle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:1px solid transparent;background:none;cursor:pointer;padding:0;line-height:0;flex:none;transition:background .14s}
+  .edittoggle svg{width:15px;height:15px;display:block;fill:none;stroke:var(--icon-off);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .edittoggle:hover{background:var(--surface-3)}
+  .edittoggle:hover svg{stroke:var(--indigo)}
+  .edittoggle:focus-visible,.hardtoggle:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+  .flabel{display:block;color:var(--ink);font-size:13.5px;margin:2px 0 6px}
+  .flabel small{color:var(--faint);font-size:12.5px}
+  .card-err{color:var(--bad);font-size:13px;margin:2px 0 0;display:none}
+  .card-err.show{display:block}
+  /* rivals: pinned library hub card */
+  .hardcard{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--rival-soft);border:1px solid var(--rival-line);border-radius:16px;padding:15px 18px;margin-bottom:22px;opacity:0;animation:rise .6s .08s ease forwards}
+  .hardcard .hc-left{display:flex;align-items:center;gap:13px;min-width:0}
+  .hardcard .hc-bolt{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--rival-line);flex:none}
+  .hardcard .hc-bolt svg{width:20px;height:20px;fill:var(--rival)}
+  .hardcard .hc-name{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink)}
+  .hardcard .hc-sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .btn.rival{background:var(--rival)} .btn.rival:hover{background:var(--rival-dk)}
+  .screen .bigbolt{width:66px;height:66px;margin:4px auto 18px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--rival-soft);border:1px solid var(--rival-line);animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
+  .screen .bigbolt svg{width:32px;height:32px;fill:var(--rival)}
+  .term{font-family:var(--serif);font-weight:500;font-size:clamp(36px,7.5vw,54px);line-height:1.05;letter-spacing:-.02em;text-align:center;padding:4px 0;color:var(--ink);word-break:break-word}
+  .show-answer{text-align:center;margin-top:10px;color:var(--indigo);font-size:20px;font-family:var(--serif)}
+  .new-tag{display:block;text-align:center;color:var(--faint);font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-top:14px}
+
+  .answer-row{margin-top:24px;display:flex;gap:10px}
+  input[type=text]{flex:1;background:var(--surface-2);border:1.5px solid var(--line-2);color:var(--ink);font-family:var(--sans);
+    font-size:19px;padding:13px 16px;border-radius:12px;outline:none;transition:border-color .16s,background .16s}
+  input[type=text]::placeholder{color:var(--faint)}
+  input[type=text]:focus{border-color:var(--indigo);background:var(--surface)}
+  input[type=text][readonly]{opacity:.7}
+  .btn{border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:15px;border-radius:12px;padding:11px 22px;
+    background:var(--indigo);color:#fff;letter-spacing:.01em;transition:transform .12s,background .16s}
+  .btn:hover{background:var(--indigo-dk)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--indigo);border:1.5px solid var(--line-2);font-weight:500}
+  .btn.ghost:hover{background:var(--indigo-soft);border-color:var(--indigo)}
+  .btn.sm{font-size:13px;padding:8px 14px;border-radius:10px}
+  .btn.danger{color:var(--bad)} .btn.danger:hover{background:var(--bad-soft);border-color:#ECB7AB}
+  .btn[disabled]{opacity:.3;cursor:default;pointer-events:none}
+  .btn.sm.arr{flex:1 1 0;min-height:0;padding:0;font-size:12px;font-weight:600;border-radius:9px;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  .accents{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;align-items:center}
+  .accents .lbl2{color:var(--faint);font-size:11px;letter-spacing:.05em;text-transform:uppercase;margin-right:2px}
+  .accents .ch{background:var(--surface-2);border:1px solid var(--line-2);color:var(--muted);border-radius:8px;padding:3px 11px;font-size:16px;cursor:pointer;font-family:var(--serif);transition:all .14s}
+  .accents .ch:hover{color:var(--indigo);border-color:var(--indigo);background:var(--surface)}
+
+  .feedback{margin-top:15px;min-height:22px;text-align:center;font-size:15px;opacity:0;transition:opacity .18s}
+  .feedback.show{opacity:1}
+  .feedback .ok{color:var(--good);font-weight:600} .feedback .no{color:var(--bad);font-weight:600} .feedback .alm{color:var(--almost);font-weight:600} .feedback .teal{color:var(--teal);font-weight:600}
+  .prompt-hint{text-align:center;font-size:13.5px;margin-top:1px;margin-bottom:9px}
+  .prompt-hint b{color:var(--muted);font-weight:600;font-style:normal;margin-right:5px}
+  .prompt-hint i{color:var(--ink);font-style:italic}
+  .feedback .correct{color:var(--ink);font-family:var(--serif);font-style:italic}
+  .feedback .rt{color:var(--faint);font-size:12.5px}
+  .feedback .tip{color:var(--faint);font-size:12.5px;display:block;margin-top:3px}
+
+  .mastery{margin-top:22px;display:flex;align-items:center;gap:12px}
+  .mastery .ml{color:var(--faint);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase}
+  .segs{display:flex;gap:6px;flex:1}
+  .seg{flex:1;height:7px;border-radius:5px;background:var(--surface-3);border:1px solid var(--line-2);transition:all .3s}
+  .seg.on{background:var(--indigo);border-color:var(--indigo)}
+  .seg.done{background:linear-gradient(90deg,var(--gold-1),var(--gold-2));border-color:var(--gold-2)}
+  .mastery .mlbl{color:var(--muted);font-size:12.5px;min-width:64px;text-align:right}
+
+  .progress{margin-top:22px;opacity:0;animation:rise .6s .2s ease forwards}
+  .progress .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+  .progress .head .k{color:var(--muted);font-size:12.5px}
+  .progress .head .k .u{color:var(--faint)} .progress .head .k .p{color:var(--indigo)} .progress .head .k .m{color:var(--gold-text)}
+  .progress .head .g{color:var(--faint);font-size:12.5px}
+  .dots{display:flex;flex-wrap:wrap;gap:7px}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--surface-3);border:1.5px solid var(--line-2);transition:all .3s}
+  .dot.practiced{background:var(--indigo-soft);border-color:var(--indigo)}
+  .dot.mastered{background:linear-gradient(180deg,var(--gold-1),var(--gold-2));border-color:var(--gold-2)}
+
+  .backbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;opacity:0;animation:rise .6s .04s ease forwards}
+  .link{background:none;border:none;color:var(--indigo);font-family:var(--sans);font-size:14px;cursor:pointer;padding:4px 2px;font-weight:500}
+  .link:hover{text-decoration:underline}
+  .link.quiet{color:var(--faint);font-weight:400}
+  .controls{display:flex;gap:8px;justify-content:center;margin-top:28px;flex-wrap:wrap;opacity:0;animation:rise .6s .26s ease forwards}
+
+  /* library */
+  .lib-intro{color:var(--muted);font-size:14px;margin-bottom:20px;opacity:0;animation:rise .6s .08s ease forwards}
+  .folder{opacity:0;animation:rise .6s .14s ease forwards;margin-bottom:24px}
+  .folder h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .folder h3 .n{background:var(--surface-3);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--muted)}
+  .listcard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px 18px;margin-bottom:10px;box-shadow:0 10px 26px -20px var(--shadow);transition:border-color .18s}
+  .listcard:hover{border-color:var(--line-2)}
+  .listcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .listcard .name{font-family:var(--serif);font-size:18px;font-weight:500}
+  .listcard .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .listcard .meta .m{color:var(--gold-text)}
+  .listcard .shuris{display:flex;gap:4px;flex-shrink:0;margin-top:2px}
+  .listcard .acts{display:flex;gap:8px;margin-top:13px;align-items:stretch}
+  .listcard .mainacts{display:flex;gap:7px;flex-wrap:wrap;flex:1;min-width:0;align-content:flex-start}
+  .reorder{display:flex;flex-direction:column;gap:4px;flex-shrink:0;width:71px}
+  .empty{color:var(--faint);font-size:13px;font-style:italic;padding:6px 2px}
+  .addrow{margin-top:6px}
+  .subgroup{margin-bottom:4px}
+  .subhead{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 8px 9px;border-radius:10px;user-select:none;transition:background .15s}
+  .subhead .chev{font-size:13px;color:var(--muted);width:13px;display:inline-block;transition:transform .2s,color .15s}
+  .subhead.collapsed .chev{transform:rotate(-90deg)}
+  .subhead .nm{font-family:var(--serif);font-size:16px;color:var(--ink);font-weight:500}
+  .subhead .cnt{background:var(--surface-3);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--muted)}
+  .subhead:hover{background:var(--surface-2)}
+  .subhead:hover .nm{color:var(--indigo)}
+  .subhead:hover .chev{color:var(--indigo)}
+  .subgrip{margin-left:auto;color:var(--faint);font-size:12px;display:flex;gap:9px}
+  .subgrip span{cursor:pointer;padding:0 2px;line-height:1}
+  .subgrip span:hover{color:var(--indigo)}
+  .subgrip span.off{opacity:.28;pointer-events:none}
+
+  .howto{margin-top:26px;border-top:1px solid var(--line);padding-top:16px;opacity:0;animation:rise .6s .32s ease forwards}
+  .howto summary{color:var(--faint);font-size:12.5px;cursor:pointer;list-style:none;letter-spacing:.03em}
+  .howto summary::-webkit-details-marker{display:none}
+  .howto summary:hover{color:var(--muted)}
+  .howto p{color:var(--muted);font-size:13px;margin-top:11px}
+  .howto p b{color:var(--ink);font-weight:600}
+
+  .screen{text-align:center;padding:16px 6px 4px;animation:rise .5s ease}
+  .screen .bigshuri{display:flex;justify-content:center;align-items:flex-end;gap:10px;margin:4px auto 22px;animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
+  .screen .bigshuri .shuri{width:64px;height:64px}
+  .screen .bigshuri.trio .shuri{width:50px;height:50px;margin-bottom:2px}
+  .screen .bigshuri.trio .shuri:nth-child(2){width:64px;height:64px;margin-bottom:0}
+  .screen .bigshuri.gold-glow{filter:drop-shadow(0 6px 14px rgba(217,154,31,.35))}
+  .screen .bigshuri.silver-glow{filter:drop-shadow(0 6px 14px rgba(95,105,120,.28))}
+  .screen h2{font-family:var(--serif);font-weight:500;font-size:28px;margin-bottom:10px}
+  .screen p{color:var(--muted);font-size:15px;max-width:430px;margin:0 auto 8px}
+  .screen .toward{color:var(--faint);font-size:13.5px;margin:16px auto 22px}
+  .screen .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+
+  .overlay{position:fixed;inset:0;background:rgba(39,35,31,.42);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .overlay.open{display:flex;animation:fade .18s ease}
+  .modal{background:var(--surface);border:1px solid var(--line-2);border-radius:18px;padding:24px;width:100%;max-width:520px;box-shadow:0 30px 70px -30px rgba(40,30,20,.35);max-height:90vh;overflow:auto}
+  .modal h3{font-family:var(--serif);font-weight:500;font-size:20px;margin-bottom:6px}
+  .modal h4{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin:18px 0 4px}
+  .modal .hint{color:var(--muted);font-size:13px;margin-bottom:10px}
+  .modal .hint code{background:var(--surface-3);padding:1px 6px;border-radius:5px;color:var(--indigo);font-size:12px}
+  .field{width:100%;background:var(--surface-2);border:1.5px solid var(--line-2);border-radius:11px;color:var(--ink);font-family:var(--sans);font-size:15px;padding:11px 14px;outline:none;margin-bottom:12px}
+  .field:focus{border-color:var(--indigo);background:var(--surface)}
+  textarea{width:100%;height:190px;background:var(--surface-2);border:1.5px solid var(--line-2);border-radius:11px;color:var(--ink);font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13.5px;line-height:1.7;padding:13px;resize:vertical;outline:none}
+  textarea:focus{border-color:var(--indigo);background:var(--surface)}
+  .modal-row{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .toggle{display:flex;align-items:center;gap:12px;color:var(--ink);font-size:14px;cursor:pointer;user-select:none;padding:8px 0}
+  .toggle .switch{width:42px;height:24px;border-radius:14px;background:var(--surface-3);border:1px solid var(--line-2);position:relative;transition:background .2s;flex-shrink:0}
+  .toggle .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:all .2s}
+  .toggle.on .switch{background:var(--indigo)}
+  .toggle.on .switch::after{left:20px}
+  .toggle small{color:var(--faint);display:block;font-size:12px;margin-top:1px}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+  .data-row{display:flex;gap:10px;margin-top:8px}
+  .data-row .btn{flex:1;text-align:center;padding:11px}
+
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{0%{opacity:0;transform:scale(.4)}100%{opacity:1;transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+  @media (max-width:540px){.card{padding:28px 20px 22px}.answer-row{flex-direction:column}.btn{padding:13px}}
+  /* v14: custom group dropdown */
+  .grpwrap{position:relative;margin-bottom:12px}
+  .grpwrap .field{margin-bottom:0}
+  .grpmenu{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;background:var(--surface);border:1px solid var(--line-2);border-radius:11px;box-shadow:0 16px 40px -18px rgba(40,30,20,.4);max-height:168px;overflow-y:auto;padding:4px;display:none}
+  .grpmenu.open{display:block}
+  .grpmenu .opt{padding:9px 12px;border-radius:8px;font-size:14px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .grpmenu .opt:hover{background:var(--indigo-soft)}
+  .grpmenu .opt .new{color:var(--indigo);font-weight:500}
+  .grpmenu .none{padding:9px 12px;color:var(--faint);font-size:13px}
+  /* v14: drill-complete aced box */
+  .screen .acedbox{margin:20px auto 22px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .screen p + .actions{margin-top:24px}   /* v20: real-height buttons need real breathing room */
+  .screen .acedhint{color:var(--faint);font-size:12.5px;max-width:340px;line-height:1.4}
+  /* v14: header settings link */
+  .hdr-right{display:flex;align-items:center;gap:14px}
+  /* v14: group rename pencil */
+  .subgrip .ren{font-size:12px}
+  /* v15: configurable accent bar */
+  .accbar-cfg{padding:8px 0}
+  .accbar-lbl{color:var(--ink);font-size:14px;margin-bottom:9px}
+  .accbar-lbl small{color:var(--faint);display:block;font-size:12px;margin-top:1px}
+  .preset-row{display:flex;flex-wrap:wrap;gap:7px}
+  .preset-row .preset{font-size:12.5px;padding:6px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--muted);cursor:pointer;font-family:var(--sans)}
+  .preset-row .preset:hover{border-color:var(--indigo);color:var(--indigo)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="silvergrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E4E7EB"/><stop offset=".55" stop-color="#AEB5BD"/><stop offset="1" stop-color="#8A929B"/></linearGradient><linearGradient id="shurigold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6D06A"/><stop offset=".55" stop-color="#E0A92E"/><stop offset="1" stop-color="#B9831A"/></linearGradient></defs></svg>
+
+<div class="wrap">
+  <header>
+    <div class="brand" id="brand"><h1>Language <span class="accent">Senpai</span></h1><span class="crumb" id="crumb"></span></div>
+    <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
+  </header>
+  <div id="stage"></div>
+</div>
+
+<!-- list editor -->
+<div class="overlay" id="listOverlay">
+  <div class="modal">
+    <h3 id="listTitle">New list</h3>
+    <input type="text" class="field" id="listName" placeholder="List name (e.g. Frequency 1–100, or Psychology terms)">
+    <div class="grpwrap"><input type="text" class="field" id="listGroup" autocomplete="off" placeholder="Group (optional) — e.g. Frequency, Psychology. Blank = Ungrouped"><div class="grpmenu" id="grpMenu"></div></div>
+    <p class="hint" id="listHelp">One pair per line: <code>word = meaning</code>. On the side you type, you can mark up alternatives:<br>
+      &nbsp;• <code>/</code> — both fully correct, either counts: <code>lopen = laufen / gehen</code><br>
+      &nbsp;• <code>[ ]</code> — valid but <b>not</b> the word being drilled: shows teal and asks you to type the target instead. Add as many as you need: <code>dichtbij [nabij] [vlakbij] = nahe</code><br>
+    &nbsp;• <code>( )</code> — something extra that's never required: shown as a hint when it's in the question, accepted but not needed when it's in your answer: <code>(zich) wassen</code> accepts "wassen" and "zich wassen"</p>
+    <textarea id="listArea" spellcheck="false"></textarea>
+    <div class="modal-row">
+      <span class="hint" style="margin:0" id="listCount"></span>
+      <div style="display:flex;gap:10px">
+        <button class="btn ghost" id="listCancel">Cancel</button>
+        <button class="btn" id="listSave">Save list</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- v19: edit the current card mid-session -->
+<div class="overlay" id="cardOverlay">
+  <div class="modal">
+    <h3>Edit this card</h3>
+    <p class="hint">Saving restarts this card with a fresh attempt. Progress on the word is kept.</p>
+    <label class="flabel" for="cardWord"><span id="cardWordLbl">Word</span> <small id="cardWordNote"></small></label>
+    <input type="text" class="field" id="cardWord" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <label class="flabel" for="cardMeaning"><span id="cardMeaningLbl">Meaning</span> <small id="cardMeaningNote"></small></label>
+    <input type="text" class="field" id="cardMeaning" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <p class="hint" id="cardHelp">Same markup as your lists: <code>/</code> either counts, <code>[ ]</code> valid but shows teal, <code>( )</code> hint under the prompt.</p>
+    <p class="card-err" id="cardErr"></p>
+    <div class="modal-row" style="justify-content:flex-end">
+      <div style="display:flex;gap:10px"><button class="btn ghost" id="cardCancel">Cancel</button><button class="btn" id="cardSave">Save changes</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- v22: Get words / Get sentences -->
+<div class="overlay" id="gwOverlay">
+  <div class="modal gw" role="dialog" aria-labelledby="gwTitle">
+    <h3 id="gwTitle">Get words</h3>
+    <p class="hint">Your own AI writes the list; Language Senpai turns it into cards and never adds anything you already have. Nothing leaves this browser.</p>
+    <div id="gwMore"></div>
+    <h4>1 · Describe it</h4>
+    <div class="gwgrid">
+      <label class="gwf"><span class="flabel">Learning</span><input type="text" class="field" id="gwLearn" placeholder="e.g. Dutch" autocomplete="off"></label>
+      <label class="gwf"><span class="flabel">Meanings in</span><input type="text" class="field" id="gwMeaning" placeholder="e.g. German" autocomplete="off"></label>
+      <label class="gwf wide"><span class="flabel">Topic</span><input type="text" class="field" id="gwTopic" placeholder="e.g. psychology, travel, the most common words" autocomplete="off"></label>
+      <label class="gwf wide" id="gwFromWrap"><span class="flabel">Use the words from <small>(optional)</small></span><select class="field" id="gwFrom"></select></label>
+      <label class="gwf"><span class="flabel">Level</span><select class="field" id="gwLevel"><option value="">Any level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
+      <label class="gwf"><span class="flabel">How many</span><select class="field" id="gwCount"></select></label>
+    </div>
+    <div class="gwrow"><button class="btn" id="gwCopy">Copy prompt</button><span class="gwstatus" id="gwStatus" role="status"></span></div>
+    <details class="gwshow"><summary>See the prompt</summary><textarea id="gwPrompt" readonly rows="8"></textarea></details>
+    <h4>2 · Paste the answer</h4>
+    <textarea id="gwPaste" rows="7" placeholder="Paste your AI's answer here"></textarea>
+    <div class="gwsum" id="gwSum" role="status"></div>
+    <div id="gwDups"></div>
+    <div class="gwgrid">
+      <label class="gwf"><span class="flabel">List name</span><input type="text" class="field" id="gwName" autocomplete="off"></label>
+      <label class="gwf"><span class="flabel">Group</span><input type="text" class="field" id="gwGroup" autocomplete="off"></label>
+    </div>
+    <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px"><button class="btn ghost" id="gwClose">Close</button><button class="btn" id="gwCreate" disabled>Create list</button></div></div>
+  </div>
+</div>
+
+<!-- settings -->
+<div class="overlay" id="setOverlay">
+  <div class="modal">
+    <h3>Settings &amp; backup</h3>
+    <div class="dseg" id="setDojo" role="tablist" aria-label="Settings for"><button type="button" role="tab" data-sd="word">Word Dojo</button><button type="button" role="tab" data-sd="sentence">Sentence Dojo</button></div>
+    <div id="setWordPane">
+    <h4>How you're tested</h4>
+    <div class="toggle" id="dirToggle"><div class="switch"></div><div><span id="dirLabel"></span></div></div>
+    <div class="toggle" id="typoToggle"><div class="switch"></div><div>Accept small typos (counts as correct)<small>A near-miss turns blue. Off by default — precise spelling matters for vocabulary.</small></div></div>
+    <div class="toggle" id="retypeToggle"><div class="switch"></div><div>Make me retype words I get wrong<small>Self-correcting an error can help it stick.</small></div></div>
+    <div class="accbar-cfg">
+      <div class="accbar-lbl">Accent-insert bar<small>Characters shown above the answer box for one-tap insert. Leave empty to hide the bar. Pick a preset or edit freely (add capitals or anything you like).</small></div>
+      <input type="text" class="field" id="accentField" autocomplete="off" spellcheck="false" placeholder="leave empty to hide the bar">
+      <div class="preset-row" id="accentPresets"></div>
+    </div>
+    <details class="moreopts"><summary>More options</summary>
+    <div class="toggle" id="strictToggle"><div class="switch"></div><div>Require exact accents &amp; apostrophes<small>Off by default, so a missing ë or ' still passes (the correct spelling is always shown). On = drill exact orthography.</small></div></div>
+    <div class="toggle" id="timeToggle"><div class="switch"></div><div>Time matters<small>Off = speed never affects mastery. On = a slow answer won't count toward mastery (a runaway pause is always capped either way).</small></div></div>
+    <div class="toggle" id="slipToggle"><div class="switch"></div><div>A slip resets the word<small>On = a wrong answer wipes that word's streak, so you re-earn it from scratch. Off = a wrong answer only knocks it back one step (one correct rep to recover).</small></div></div>
+    <label class="setsel">Words per list <select class="field" id="wListSel"><option>10</option><option>20</option><option>25</option><option>50</option></select><small>How Get words splits new words into lists.</small></label>
+    </details>
+    </div>
+    <div id="setSentPane" hidden>
+    <h4>How you're tested</h4>
+    <div class="toggle" id="sShowToggle"><div class="switch"></div><div>Show new sentences first<small>On = a new sentence is shown once for you to copy. Off = it's a real attempt from the start; Hint is your safety net.</small></div></div>
+    <details class="moreopts"><summary>More options</summary>
+    <div class="toggle" id="sQuickToggle"><div class="switch"></div><div>One clean build is enough<small>On = right on the first try masters a sentence for the day; after a miss it needs two correct builds. Off = the same rhythm as words.</small></div></div>
+    <div class="toggle" id="sSlipToggle"><div class="switch"></div><div>A slip resets the sentence<small>On = a failed check or a hint wipes that sentence's streak, so you re-earn it from scratch. Off = it only costs one step.</small></div></div>
+    <label class="setsel">Sentences per list <select class="field" id="sListSel"><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option></select><small>How Get sentences splits new sentences into lists.</small></label>
+    </details>
+    </div>
+    <div class="divider"></div>
+    <h4>Backup (whole library)</h4>
+    <p class="hint"><b style="color:var(--ink)">Progress lives only in this browser.</b> Export now and then so you never lose it — especially before moving the file.</p>
+    <p class="hint" id="lastExportLine" style="margin-bottom:12px"></p>
+    <div class="data-row">
+      <button class="btn ghost" id="exportBtn">⤓ Export backup</button>
+      <button class="btn ghost" id="importBtn">⤒ Restore backup</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+    <p class="hint verline" id="verLine"></p>
+    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="setClose">Done</button></div>
+  </div>
+</div>
+
+<!-- v22.2: what's new -->
+<div class="overlay" id="wnOverlay">
+  <div class="modal wn" role="dialog" aria-labelledby="wnTitle">
+    <h3 id="wnTitle">What's new</h3>
+    <div id="wnList"></div>
+    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="wnClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY="language_senpai_v1";
+  const APP_VERSION="22.2";
+  const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"22.2", items:["Sentence Dojo: every word stays exactly where you put it. Drag a word onto any slot — onto another word and the two swap.","\u201cMy order is also correct\u201d: when your word order is right but the card didn't know it, one tap teaches the card.","Get sentences now asks the AI for every other correct word order.","Parentheses are never required: \u201c(zich) wassen\u201d accepts \u201cwassen\u201d and \u201czich wassen\u201d.","Get words: one simple question about words you already have, smaller sentence lists, and your own list size.","With \u201cA slip resets the word\u201d off, one slip on a word you knew costs one step, not three.","Fewer settings up front (the rest is under More options); punctuation tiles are gone."]},
+    {v:"22.1", items:["Get words keeps lists at a clean size and fills up a topic's last list first."]},
+    {v:"22", items:["Get words and Get sentences.","Japanese sample lists for new users.","The Sentence Dojo's own rhythm: no copying first, one clean build is enough.","Safety nets: unreadable saves are set aside, a version number, and a backup reminder."]},
+    {v:"21", items:["The Sentence Dojo (beta) and the dojo tiles.","Folders and groups fold; you come back to the list you just studied."]},
+    {v:"20", items:["The new look: shurikens, Student and Master, Rivals."]}
+  ];
+  const SHURI_D="M12 1.2Q16.2 4.8 15 9L22.8 12Q19.2 16.2 15 15L12 22.8Q7.8 19.2 9 15L1.2 12Q4.8 7.8 9 9Z M13.8 12A1.8 1.8 0 1 0 10.2 12A1.8 1.8 0 1 0 13.8 12Z";
+  const SHURI='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="'+SHURI_D+'"/></svg>';
+  const BOLT='<svg viewBox="0 0 20 20"><path d="M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z"/></svg>';
+  const PENCIL='<svg viewBox="0 0 20 20"><path d="M13.6 3.4a1.9 1.9 0 0 1 2.7 2.7L7 15.4l-3.6.9.9-3.6 9.3-9.3Z"/><path d="M12.2 4.8l3 3"/></svg>';
+  const DEFAULT_ACCENTS="é è ë ï ö ü á à '";
+  const ACCENT_PRESETS={ Dutch:"é è ë ï ö ü á à '", German:"ä ö ü ß", French:"à â ç é è ê ë î ï ô û ù œ", Spanish:"á é í ó ú ñ ¿ ¡" };
+  const SET_SIZE=6, FRESH=3, REFRESH=1, FAST_MS=5000, RT_CAP=10000, ENDGAME_MAX=2, SPACER_MAX=2;
+
+  // v22: on-brand sample lists for new users — Japanese in Latin letters, English meanings, kanji as hints.
+  // They teach the app itself: "/" alternatives, [ ] teal answers, ( ) hints and other word orders.
+  function demoWords(){
+    return {id:uid(), name:"Dojo words (sample)", group:"Samples", folder:"learn", demo:true, completions:[], words:seedWords([
+      ["senpai","senior / mentor (先輩)"],
+      ["kōhai / kohai","junior (後輩)"],
+      ["sensei [shishō / shisho]","teacher (先生)"],
+      ["dōjō / dojo","training hall (道場)"],
+      ["shuriken","throwing star (手裏剣)"],
+      ["renshū / renshu","practice (練習)"],
+      ["arigatō / arigato","thank you (ありがとう)"],
+      ["ganbatte","do your best (頑張って)"]])};
+  }
+  function demoSentences(){
+    return {id:uid(), name:"Dojo sentences (sample)", group:"Samples", folder:"learn", kind:"sentence", demo:true, completions:[], words:seedWords([
+      ["Watashi wa gakusei desu.","I am a student."],
+      ["Senpai wa dōjō ni imasu.","The senpai is in the dojo."],
+      ["Mainichi nihongo o benkyō shimasu. / Nihongo o mainichi benkyō shimasu.","I study Japanese every day."],
+      ["Kore wa watashi no shuriken desu.","This is my shuriken."],
+      ["Ashita mo renshū shimashō.","Let's practise again tomorrow."]])};
+  }
+  function fixStarterSentences(st){   // v22: the V21 Dutch sample missed two valid orders — fixed only if still unedited
+    (st.sLists||[]).forEach(l=>{ if(l.name!=="Starter sentences (sample)") return; l.words.forEach(w=>{
+      if(w.nl==="Kun je het raam even dichtdoen?"){ w.nl="Kun je het raam even dichtdoen? / Kun je even het raam dichtdoen?"; bootSave=true; }
+      else if(w.nl==="Ze belt haar moeder elke zondag op. / Elke zondag belt ze haar moeder op."){ w.nl+=" / Ze belt elke zondag haar moeder op."; bootSave=true; }
+    }); });
+  }
+  function seedWords(arr){ return arr.map(p=>({nl:p[0],de:p[1],everSeen:false,mastered:false,streak:0,misses:0,days:[]})); }
+  function defaultState(){
+    return {
+      lists:[demoWords()],
+      sLists:[demoSentences()], sGroupOrder:{learn:[],learned:[]}, dojo:"word",
+      activeListId:null, view:"library", groupOrder:{learn:[],learned:[]}, collapsed:{},
+      settings:{ typeDutch:true, typoTolerance:false, strictSpelling:false, accentChars:DEFAULT_ACCENTS, timeMatters:false, slipResets:true, retypeOnError:false }
+    };
+  }
+  function uid(){ return "l"+Math.random().toString(36).slice(2,9); }
+  function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+  function fixSettings(s){ s=s||{}; return { wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
+  function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
+
+  let rescued=null, saveBlocked=false, bootSave=false, saveWarned=false;   // v22: declared before load/save first run
+  let S = load();
+  if(bootSave) save();   // a fix applied while loading is written straight away
+  function load(){
+    let raw=null;
+    try{ raw=localStorage.getItem(KEY); }catch(e){}
+    if(raw){
+      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__"){ s.view="library"; s.activeListId=null; } return s; } }catch(e){}
+      // v22: a save exists but this version can't read it — set it aside first, never overwrite it
+      const rk=KEY+"_rescued_"+Date.now();
+      try{ localStorage.setItem(rk, raw); rescued={key:rk, raw}; }catch(e){ rescued={key:null, raw}; saveBlocked=true; }
+    }
+    return defaultState();
+  }
+  function save(){
+    if(saveBlocked) return;                       // the unreadable save hasn't been exported yet
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); saveWarned=false; }
+    catch(e){ if(!saveWarned){ saveWarned=true; alert("Language Senpai couldn't save your progress: the browser's storage is full or blocked.\n\nOpen Settings & backup and export a backup now so nothing is lost."); } }
+  }
+
+  let hardList=null;
+  // v21: dojos — each keeps its own lists, group order and rivals; the engine is shared
+  const isSent=()=>S.dojo==="sentence";
+  function curLists(){ return isSent() ? S.sLists : S.lists; }
+  function curGroupOrder(){ S.sGroupOrder=fixGroupOrder(S.sGroupOrder); S.groupOrder=fixGroupOrder(S.groupOrder); return isSent() ? S.sGroupOrder : S.groupOrder; }
+  function listKind(l){ return l && l.kind==="sentence" ? "sentence" : "word"; }
+  function unitOf(l){ return listKind(l)==="sentence" ? "sentence" : "word"; }
+  const activeList=()=> S.activeListId==="__hard__" ? hardList : (S.lists.find(l=>l.id===S.activeListId) || (S.sLists||[]).find(l=>l.id===S.activeListId));
+  function listRank(l){ const n=(l.completions||[]).length; return n>=3?"gold":(n>=1?"silver":"none"); }
+  // v19: in a Rivals drill, words unmarked mid-session drop out of every tally immediately
+  function liveWords(l){ return l._virtual ? l.words.filter(w=>!w._drop) : l.words; }
+  function counts(l){ let u=0,p=0,m=0; const ws=liveWords(l); ws.forEach(w=>{ if(w.mastered)m++; else if(w.everSeen)p++; else u++; }); return {u,p,m,total:ws.length}; }
+  function targetFor(w){
+    // v22: in the Sentence Dojo one clean build is enough; after a miss it takes two
+    if(listKind(activeList())==="sentence" && S.settings.sQuick!==false) return w.misses>0 ? 2 : 1;
+    return (w.days.length>0 && (w.misses===0 || !S.settings.slipResets)) ? REFRESH : FRESH;   // v22.2: off = a miss never raises the target
+  }
+
+  // ---- matching ----
+  function baseNorm(s){ return s.replace(/[\u2019\u2018\u201b]/g,"'").toLowerCase().trim().replace(/\s+/g," "); }
+  function looseNorm(s){ return baseNorm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/'/g,""); }
+  function allowed(w){ return Math.max(1, Math.round(looseNorm(w).length*0.2)); }
+  function lev(a,b){ const m=a.length,n=b.length; if(!m)return n; if(!n)return m; const d=Array.from({length:m+1},(_,i)=>[i].concat(Array(n).fill(0))); for(let j=1;j<=n;j++)d[0][j]=j;
+    for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){ d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); } return d[m][n]; }
+  function parseSide(str){
+    str=String(str==null?"":str);
+    const hints=[]; str=str.replace(/\(([^)]*)\)/g, (m,g)=>{ const t=g.trim(); if(t) hints.push(t); return " "; });
+    const teal=[]; str=str.replace(/\[([^\]]*)\]/g, (m,g)=>{ g.split("/").forEach(s=>{ s=s.trim(); if(s) teal.push(s); }); return " "; });
+    const green=str.split("/").map(s=>s.trim()).filter(Boolean);
+    return { green, teal, hint:hints.join(" · "), primary:(green[0]||"") };
+  }
+  function verdictOne(input,alt){
+    if(baseNorm(input)===baseNorm(alt)) return "exact";
+    if(looseNorm(input)===looseNorm(alt)) return "accent";
+    if(lev(looseNorm(input),looseNorm(alt))<=allowed(alt)) return "typo";
+    return "wrong";
+  }
+  // v22.2: "( ) is never required" — on the side you type, each ( ) group may be typed or left out
+  function optionalForms(target){
+    const out=[];
+    String(target==null?"":target).replace(/\[[^\]]*\]/g," ").split("/").forEach(alt=>{
+      const groups=alt.match(/\([^)]*\)/g)||[];
+      if(!groups.length || groups.length>3) return;
+      for(let mask=1; mask<(1<<groups.length); mask++){
+        let k=0; const v=alt.replace(/\(([^)]*)\)/g,(m,g)=>((mask>>(k++))&1) ? " "+g+" " : " ").replace(/\s+/g," ").trim();
+        if(v) out.push(v);
+      }
+    });
+    return out;
+  }
+  function check(input,target){
+    const {green,teal,primary}=parseSide(target);
+    const greens=(green.length?green:[String(target||"")]).concat(optionalForms(target));
+    const canon=primary||greens[0]||String(target||"");
+    const rank={wrong:0,typo:1,accent:2,exact:3};
+    let best={verdict:"wrong",canonical:canon,rank:0};
+    for(const alt of greens){ const v=verdictOne(input,alt); if(rank[v]>best.rank) best={verdict:v,canonical:alt,rank:rank[v]}; }
+    if(best.rank>0) return best;                                   // a fully-correct answer wins
+    for(const alt of teal){ if(baseNorm(input)===baseNorm(alt)||looseNorm(input)===looseNorm(alt)) return {verdict:"teal",canonical:canon,typedAlt:alt,rank:0}; }
+    return {verdict:"wrong",canonical:canon,rank:0};
+  }
+
+  // ---- session ----
+  let work=[], lastIdx=null, trial=0, cur=null, phase="answer", shownAt=0, firstKey=0, timer=null;
+  function startSession(l){
+    l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
+    work=[]; for(let i=0;i<l.words.length && work.length<SET_SIZE;i++) work.push(i);
+    lastIdx=null; trial=0; S.view="study"; S.activeListId=l.id; save();
+    const n=pickNext(l); if(n===null){ completeSession(l); return; } cur=n; render();
+  }
+  function hardWords(){ const out=[]; curLists().forEach(l=>l.words.forEach(w=>{ if(w.hard) out.push(w); })); return out; }
+  function startHardDrill(){ const ws=hardWords(); if(!ws.length) return; hardList={ id:"__hard__", name:"Rivals", kind:isSent()?"sentence":"word", _virtual:true, completions:[], words:ws }; startSession(hardList); }
+  function introduceIfNeeded(l){
+    if(work.length>=Math.min(SET_SIZE,l.words.length)) return;
+    const untouched = work.filter(i=>l.words[i].streak===0 && !l.words[i].everSeen).length;
+    if(untouched>0) return; // bring a new word only once current new ones are under way
+    const next = l.words.findIndex((w,i)=>!w.mastered && !w._drop && work.indexOf(i)<0);
+    if(next>=0) work.push(next);
+  }
+  function pickNext(l){
+    // session ends only when every word in the list is mastered
+    const left=l.words.map((w,i)=>i).filter(i=>!l.words[i].mastered && !l.words[i]._drop);
+    if(!left.length) return null;
+
+    // endgame: with only a word or two unmastered, weave already-mastered words
+    // back in as spacers so the last word gets real gaps (+ a little review)
+    // instead of back-to-back cramming. The gap grows as the word nears mastery.
+    if(left.length<=ENDGAME_MAX){
+      const spacers=l.words.map((w,i)=>i).filter(i=>l.words[i].mastered && !l.words[i]._drop);
+      if(spacers.length){
+        const u=left.slice().sort((a,b)=>(l.words[a]._t||0)-(l.words[b]._t||0) || l.words[a].streak-l.words[b].streak)[0];
+        const want=Math.min(SPACER_MAX, 1+l.words[u].streak, spacers.length);
+        if(trial-(l.words[u]._t||0) < want){
+          const s=spacers.sort((a,b)=>(l.words[a]._t||0)-(l.words[b]._t||0))[0];
+          l.words[s]._t=++trial; lastIdx=s; return s;            // serve a spacer (light review)
+        }
+        l.words[u]._t=++trial; lastIdx=u; return u;               // serve the unmastered word
+      }
+      // nothing mastered yet (tiny list) → fall through to normal scheduling
+    }
+
+    // normal rolling-window scheduling
+    work = work.filter(i=>!l.words[i].mastered && !l.words[i]._drop);
+    introduceIfNeeded(l);
+    work = work.filter(i=>!l.words[i].mastered && !l.words[i]._drop);
+    if(!work.length){
+      const more=l.words.findIndex(w=>!w.mastered && !w._drop);
+      if(more<0) return null;
+      work.push(more);
+    }
+    let cand=work.slice();
+    if(cand.length>1 && lastIdx!=null){ const f=cand.filter(i=>i!==lastIdx); if(f.length) cand=f; }
+    cand.sort((a,b)=> (l.words[a]._t||0)-(l.words[b]._t||0) || l.words[a].streak-l.words[b].streak);
+    const pick=cand[0]; l.words[pick]._t=++trial; lastIdx=pick; return pick;
+  }
+
+  // ---- rendering: router ----
+  const stage=document.getElementById("stage");
+  let lastView="";
+  function render(){
+    if(S.view==="study" && activeList() && cur!=null && activeList().words[cur]){ renderStudy(); lastView="study"; }
+    else { const fromStudy=lastView==="study"; S.view="library"; renderLibrary(); lastView="library"; if(fromStudy) returnToList(); }
+    paintHeader();
+  }
+  function paintHeader(){
+    const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr");
+    if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; }
+    else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; }
+  }
+  function shuriRow(lvl,n){ let h=""; for(let i=0;i<3;i++){ const k = lvl==="gold" ? "gold" : (i<n ? "silver" : "ghost"); h+='<span class="shuri '+k+'">'+SHURI+'</span>'; } return h; }
+
+  // ---- library view ----
+  function groupOf(l){ return (l.group && l.group.trim()) ? l.group.trim() : "Ungrouped"; }
+  function groupsInFolder(fk){
+    const present=[]; curLists().forEach(l=>{ if(l.folder===fk){ const g=groupOf(l); if(present.indexOf(g)<0) present.push(g); } });
+    const order=curGroupOrder()[fk]||[];
+    const ordered=order.filter(g=>present.indexOf(g)>=0);
+    present.forEach(g=>{ if(ordered.indexOf(g)<0) ordered.push(g); });
+    return ordered;
+  }
+  function listsInFolderGroup(fk,g){ return curLists().filter(l=>l.folder===fk && groupOf(l)===g); }
+  function collapsedKey(fk,g){ return (isSent()?"s\u241F":"")+fk+"\u241F"+g; }
+  function folderKey(fk){ return "folder\u241F"+(isSent()?"s\u241F":"")+fk; }
+
+  function backupDue(){
+    const all=[...S.lists, ...(S.sLists||[])];
+    const progress=all.some(l=>!l.demo && (((l.completions||[]).length>0) || l.words.some(w=>w.everSeen)));
+    if(!progress) return false;
+    if(S.backupSnooze && Date.now()-S.backupSnooze < 3*864e5) return false;
+    return !S.lastExport || Date.now()-S.lastExport > 7*864e5;
+  }
+  function noticeHtml(){
+    if(rescued) return `<div class="notice warn" id="rescueNote"><div><b>This version couldn't read your saved progress.</b> ${rescued.key?"It has been set aside safely — nothing was overwritten — and you're seeing a fresh start.":"It couldn't be set aside (storage is full), so nothing will be saved until you export it."} Export the saved copy to keep it.</div><div class="nbtns"><button class="btn sm" id="rescueExport">Export saved copy</button>${(rescued.key||rescued.exported)?'<button class="btn ghost sm" id="rescueDismiss">Dismiss</button>':''}</div></div>`;
+    if(backupDue()) return `<div class="notice" id="backupNote"><div><b>Last backup: ${relTime(S.lastExport)}.</b> Your progress lives only in this browser.</div><div class="nbtns"><button class="btn sm" id="nExport">Export backup</button><button class="btn ghost sm" id="nLater">Later</button></div></div>`;
+    return "";
+  }
+  function wireNotice(){
+    const rx=document.getElementById("rescueExport"); if(rx) rx.onclick=()=>{ download(rescued.raw,"language-senpai-rescued-save.json"); rescued.exported=true; saveBlocked=false; renderLibrary(true); };
+    const rd=document.getElementById("rescueDismiss"); if(rd) rd.onclick=()=>{ rescued=null; renderLibrary(true); };
+    const ne=document.getElementById("nExport"); if(ne) ne.onclick=()=>{ doExport(); renderLibrary(true); };
+    const nl=document.getElementById("nLater"); if(nl) nl.onclick=()=>{ S.backupSnooze=Date.now(); save(); renderLibrary(true); };
+  }
+  function dojoTiles(){
+    const t=(id,k,name,n)=>`<button class="dojo${S.dojo===id?' on':''}" data-dojo="${id}" aria-pressed="${S.dojo===id}"><span class="dk" lang="ja" aria-hidden="true">${k}</span><span class="dt"><span class="dn">${name}</span><span class="ds">${n} list${n===1?"":"s"}</span></span></button>`;
+    return `<nav class="dojos" aria-label="Dojos">${t("word","語","Word Dojo",S.lists.length)}${t("sentence","文","Sentence Dojo<span class=\"beta\">beta</span>",(S.sLists||[]).length)}</nav>`;
+  }
+  function folderHtml(fk,label,n,withAdd){
+    const shut=!!(S.collapsed && S.collapsed[folderKey(fk)]);
+    const empty = fk==="learn" ? "No lists here." : "Nothing here yet — lists you master or already know land here.";
+    return `<div class="folder"><h3 class="fhead${shut?' collapsed':''}" data-fk="${fk}" role="button" tabindex="0" aria-expanded="${!shut}"><span class="chev">▾</span>${label} <span class="n">${n}</span></h3>
+      <div class="fold${shut?' shut':''}"${shut?' inert':''}><div class="foldin">
+        ${withAdd?`<div class="addrow"><button class="btn ghost sm" id="addBtn">+ New list</button><button class="btn ghost sm" id="gwBtn">${isSent()?"Get sentences":"Get words"}</button></div>`:''}
+        <div id="${fk}Wrap">${n?"":'<div class="empty">'+empty+'</div>'}</div>
+      </div></div></div>`;
+  }
+  // v21: fold/unfold in place with a short slide — no rebuild of the library, no replayed fade-ins
+  function wireFold(head, body, key){
+    const toggle=()=>{
+      S.collapsed=(S.collapsed&&typeof S.collapsed==="object")?S.collapsed:{};
+      const shut=!S.collapsed[key]; S.collapsed[key]=shut; save();
+      head.classList.toggle("collapsed",shut); head.setAttribute("aria-expanded",String(!shut));
+      body.classList.toggle("shut",shut); if(shut) body.setAttribute("inert",""); else body.removeAttribute("inert");
+    };
+    head.addEventListener("click",e=>{ if(e.target.closest("[data-ga]")) return; toggle(); });
+    head.addEventListener("keydown",e=>{ if(e.target!==head) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
+  }
+  function renderLibrary(quiet){
+    const keepY = quiet ? window.scrollY : 0;
+    const L=curLists(), sent=isSent();
+    const learn=L.filter(l=>l.folder==="learn"), learned=L.filter(l=>l.folder==="learned");
+    const hard=hardWords();
+    const intro = sent
+      ? "Your sentence lists. Build each sentence from its words — once a list is mastered on three separate days, its shurikens turn gold."
+      : "Your word lists. Study a list until every word is mastered on three separate days to turn its shurikens gold — or, for a list you already know, move it straight to Master.";
+    stage.classList.toggle("quiet", !!quiet);
+    stage.innerHTML=`${noticeHtml()}${dojoTiles()}
+      <p class="lib-intro">${intro}</p>
+      <div class="hardcard"><div class="hc-left"><span class="hc-bolt">${BOLT}</span><div><div class="hc-name">Rivals</div><div class="hc-sub">${hard.length===0?"No rivals right now":hard.length===1?"1 rival awaits you":`${hard.length} rivals await you`}</div></div></div>${hard.length?`<button class="btn sm rival" id="hardGo">${hard.length===1?"Challenge your rival":"Challenge your rivals"}</button>`:""}</div>
+      ${folderHtml("learn","Student",learn.length,true)}
+      ${folderHtml("learned","Master",learned.length,false)}`;
+    fillFolder("learnWrap", "learn"); fillFolder("learnedWrap", "learned");
+    stage.querySelectorAll(".fhead").forEach(h=>wireFold(h, h.nextElementSibling, folderKey(h.dataset.fk)));
+    document.getElementById("addBtn").onclick=()=>openList(null);
+    document.getElementById("gwBtn").onclick=openGetWords;
+    wireNotice();
+    const hg=document.getElementById("hardGo"); if(hg) hg.onclick=startHardDrill;
+    stage.querySelectorAll("[data-dojo]").forEach(b=>b.onclick=()=>{ if(S.dojo===b.dataset.dojo) return; S.dojo=b.dataset.dojo; save(); window.scrollTo(0,0); renderLibrary(); paintHeader(); });
+    if(quiet) window.scrollTo(0,keepY);
+  }
+  // v21: coming back from a session lands you on the list you just studied, not at the top
+  function returnToList(){
+    const id=S.activeListId;
+    if(!id || id==="__hard__"){ window.scrollTo(0,0); return; }
+    const card=stage.querySelector('.listcard[data-id="'+id+'"]');
+    if(!card){ window.scrollTo(0,0); return; }
+    const shut=card.closest(".fold.shut");
+    if(shut){ const h=shut.previousElementSibling; if(h) h.scrollIntoView({block:"center"}); return; }
+    card.scrollIntoView({block:"center"});
+    card.classList.add("here"); setTimeout(()=>card.classList.remove("here"),1900);
+  }
+  function moveWithinGroup(l, dir){
+    const A=curLists(); const sib=A.filter(x=>x.folder===l.folder && groupOf(x)===groupOf(l));
+    const pos=sib.findIndex(x=>x.id===l.id), swap=sib[pos+dir];
+    if(!swap) return;
+    const i=A.findIndex(x=>x.id===l.id), j=A.findIndex(x=>x.id===swap.id);
+    [A[i],A[j]]=[A[j],A[i]];
+    save(); renderLibrary(true);
+  }
+  function moveGroup(fk, group, dir){
+    const ord=groupsInFolder(fk); const pos=ord.indexOf(group), j=pos+dir;
+    if(j<0||j>=ord.length) return;
+    [ord[pos],ord[j]]=[ord[j],ord[pos]];
+    curGroupOrder()[fk]=ord;
+    save(); renderLibrary(true);
+  }
+  function renameGroup(g){
+    const nn=(prompt("Rename group “"+g+"” to:", g)||"").trim();
+    if(!nn || nn===g) return;
+    curLists().forEach(l=>{ if(groupOf(l)===g) l.group=nn; });   // carry every list in the group, both folders (this dojo)
+    const GO=curGroupOrder();
+    ["learn","learned"].forEach(f=>{ const ord=GO[f]; const idx=ord.indexOf(g); if(idx>=0){ if(ord.includes(nn)) ord.splice(idx,1); else ord[idx]=nn; } });
+    save(); renderLibrary(true);
+  }
+  function listCard(l, sibs, idx){
+    const c=counts(l), lvl=listRank(l);
+    const card=document.createElement("div"); card.className="listcard"; card.dataset.id=l.id;
+    card.innerHTML=`<div class="top"><div><div class="name">${esc(l.name)}</div>
+        <div class="meta">${c.total} ${unitOf(l)}${c.total===1?"":"s"} · <span class="m">${c.m} mastered</span></div></div>
+        <div class="shuris">${shuriRow(lvl,(l.completions||[]).length)}</div></div>
+      <div class="acts">
+        <div class="mainacts">
+          <button class="btn sm" data-a="study">Study</button>
+          <button class="btn ghost sm" data-a="move">${l.folder==="learn"?"Move to Master":"Back to Student"}</button>
+          <button class="btn ghost sm" data-a="edit">Edit</button>
+          <button class="btn ghost sm danger" data-a="del">Delete</button>
+        </div>
+        <div class="reorder">
+          <button class="btn ghost sm arr" data-a="up" title="Move up" aria-label="Move up" ${idx===0?'disabled':''}>↑</button>
+          <button class="btn ghost sm arr" data-a="down" title="Move down" aria-label="Move down" ${idx===sibs.length-1?'disabled':''}>↓</button>
+        </div>
+      </div>`;
+    card.querySelector('[data-a="study"]').onclick=()=>startSession(l);
+    card.querySelector('[data-a="move"]').onclick=()=>{ l.folder=l.folder==="learn"?"learned":"learn"; save(); renderLibrary(true); };
+    card.querySelector('[data-a="edit"]').onclick=()=>openList(l);
+    card.querySelector('[data-a="del"]').onclick=()=>{ if(confirm('Delete "'+l.name+'" and its progress?')){ if(isSent()) S.sLists=S.sLists.filter(x=>x.id!==l.id); else S.lists=S.lists.filter(x=>x.id!==l.id); save(); renderLibrary(true); } };
+    card.querySelector('[data-a="up"]').onclick=()=>moveWithinGroup(l,-1);
+    card.querySelector('[data-a="down"]').onclick=()=>moveWithinGroup(l,1);
+    return card;
+  }
+  function fillFolder(wrapId, fk){
+    const wrap=document.getElementById(wrapId); if(!wrap) return;
+    const groups=groupsInFolder(fk);
+    if(groups.length===0 || (groups.length===1 && groups[0]==="Ungrouped")){
+      const lists=curLists().filter(l=>l.folder===fk);
+      lists.forEach((l,idx)=>wrap.appendChild(listCard(l, lists, idx)));
+      return;
+    }
+    groups.forEach((g,gi)=>{
+      const lists=listsInFolderGroup(fk,g);
+      const collapsed=!!(S.collapsed && S.collapsed[collapsedKey(fk,g)]);
+      const sg=document.createElement("div"); sg.className="subgroup";
+      sg.innerHTML=`<div class="subhead${collapsed?' collapsed':''}">
+          <span class="chev">▾</span><span class="nm">${esc(g)}</span><span class="cnt">${lists.length}</span>
+          <span class="subgrip">${g==="Ungrouped"?"":`<span data-ga="ren" title="Rename group" class="ren">✎</span>`}<span data-ga="up" title="Move group up" class="${gi===0?'off':''}">▲</span><span data-ga="down" title="Move group down" class="${gi===groups.length-1?'off':''}">▼</span></span>
+        </div><div class="fold${collapsed?' shut':''}"${collapsed?' inert':''}><div class="foldin subbody"></div></div>`;
+      const head=sg.querySelector('.subhead'), body=sg.querySelector('.subbody');
+      head.setAttribute("role","button"); head.tabIndex=0; head.setAttribute("aria-expanded",String(!collapsed));
+      wireFold(head, body.parentElement, collapsedKey(fk,g));
+      const up=head.querySelector('[data-ga="up"]'), dn=head.querySelector('[data-ga="down"]');
+      up.onclick=(e)=>{ e.stopPropagation(); moveGroup(fk,g,-1); };
+      dn.onclick=(e)=>{ e.stopPropagation(); moveGroup(fk,g,1); };
+      const rn=head.querySelector('[data-ga="ren"]'); if(rn) rn.onclick=(e)=>{ e.stopPropagation(); renameGroup(g); };
+      lists.forEach((l,idx)=>body.appendChild(listCard(l, lists, idx)));
+      wrap.appendChild(sg);
+    });
+  }
+
+  // ---- study view ----
+  function promptText(w){ return S.settings.typeDutch ? w.de : w.nl; }
+  function answerText(w){ return S.settings.typeDutch ? w.nl : w.de; }
+  function promptParts(w){ return parseSide(promptText(w)); }
+  function answerPrimary(w){ return parseSide(answerText(w)).primary || answerText(w); }
+  function dirText(){ return S.settings.typeDutch ? "meaning → word" : "word → meaning"; }
+  function dotsHtml(l){
+    const cells=liveWords(l).map(w=>{ let c="dot"; if(w.mastered)c+=" mastered"; else if(w.everSeen)c+=" practiced"; return '<span class="'+c+'"></span>'; }).join("");
+    const c=counts(l);
+    return `<div class="progress"><div class="head"><span class="k"><span class="u">${c.u} new</span> · <span class="p">${c.p} learning</span> · <span class="m">${c.m} mastered</span></span>
+      <span class="g">${l._virtual ? "practice · no shurikens" : ((l.completions||[]).length+"/3 days toward gold")}</span></div><div class="dots">${cells}</div></div>`;
+  }
+  function masteryHtml(){ return `<div class="mastery"><span class="ml">Mastery</span><div class="segs" id="segs"></div><span class="mlbl" id="mlbl"></span></div>`; }
+  function updateMastery(w){
+    const segs=document.getElementById("segs"), lbl=document.getElementById("mlbl"); if(!segs) return;
+    const t=targetFor(w); let h="";
+    for(let i=0;i<t;i++){ let c="seg"; if(w.mastered) c+=" done"; else if(i<w.streak) c+=" on"; h+='<span class="'+c+'"></span>'; }
+    segs.innerHTML=h;
+    lbl.innerHTML = w.mastered ? 'mastered <span class="shuri gold mini">'+SHURI+'</span>' : (listKind(activeList())!=="sentence" && w.days.length>0 && w.misses===0 ? "1 to refresh" : (w.streak+" / "+t));
+    lbl.style.color = w.mastered ? "var(--gold-2)" : "var(--muted)";
+  }
+  function insertChar(c){ const i=document.getElementById("ans"); if(!i||i.readOnly) return; const s=i.selectionStart,e=i.selectionEnd; i.value=i.value.slice(0,s)+c+i.value.slice(e); const p=s+c.length; i.focus(); i.setSelectionRange(p,p); }
+
+  function wireHard(l,w){
+    const hb=document.getElementById("hardBtn"); if(hb) hb.onclick=()=>{ w.hard=!w.hard; if(w.hard) w._drop=false; save(); hb.className="hardtoggle "+(w.hard?"on":"off"); hb.title=w.hard?"One of your rivals — tap to remove":"Mark as a rival"; if(l._virtual && !w.hard){ w._drop=true; advance(l); } };
+  }
+  function renderStudy(){
+    if(listKind(activeList())==="sentence"){ renderSentence(); return; }
+    const l=activeList(); const w=l.words[cur]; const guided=!w.everSeen;
+    const accs=[...(S.settings.accentChars||"")].filter(c=>c.trim());
+    const pp=promptParts(w);
+    stage.innerHTML=`
+      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><button class="link quiet" id="setBtn">Settings</button></div>
+      <div class="card" id="card">
+        <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New word — type it once":"Translate"}</span></span><span class="rightgrp"><span class="dir">${dirText()}</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
+        <div class="term">${esc(pp.green.join(" / ")||promptText(w))}</div>
+        ${pp.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
+        ${guided?`<div class="show-answer">${esc(answerPrimary(w))}</div><span class="new-tag">copy it to learn it</span>`:``}
+        <div class="answer-row">
+          <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${guided?'type it here…':'type your answer…'}">
+          <button class="btn" id="go">${guided?"Got it":"Check"}</button>
+        </div>
+        ${accs.length?'<div class="accents" id="accents"><span class="lbl2">insert</span></div>':''}
+        <div class="feedback" id="fb"></div>
+        ${masteryHtml()}
+      </div>`+dotsHtml(l);
+    phase = guided ? "guided" : "answer";
+    const input=document.getElementById("ans"); input.focus();
+    shownAt=performance.now(); firstKey=0;
+    input.addEventListener("input",()=>{ if(!firstKey) firstKey=performance.now(); },{once:true});
+    updateMastery(w);
+    if(accs.length){ const ac=document.getElementById("accents"); accs.forEach(c=>{ const b=document.createElement("button"); b.className="ch"; b.textContent=c; b.tabIndex=-1; b.addEventListener("click",()=>insertChar(c)); ac.appendChild(b); }); }
+    document.getElementById("go").onclick=action;
+    input.addEventListener("keydown",e=>{ if(e.key==="Enter") action(); });
+    document.getElementById("backBtn").onclick=leaveStudy;
+    document.getElementById("setBtn").onclick=openSettings;
+    document.getElementById("editBtn").onclick=()=>openCardEditor(w);
+    wireHard(l,w);
+  }
+
+  // v19: shake via the Web Animations API. The old .shake class replaced the card's CSS entrance
+  // animation, which dropped it back to opacity 0 and replayed the fade-in: the card (and the
+  // correction on it) vanished for ~0.5s after every miss.
+  function shake(el){
+    if(!el || !el.animate) return;
+    if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{transform:"translateX(0)"},{transform:"translateX(-7px)",offset:.2},{transform:"translateX(6px)",offset:.4},{transform:"translateX(-4px)",offset:.6},{transform:"translateX(3px)",offset:.8},{transform:"translateX(0)"}],{duration:380,easing:"ease"});
+  }
+  function rtJudge(){
+    const rt = (firstKey||performance.now())-shownAt;
+    return Math.min(rt, RT_CAP);
+  }
+  function passRetype(res){ return res.verdict==="exact" || (!S.settings.strictSpelling && res.verdict==="accent"); }
+
+  function action(){
+    const l=activeList(); const w=l.words[cur];
+    if(phase==="reveal"){ advance(l); return; }
+    const input=document.getElementById("ans");
+    if(phase==="retype"){
+      const r=check(input.value, answerText(w));
+      if(passRetype(r)){ advance(l); return; }
+      if(!input.value.trim()) return;
+      const c=document.getElementById("card"), fb=document.getElementById("fb");
+      if(r.verdict==="teal"){
+        // v19: a valid alternative while correcting a miss. No new strike, no credit; the target stays shown.
+        c.classList.remove("flash-bad"); c.classList.add("flash-teal");
+        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span><span class="tip">type the word shown to continue</span>`;
+      } else {
+        c.classList.remove("flash-teal"); c.classList.add("flash-bad"); shake(c);
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span><span class="tip">type it once to continue</span>`;
+      }
+      fb.classList.add("show"); input.value=""; input.focus();
+      return;
+    }
+    const val=input.value; if(!val.trim()) return;
+    const rt=rtJudge();
+    const res=check(val, answerText(w));
+    if(res.verdict==="teal"){
+      // a real translation, but not the word this card drills — no advance, no miss, type the target
+      const card=document.getElementById("card"), fb=document.getElementById("fb");
+      card.classList.remove("flash-good","flash-almost","flash-bad");
+      card.classList.add("flash-teal"); setTimeout(()=>card.classList.remove("flash-teal"),700);
+      fb.innerHTML=`<span class="teal">“${esc(res.typedAlt||val.trim())}” is a valid translation — but this card is drilling a different word</span><span class="tip">type the word being drilled to continue</span>`;
+      fb.classList.add("show");
+      input.value=""; input.focus(); shownAt=performance.now(); firstKey=0;
+      return;
+    }
+    let correct,kind,note="";
+    if(S.settings.strictSpelling){ correct=res.verdict==="exact"; kind=correct?"good":"bad"; }
+    else if(res.verdict==="exact"){ correct=true; kind="good"; }
+    else if(res.verdict==="accent"){ correct=true; kind="good"; note="spelled: "+res.canonical; }
+    else if(res.verdict==="typo"){ if(S.settings.typoTolerance){ correct=true; kind="almost"; } else { correct=false; kind="bad"; } }
+    else { correct=false; kind="bad"; }
+    if(l._virtual){ if(!w._seen){ w._seen=true; w._aced=correct; } if(!correct) w._aced=false; }
+
+    const slow = S.settings.timeMatters && rt>FAST_MS;   // slow correct won't advance mastery
+    if(phase==="guided"){
+      // first-ever exposure: must type it (answer is shown). Counts as the first rep.
+      if(correct){ w.everSeen=true; w.streak=1; if(w.streak>=targetFor(w)) w.mastered=true; }
+    } else if(correct){
+      if(!slow){ w.streak++; if(w.streak>=targetFor(w)) w.mastered=true; }
+    } else {
+      if(S.settings.slipResets) w.streak=0; else w.streak=Math.max(0,w.streak-1);
+      w.misses++; w.mastered = w.streak>=targetFor(w);
+    }
+    save();
+    const card=document.getElementById("card"), fb=document.getElementById("fb"), go=document.getElementById("go");
+    refreshDots(l); updateMastery(w);
+
+    if(kind==="good"||kind==="almost"){
+      card.classList.add(kind==="good"?"flash-good":"flash-almost");
+      let msg = kind==="good" ? `<span class="ok">Correct</span>` : `<span class="alm">Almost — close enough</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>`;
+      let extra = `<span class="rt">${(rt/1000).toFixed(1)}s</span>`;
+      if(note) extra += ` &nbsp;<span class="rt">· ${esc(note)}</span>`;
+      if(slow) extra += ` &nbsp;<span class="rt">· a bit slow — let's see it again</span>`;
+      if(w.mastered) extra += ` &nbsp;<span class="rt">· mastered <span class="shuri gold mini">${SHURI}</span></span>`;
+      fb.innerHTML=msg+` &nbsp;`+extra; fb.classList.add("show");
+      input.readOnly=true; go.textContent="Next →"; phase="reveal";
+      timer=setTimeout(()=>{ if(phase==="reveal") advance(l); }, kind==="good"?700:950);
+    } else {
+      card.classList.add("flash-bad"); shake(card);
+      if(S.settings.retypeOnError){
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span><span class="tip">type it once to continue</span>`;
+        fb.classList.add("show"); input.value=""; input.focus(); go.textContent="Check"; phase="retype";
+      } else {
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>`;
+        fb.classList.add("show"); input.readOnly=true; go.textContent="Continue"; phase="reveal";
+      }
+    }
+  }
+  // v19: every way out of a study card goes through here — the "‹ Library" link AND the wordmark.
+  // Clears any pending auto-advance; quitting a Rivals drill with aced words offers to leave them behind first.
+  function leaveStudy(){
+    if(timer){ clearTimeout(timer); timer=null; }
+    const l=activeList();
+    if(S.view==="study" && l && l._virtual && (document.getElementById("ans")||document.getElementById("sline")) && acedWords(l).length){ showDrillComplete(l,true); return; }
+    S.view="library"; save(); render();
+  }
+  function refreshDots(l){ const o=document.querySelector(".progress"); if(o){ const t=document.createElement("div"); t.innerHTML=dotsHtml(l); o.replaceWith(t.firstElementChild); } }
+  function advance(l){ if(timer){clearTimeout(timer);timer=null;} const n=pickNext(l); if(n===null){ completeSession(l); return; } cur=n; renderStudy(); }
+
+  function completeSession(l){
+    const d=today();
+    if(l._virtual){ l.words.forEach(w=>{ if(w.mastered && !w.days.includes(d)) w.days.push(d); }); save(); paintHeader(); showDrillComplete(l); return; }
+    if(!l.completions) l.completions=[];
+    const fresh=!l.completions.includes(d);      // a second finish on the same day earns nothing new
+    if(fresh) l.completions.push(d);
+    l.words.forEach(w=>{ if(w.mastered && !w.days.includes(d)) w.days.push(d); });
+    save(); paintHeader(); showCompletion(l,fresh);
+  }
+  function showCompletion(l,fresh){
+    const gold=listRank(l)==="gold"; const n=l.completions.length;
+    let emblem, h2, p, toward="";
+    if(gold){
+      emblem='<div class="bigshuri trio gold-glow">'+('<span class="shuri gold">'+SHURI+'</span>').repeat(3)+'</div>';
+      h2="Golden shurikens!";
+      p="You've mastered this whole list on three separate days. It's yours now.";
+    } else {
+      emblem='<div class="bigshuri silver-glow"><span class="shuri silver">'+SHURI+'</span></div>';
+      if(!fresh){ h2="Today's shuriken is already yours"; p="You already mastered this list today. Come back on another day to earn the next one."; }
+      else if(n===1){ h2="Silver shuriken earned"; p=`Every ${unitOf(l)} in this list is mastered for today. Master it on two more days to turn all three gold.`; }
+      else { h2="Second silver shuriken"; p=`Every ${unitOf(l)} is mastered for today. One more day and all three turn gold.`; }
+      toward=`<div class="toward">${n}/3 days complete · ${3-n} more to gold</div>`;
+    }
+    const canMove=gold && l.folder==="learn";
+    stage.innerHTML=`<div class="backbar"><button class="link" id="backBtn">‹ Library</button></div>
+      <div class="card"><div class="screen">
+        ${emblem}
+        <h2>${h2}</h2>
+        <p>${p}</p>
+        ${toward}
+        <div class="actions"><button class="btn" id="again">Practise again</button><button class="btn ghost" id="lib">Back to library</button>${canMove?'<button class="btn ghost" id="mv">Move to Master</button>':''}</div>
+      </div></div>`;
+    document.getElementById("again").onclick=()=>startSession(l);
+    document.getElementById("lib").onclick=()=>{ S.view="library"; save(); render(); };
+    document.getElementById("backBtn").onclick=()=>{ S.view="library"; save(); render(); };
+    const mv=document.getElementById("mv"); if(mv) mv.onclick=()=>{ l.folder="learned"; S.view="library"; save(); render(); };
+  }
+  // aced = finished this round with zero misses (on a natural finish every remaining word is finished)
+  function acedWords(l){ return l.words.filter(w=> w.hard && w._aced && w.mastered); }
+  function showDrillComplete(l,partial){
+    const live=l.words.filter(w=>!w._drop);
+    const total=live.length, faced=live.filter(w=>w.mastered).length;
+    const aced=acedWords(l), a=aced.length;
+    const canDrill=hardWords().length>0;
+    const rv=n=>n===1?"rival":"rivals";
+    let h2;
+    if(partial) h2=`${faced} of ${total} ${rv(total)} faced`;
+    else if(total===0) h2="No rivals left";
+    else if(total===1) h2="1 rival faced";
+    else if(total===2) h2="Both rivals faced";
+    else h2=`All ${total} rivals faced`;
+    let p;
+    if(total===0) p=`You took every ${unitOf(l)} off your Rivals during this round.`;
+    else if(!a) p="No first-try wins this round. Your rivals stay for your next challenge.";
+    else {
+      const first = a===faced ? (a===1 ? "You surpassed it on the first try." : a===2 ? "You surpassed both on the first try." : `You surpassed all ${a} on the first try.`)
+                              : `You surpassed ${a} of them on the first try.`;
+      p = first + (a===1 ? " You decide whether to leave it behind you or face it again."
+                         : " You decide whether to leave them behind you or face them again.");
+    }
+    const leave = a ? `<div class="acedbox"><button class="btn rival" id="unmarkAced">${a===1?"Leave this one behind you":`Leave those ${a} behind you`}</button><span class="acedhint">${a===1?"It leaves your Rivals. You can mark it as a rival again any time.":"They leave your Rivals. You can mark any of them as a rival again any time."}</span></div>` : "";
+    stage.innerHTML=`<div class="backbar"><button class="link" id="backBtn">‹ Library</button></div>
+      <div class="card"><div class="screen">
+        <div class="bigbolt">${BOLT}</div>
+        <h2>${h2}</h2>
+        <p>${p}</p>
+        ${leave}
+        <div class="actions">${canDrill?`<button class="btn ${a?"ghost":"rival"}" id="again">Challenge again</button>`:""}<button class="btn ghost" id="lib">Back to library</button></div>
+      </div></div>`;
+    const ua=document.getElementById("unmarkAced"); if(ua) ua.onclick=()=>{ if(confirm(a===1?"Leave this rival behind you? It will leave your Rivals.":`Leave these ${a} rivals behind you? They will leave your Rivals.`)){ aced.forEach(w=>{ w.hard=false; }); save(); S.view="library"; render(); } };
+    const ag=document.getElementById("again"); if(ag) ag.onclick=()=>startHardDrill();
+    document.getElementById("lib").onclick=()=>{ S.view="library"; save(); render(); };
+    document.getElementById("backBtn").onclick=()=>{ S.view="library"; save(); render(); };
+  }
+
+  // ---- list editor ----
+  const listOverlay=document.getElementById("listOverlay"), listName=document.getElementById("listName"), listGroup=document.getElementById("listGroup"), listArea=document.getElementById("listArea"), listCount=document.getElementById("listCount"), listTitle=document.getElementById("listTitle");
+  let editing=null;
+  const WORD_HELP=document.getElementById("listHelp").innerHTML;
+  const SENT_HELP='One sentence per line: <code>sentence = translation</code>. The translation is your prompt; you build the sentence from its words.<br>'+
+    '&nbsp;• <code>/</code> — another correct word order (same words): <code>Ik ga morgen naar huis. / Morgen ga ik naar huis. = Ich gehe morgen nach Hause.</code><br>'+
+    '&nbsp;• <code>( )</code> — a hint shown under the prompt: <code>Hij belt me op. = Er ruft mich an. (opbellen)</code>';
+  function openList(l){ editing=l;
+    document.getElementById("listHelp").innerHTML = isSent() ? SENT_HELP : WORD_HELP;
+    listName.placeholder = isSent() ? "List name (e.g. Everyday sentences, or Subclauses)" : "List name (e.g. Frequency 1–100, or Psychology terms)"; listTitle.textContent=l?"Edit list":"New list"; listName.value=l?l.name:""; listGroup.value=l?(l.group||""):"";
+    closeGrpMenu();
+    listArea.value=l?l.words.map(w=>w.nl+" = "+w.de).join("\n"):""; updateListCount(); listOverlay.classList.add("open"); (l?listArea:listName).focus(); }
+  listArea.addEventListener("input",updateListCount);
+  function updateListCount(){ const c=listArea.value.split("\n").filter(x=>x.includes("=")&&x.trim()).length; listCount.textContent=c+(isSent()?" sentence":" word")+(c===1?"":"s"); }
+  // ---- custom group dropdown (replaces native datalist: readable, filterable, capped height) ----
+  const grpMenu=document.getElementById("grpMenu");
+  function allGroups(){ return [...new Set(curLists().map(x=>(x.group||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
+  function renderGrpMenu(){
+    const raw=listGroup.value.trim(), typed=raw.toLowerCase(), all=allGroups();
+    const matches=all.filter(g=>g.toLowerCase().includes(typed));
+    const exact=all.some(g=>g.toLowerCase()===typed);
+    let h="";
+    if(raw && !exact) h+=`<div class="opt" data-g="${esc(raw)}"><span class="new">+ create “${esc(raw)}”</span></div>`;
+    matches.forEach(g=>{ h+=`<div class="opt" data-g="${esc(g)}">${esc(g)}</div>`; });
+    if(!h) h=`<div class="none">No groups yet — type a name to create one.</div>`;
+    grpMenu.innerHTML=h;
+    grpMenu.querySelectorAll('.opt').forEach(o=>o.addEventListener("mousedown",e=>{ e.preventDefault(); listGroup.value=o.getAttribute("data-g"); closeGrpMenu(); listGroup.focus(); }));
+  }
+  function openGrpMenu(){ renderGrpMenu(); grpMenu.classList.add("open"); }
+  function closeGrpMenu(){ grpMenu.classList.remove("open"); }
+  listGroup.addEventListener("focus",openGrpMenu);
+  listGroup.addEventListener("input",()=>{ openGrpMenu(); });
+  listGroup.addEventListener("keydown",e=>{ if(e.key==="Escape"||e.key==="Enter"){ closeGrpMenu(); } });
+  document.addEventListener("mousedown",e=>{ if(!e.target.closest(".grpwrap")) closeGrpMenu(); });
+  document.getElementById("listCancel").onclick=()=>listOverlay.classList.remove("open");
+  document.getElementById("listSave").onclick=()=>{
+    const name=listName.value.trim()||"Untitled list";
+    const group=listGroup.value.trim();
+    const pairs=[];
+    for(const ln of listArea.value.split("\n")){ if(!ln.includes("=")) continue; const i=ln.indexOf("="); const nl=ln.slice(0,i).trim(); const de=ln.slice(i+1).trim(); if(nl&&de) pairs.push([nl,de]); }
+    if(!pairs.length){ alert("Add at least one pair like:  het huis = das Haus"); return; }
+    if(editing){
+      // v20: a changed line keeps its word's progress and rival flag. Match in passes, preferring the same
+      // position: 1) identical text  2) same main word (added a hint / [alt], fixed the meaning)
+      // 3) same main meaning AND same position (fixed a typo in the word). Anything else is a new word.
+      const olds=editing.words.slice(), used=new Set();
+      const key=x=>(parseSide(x).primary||x).trim().toLowerCase();
+      const pick=(i,pred,samePosOnly)=>{
+        if(i<olds.length && !used.has(i) && pred(olds[i])){ used.add(i); return olds[i]; }
+        if(samePosOnly) return null;
+        for(let j=0;j<olds.length;j++){ if(!used.has(j) && pred(olds[j])){ used.add(j); return olds[j]; } }
+        return null;
+      };
+      const out=pairs.map(()=>null);
+      pairs.forEach((p,i)=>{ out[i]=pick(i,w=>w.nl===p[0]&&w.de===p[1]); });
+      pairs.forEach((p,i)=>{ if(!out[i]) out[i]=pick(i,w=>key(w.nl)===key(p[0])); });
+      pairs.forEach((p,i)=>{ if(!out[i]) out[i]=pick(i,w=>key(w.de)===key(p[1]),true); });
+      editing.name=name; editing.group=group;
+      editing.words=pairs.map((p,i)=>{ const w=out[i]; if(w){ w.nl=p[0]; w.de=p[1]; return w; } return {nl:p[0],de:p[1],everSeen:false,mastered:false,streak:0,misses:0,days:[]}; });
+    } else {
+      curLists().push(Object.assign({id:uid(),name:name,group:group,folder:"learn",completions:[],words:seedWords(pairs)}, isSent()?{kind:"sentence"}:{}));
+    }
+    save(); listOverlay.classList.remove("open"); render();
+  };
+
+
+  // ======================= v21: Sentence Dojo =======================
+  // A sentence item is an ordinary list item: w.nl = "sentence / other valid order (hint)", w.de = "translation".
+  // Scheduling, mastery, shurikens, rivals and the card editor are shared; only this card differs.
+  const QPUNCT="„“”\"«»—–,;:";
+  let SS=null, dragJustEnded=0;
+  function tokenizeSent(str, punct){
+    let t=String(str).trim(), fin="";
+    const m=t.match(/\s*([.!?…]+)\s*$/); if(m){ fin=m[1]; t=t.slice(0,m.index); }
+    const out=[];
+    t.split(/\s+/).filter(Boolean).forEach(tok=>{
+      let a=0, b=tok.length;
+      while(a<b && QPUNCT.includes(tok[a])) a++;
+      while(b>a && QPUNCT.includes(tok[b-1])) b--;
+      if(punct) [...tok.slice(0,a)].forEach(ch=>out.push({t:ch,p:true}));
+      if(b>a) out.push({t:tok.slice(a,b),p:false});
+      if(punct) [...tok.slice(b)].forEach(ch=>out.push({t:ch,p:true}));
+    });
+    return {tokens:out, fin};
+  }
+  function buildSentence(w){
+    const punct=false;   // v22.2: commas are never tiles — many are optional; the solved sentence shows them
+    const ps=parseSide(w.nl), pd=parseSide(w.de);
+    const raw=(ps.green.length?ps.green:[ps.primary||w.nl]);
+    const variants=raw.map(v=>Object.assign(tokenizeSent(v,punct),{text:v.trim()}));
+    const key=v=>v.tokens.map(x=>x.t.toLowerCase()).sort().join("\u0001");
+    const pk=key(variants[0]);
+    const valid=variants.filter(v=>key(v)===pk);            // other orders must use exactly the same words
+    const prim=valid[0];
+    const capsElsewhere=new Set();
+    valid.forEach(v=>v.tokens.forEach((x,i)=>{ if(i>0 && /^\p{Lu}/u.test(x.t)) capsElsewhere.add(x.t); }));
+    const tiles=prim.tokens.map((x,i)=>{
+      let shown=x.t;
+      // a capital first letter would give the answer away — unless it's a name (capitalised elsewhere) or all caps
+      if(i===0 && !x.p && !capsElsewhere.has(x.t) && !(x.t.length>1 && x.t===x.t.toUpperCase())) shown=x.t.charAt(0).toLowerCase()+x.t.slice(1);
+      return {id:i, text:shown, norm:x.t.toLowerCase(), p:x.p};
+    });
+    const withFin=v=>/[.!?…]\s*$/.test(v.text) ? v.text : v.text+(prim.fin||"");
+    return { tiles, orders:valid.map(v=>v.tokens.map(x=>x.t.toLowerCase())), fullTexts:valid.map(withFin), fin:prim.fin,
+             prompt:(pd.green.join(" / ")||pd.primary||w.de), hint:[pd.hint, ps.hint].filter(Boolean).join(" · ") };
+  }
+  function shuffledIds(tiles, orders){
+    const ids=tiles.map(t=>t.id);
+    for(let tries=0; tries<40; tries++){
+      for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; }
+      const seq=ids.map(i=>tiles[i].norm).join(" ");
+      if(ids.length<2 || !orders.some(o=>o.join(" ")===seq)) break;
+    }
+    return ids;
+  }
+  function renderSentence(){
+    const l=activeList(), w=l.words[cur], guided=!w.everSeen && !!S.settings.sShowFirst;
+    const B=buildSentence(w);
+    SS={ l, w, guided, tiles:B.tiles, orders:B.orders, fullTexts:B.fullTexts, fin:B.fin, N:B.tiles.length,
+         bank:shuffledIds(B.tiles,B.orders), slots:new Array(B.tiles.length).fill(null), pins:{}, missed:false, done:false, hinted:false,
+         snap:{streak:w.streak, misses:w.misses, mastered:w.mastered, everSeen:w.everSeen, _seen:w._seen, _aced:w._aced} };
+    stage.innerHTML=`
+      <div class="backbar"><button class="link" id="backBtn">‹ Library</button><button class="link quiet" id="setBtn">Settings</button></div>
+      <div class="card scard" id="card">
+        <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New sentence — build it once":"Build the sentence"}</span></span><span class="rightgrp"><span class="dir">word order</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
+        <div class="sprompt">${esc(B.prompt)}</div>
+        ${B.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(B.hint)}</i></div>`:``}
+        ${guided?`<div class="s-answer">${esc(B.fullTexts[0])}</div><span class="new-tag">build it once to learn it</span>`:``}
+        <div class="sline" id="sline" tabindex="-1" aria-label="Your sentence"></div>
+        <div class="sbank" id="sbank" aria-label="Words to place"></div>
+        <div class="srow"><button class="btn ghost" id="hintBtn">Hint</button><button class="btn" id="go">Check</button></div>
+        <div class="feedback" id="fb"></div>
+        ${masteryHtml()}
+      </div>`+dotsHtml(l);
+    phase = guided ? "guided" : "answer";
+    updateMastery(w);
+    paintSentence();
+    document.getElementById("go").onclick=sentGo;
+    document.getElementById("hintBtn").onclick=sentHint;
+    document.getElementById("backBtn").onclick=leaveStudy;
+    document.getElementById("setBtn").onclick=openSettings;
+    document.getElementById("editBtn").onclick=()=>openCardEditor(w);
+    wireHard(l,w);
+    const sl=document.getElementById("sline"); if(sl) sl.focus({preventScroll:true});
+  }
+  // v22.2: fixed slots — a word stays where it is put; removing one leaves its slot empty (Joshi, from real use)
+  function linePositions(){ return SS.slots.slice(); }
+  function placedSet(){ return new Set(SS.slots.filter(id=>id!=null)); }
+  function isPinned(p){ return SS.pins[p]!=null; }
+  function tileHtml(id, where, pos){
+    const t=SS.tiles[id], pinned = where==="line" && isPinned(pos);
+    return `<button type="button" class="tile${t.p?' punct':''}${pinned?' pin':''}" data-id="${id}" data-where="${where}"${pos!=null?` data-pos="${pos}"`:''}${pinned?' aria-disabled="true" tabindex="-1"':''}>${esc(t.text)}</button>`;
+  }
+  function paintSentence(){
+    const line=document.getElementById("sline"), bank=document.getElementById("sbank"); if(!line||!bank) return;
+    line.innerHTML = SS.slots.map((id,p)=> id==null ? `<span class="slot" data-pos="${p}"></span>` : tileHtml(id,"line",p)).join("") + (SS.fin?`<span class="sfin">${esc(SS.fin)}</span>`:"");
+    const placed=placedSet();
+    bank.innerHTML = SS.bank.map(id=> placed.has(id) ? `<span class="tile ghost" aria-hidden="true">${esc(SS.tiles[id].text)}</span>` : tileHtml(id,"bank",null)).join("");
+    const go=document.getElementById("go"), hb=document.getElementById("hintBtn");
+    if(SS.done){ go.textContent="Next →"; go.disabled=false; hb.disabled=true; }
+    else { go.textContent="Check"; go.disabled = placed.size<SS.N; hb.disabled=false; }
+    document.querySelectorAll("#sline .tile:not(.pin), #sbank .tile:not(.ghost)").forEach(el=>{
+      el.addEventListener("click",()=>{ if(Date.now()-dragJustEnded<120) return; tapTile(+el.dataset.id, el.dataset.where); });
+      el.addEventListener("pointerdown",e=>startDrag(e,el));
+    });
+  }
+  function clearSentFeedback(){
+    const fb=document.getElementById("fb"); if(fb && !SS.done){ fb.classList.remove("show"); fb.innerHTML=""; }
+    const c=document.getElementById("card"); if(c && !SS.done) c.classList.remove("flash-bad","flash-good","flash-almost");
+    if(SS) SS.lastBuilt=null;
+  }
+  function tapTile(id, where){
+    if(!SS || SS.done) return;
+    if(where==="bank"){ const p=SS.slots.findIndex(x=>x==null); if(p<0) return; SS.slots[p]=id; }      // the leftmost empty slot
+    else { const p=SS.slots.indexOf(id); if(p>=0 && !isPinned(p)) SS.slots[p]=null; }                    // back to the bank; the slot stays empty
+    clearSentFeedback(); paintSentence();
+  }
+  // the whole slot is the target (plus a little margin) — no thin insertion line to aim for
+  function slotAt(x, y){
+    const line=document.getElementById("sline"); if(!line) return null;
+    let best=null, bd=Infinity;
+    line.querySelectorAll("[data-pos]").forEach(e=>{ const r=e.getBoundingClientRect(); const d=Math.hypot(Math.max(r.left-x,0,x-r.right), Math.max(r.top-y,0,y-r.bottom)); if(d<bd){ bd=d; best=+e.dataset.pos; } });
+    return bd<=22 ? best : null;
+  }
+  function markDrop(p){
+    document.querySelectorAll("#sline .droptarget").forEach(e=>e.classList.remove("droptarget"));
+    if(p==null || isPinned(p)) return;
+    const e=document.querySelector('#sline [data-pos="'+p+'"]'); if(e) e.classList.add("droptarget");
+  }
+  function dropTile(id, p){
+    const src=SS.slots.indexOf(id);
+    if(p==null){ if(src>=0 && !isPinned(src)) SS.slots[src]=null; return; }     // dropped outside: a placed word goes back to the bank
+    if(isPinned(p) || p===src) return;                                            // green words never move
+    const occ=SS.slots[p];
+    SS.slots[p]=id;
+    if(src>=0) SS.slots[src]=occ;      // onto an empty slot it moves; onto a word the two swap (from the bank, that word goes back)
+  }
+  function startDrag(e, el){
+    if(!SS || SS.done || (e.button!=null && e.button>0)) return;
+    const id=+el.dataset.id, sx=e.clientX, sy=e.clientY; let ghost=null, started=false;
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    const move=ev=>{
+      if(!started){ if(Math.hypot(ev.clientX-sx, ev.clientY-sy)<6) return; started=true;
+        ghost=el.cloneNode(true); ghost.classList.add("dragghost"); document.body.appendChild(ghost); el.classList.add("dragging"); }
+      ghost.style.left=ev.clientX+"px"; ghost.style.top=ev.clientY+"px";
+      markDrop(slotAt(ev.clientX, ev.clientY));
+    };
+    const up=ev=>{
+      el.removeEventListener("pointermove",move); el.removeEventListener("pointerup",up); el.removeEventListener("pointercancel",up);
+      if(!started) return;
+      dragJustEnded=Date.now(); if(ghost) ghost.remove();
+      if(ev.type!=="pointercancel") dropTile(id, slotAt(ev.clientX, ev.clientY));
+      clearSentFeedback(); paintSentence();
+    };
+    el.addEventListener("pointermove",move); el.addEventListener("pointerup",up); el.addEventListener("pointercancel",up);
+  }
+  function bestOrder(arr){
+    const cands=SS.orders.filter(o=>Object.keys(SS.pins).every(p=>o[p]===SS.tiles[SS.pins[p]].norm));
+    let best=cands[0]||SS.orders[0], bestM=-1;
+    cands.forEach(o=>{ const m=o.reduce((a,t,i)=>a+(t===arr[i]?1:0),0); if(m>bestM){ bestM=m; best=o; } });
+    return {best, matches:bestM};
+  }
+  function scoreSentence(correct){
+    const l=SS.l, w=SS.w;
+    if(l._virtual){ if(!w._seen){ w._seen=true; w._aced=correct; } if(!correct) w._aced=false; }
+    if(!SS.guided) w.everSeen=true;   // v22: without copy-first, the first real attempt introduces it
+    if(SS.guided){ if(correct){ w.everSeen=true; w.streak=1; if(w.streak>=targetFor(w)) w.mastered=true; } }
+    else if(correct){ w.streak++; if(w.streak>=targetFor(w)) w.mastered=true; }
+    else { if(S.settings.sSlipResets!==false) w.streak=0; else w.streak=Math.max(0,w.streak-1); w.misses++; w.mastered=w.streak>=targetFor(w); }
+    save(); refreshDots(l); updateMastery(w);
+  }
+  function sentGo(){
+    if(!SS) return;
+    if(SS.done){ advance(SS.l); return; }
+    if(placedSet().size<SS.N) return;
+    const lp=SS.slots.slice(), arr=lp.map(id=>SS.tiles[id].norm);
+    const {best, matches}=bestOrder(arr);
+    if(matches===SS.N){ sentSolved(lp, best); return; }
+    lp.forEach((id,p)=>{ if(arr[p]===best[p]) SS.pins[p]=id; });                  // what's right stays put; the rest stays where it is
+    const offer = !SS.guided && !SS.missed && !SS.hinted;                         // only a clean first check can be "also correct"
+    if(!SS.guided && !SS.missed){ SS.missed=true; scoreSentence(false); }
+    paintSentence();
+    SS.lastBuilt = offer ? lp : null;
+    document.querySelectorAll("#sline .tile:not(.pin)").forEach(e=>e.classList.add("wrong"));
+    shake(document.getElementById("sline"));
+    const fb=document.getElementById("fb");
+    fb.innerHTML=`<span class="no">Not yet</span><span class="tip">the green words are right and stay put — rearrange the rest</span>`+(offer?`<button type="button" class="linkish" id="mineOk">My order is also correct</button>`:"");
+    fb.classList.add("show");
+    const mo=document.getElementById("mineOk"); if(mo) mo.onclick=acceptMyOrder;
+  }
+  // v22.2: the card learns a correct order it didn't know; the miss is taken back (honour system)
+  function acceptMyOrder(){
+    if(!SS || SS.done || !SS.lastBuilt) return;
+    const lp=SS.lastBuilt, w=SS.w;
+    const ws=lp.map(id=>SS.tiles[id].text); ws[0]=ws[0].charAt(0).toUpperCase()+ws[0].slice(1);
+    const text=ws.join(" ")+(SS.fin||""), order=lp.map(id=>SS.tiles[id].norm);
+    w.nl = String(w.nl).replace(/\s+$/,"") + " / " + text;
+    Object.assign(w, SS.snap);
+    SS.orders.push(order); SS.fullTexts.push(text);
+    SS.missed=false; SS.pins={};
+    sentSolved(lp, order);
+  }
+  function sentHint(){
+    if(!SS || SS.done) return;
+    const lp=SS.slots.slice(), arr=lp.map(id=>id==null?null:SS.tiles[id].norm);
+    const {best}=bestOrder(arr);
+    let p=0; while(p<SS.N && isPinned(p)) p++;
+    if(p>=SS.N) return;
+    const need=best[p], placed=placedSet();
+    let id=null;
+    if(lp[p]!=null && SS.tiles[lp[p]].norm===need) id=lp[p];
+    if(id==null) id=SS.bank.find(i=>!placed.has(i) && SS.tiles[i].norm===need);
+    if(id==null) id=lp.find((i,q)=>i!=null && q!==p && !isPinned(q) && SS.tiles[i].norm===need);
+    if(id==null) return;
+    const src=SS.slots.indexOf(id), occ=SS.slots[p];
+    SS.slots[p]=id; if(src>=0 && src!==p) SS.slots[src]=(occ!=null && occ!==id) ? occ : null;   // whatever sat there takes the freed slot (or goes back)
+    SS.pins[p]=id; SS.hinted=true;
+    if(!SS.guided && !SS.missed){ SS.missed=true; scoreSentence(false); }
+    clearSentFeedback(); paintSentence();
+    if(placedSet().size===SS.N){ const lp2=SS.slots.slice(), arr2=lp2.map(i=>SS.tiles[i].norm); const o=SS.orders.find(x=>x.every((t,i)=>t===arr2[i])); if(o){ sentSolved(lp2,o); return; } }
+    const fb=document.getElementById("fb");
+    fb.innerHTML=`<span class="tip" style="margin:0">Hint used — this sentence won't count as correct this time</span>`; fb.classList.add("show");
+  }
+  function sentSolved(lp, best){
+    SS.done=true;
+    lp.forEach((id,p)=>{ SS.pins[p]=id; }); SS.slots=lp.slice();
+    const clean = SS.guided || !SS.missed;
+    if(clean) scoreSentence(true);
+    paintSentence();
+    const card=document.getElementById("card"); card.classList.remove("flash-bad","flash-almost"); card.classList.add(clean?"flash-good":"flash-almost");
+    const idx=Math.max(0, SS.orders.indexOf(best));
+    const others=SS.fullTexts.filter((_,i)=>i!==idx);
+    const fb=document.getElementById("fb");
+    fb.innerHTML=`<span class="${clean?'ok':'alm'}">${clean?"Correct":"Solved"}</span>${SS.w.mastered?` &nbsp;<span class="rt">· mastered <span class="shuri gold mini">${SHURI}</span></span>`:""}`+
+      `<div class="sfull">${esc(SS.fullTexts[idx])}</div>`+(others.length?`<div class="salso">Also correct: ${others.map(esc).join(" · ")}</div>`:"");
+    fb.classList.add("show");
+    const go=document.getElementById("go"); if(go) go.focus({preventScroll:true});
+  }
+  document.addEventListener("keydown",e=>{
+    if(!SS || !document.getElementById("sline") || document.querySelector(".overlay.open")) return;
+    const tag=(e.target&&e.target.tagName)||"";
+    if(tag==="INPUT"||tag==="TEXTAREA"||tag==="BUTTON") return;
+    if(e.key==="Enter"){ e.preventDefault(); sentGo(); }
+    else if(e.key==="Backspace" && !SS.done){
+      for(let q=SS.N-1;q>=0;q--){ if(SS.slots[q]!=null && !isPinned(q)){ e.preventDefault(); SS.slots[q]=null; clearSentFeedback(); paintSentence(); break; } }
+    }
+  });
+
+  // ---- v19: edit the current card mid-session ----
+  // Edits the live word object in place, so progress, the rival flag and (in a drill) the
+  // word in its home list all carry over. Saving re-renders the SAME card as a fresh attempt.
+  const cardOverlay=document.getElementById("cardOverlay"), cardWord=document.getElementById("cardWord"), cardMeaning=document.getElementById("cardMeaning"), cardErr=document.getElementById("cardErr");
+  let editingWord=null;
+  function openCardEditor(w){
+    if(timer){ clearTimeout(timer); timer=null; }          // nothing advances underneath the editor
+    editingWord=w;
+    cardWord.value=w.nl; cardMeaning.value=w.de;
+    const typeWord=S.settings.typeDutch;
+    const sentCard=listKind(activeList())==="sentence";
+    document.getElementById("cardWordLbl").textContent = sentCard ? "Sentence" : "Word";
+    document.getElementById("cardMeaningLbl").textContent = sentCard ? "Translation" : "Meaning";
+    document.getElementById("cardWordNote").textContent = sentCard ? "(what you build)" : (typeWord ? "(what you type)" : "(the prompt)");
+    document.getElementById("cardMeaningNote").textContent = sentCard ? "(the prompt)" : (typeWord ? "(the prompt)" : "(what you type)");
+    const ch=document.getElementById("cardHelp"); if(!ch.dataset.word) ch.dataset.word=ch.innerHTML;
+    ch.innerHTML = sentCard ? 'Other correct word orders go after <code>/</code> (same words, different order). <code>( )</code> adds a hint.' : ch.dataset.word;
+    cardErr.textContent=""; cardErr.classList.remove("show");
+    cardOverlay.classList.add("open");
+    cardWord.focus(); const n=cardWord.value.length; cardWord.setSelectionRange(n,n);
+  }
+  function closeCardEditor(){
+    cardOverlay.classList.remove("open"); editingWord=null;
+    const i=document.getElementById("ans"); if(i) i.focus();
+  }
+  function cardEditError(msg){ cardErr.textContent=msg; cardErr.classList.add("show"); }
+  function saveCardEdit(){
+    const w=editingWord; if(!w) return;
+    const nl=cardWord.value.trim(), de=cardMeaning.value.trim();
+    if(!nl||!de) return cardEditError("Both sides need text.");
+    if(nl.includes("=")) return cardEditError("The word can't contain “=”. It separates word and meaning in your lists.");
+    if(!parseSide(nl).primary||!parseSide(de).primary) return cardEditError("Each side needs a main word outside the [ ] and ( ) brackets.");
+    w.nl=nl; w.de=de; save();
+    cardOverlay.classList.remove("open"); editingWord=null;
+    const l=activeList(); if(l){ const i=l.words.indexOf(w); if(i>=0) cur=i; }
+    renderStudy();                                   // same card, fresh attempt; any strike is already counted
+  }
+  document.getElementById("cardSave").onclick=saveCardEdit;
+  document.getElementById("cardCancel").onclick=closeCardEditor;
+  [cardWord,cardMeaning].forEach(f=>f.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); saveCardEdit(); } else if(e.key==="Escape"){ closeCardEditor(); } }));
+  cardOverlay.addEventListener("click",e=>{ if(e.target===cardOverlay) closeCardEditor(); });
+
+
+  // ======================= v22: Get words / Get sentences =======================
+  // The user's own AI writes the list from a prompt built here. The pasted answer is cleaned, checked against
+  // the whole library of this dojo (no duplicates, ever) and turned into lists of 25. Requests are remembered
+  // so "Get more" can exclude what that topic already produced.
+  const gwOverlay=document.getElementById("gwOverlay");
+  const gwe=id=>document.getElementById(id);
+  let gwReq=null, gwParsed=null;
+  function gwState(){ S.gw=(S.gw&&typeof S.gw==="object")?S.gw:{}; S.gw.history=Array.isArray(S.gw.history)?S.gw.history:[]; return S.gw; }
+  const ARTICLES=new Set(["de","het","een","der","die","das","den","dem","des","ein","eine","einen","einem","einer","eines","le","la","les","un","une","el","los","las","il","lo","gli","the","a","an"]);
+  function normWord(x){
+    let t=String(x).toLowerCase().replace(/\s+/g," ").trim().replace(/^l['’]\s*/,"");
+    const parts=t.split(" "); if(parts.length>1 && ARTICLES.has(parts[0])) parts.shift();
+    return parts.join(" ");
+  }
+  function normSent(x){ return String(x).toLowerCase().replace(/[.,!?;:„“”"«»—–…]/g,"").replace(/\s+/g," ").trim(); }
+  function itemKeys(nl, sent){ const ps=parseSide(nl); const alts=ps.green.length?ps.green:[ps.primary||nl]; return alts.map(a=>sent?normSent(a):normWord(a)).filter(Boolean); }
+  function libraryIndex(sent){
+    const idx=new Map();
+    curLists().forEach(l=>l.words.forEach(w=>itemKeys(w.nl,sent).forEach(k=>{ if(!idx.has(k)) idx.set(k,{list:l.name, de:w.de}); })));
+    return idx;
+  }
+  function cleanLine(line){
+    let t=String(line).replace(/\r/g,"").trim();
+    if(/^```/.test(t)) return "";
+    t=t.replace(/^(?:\d+\s*[.)]|[-*•–—>])\s+/,"");          // numbering, bullets, quote marks
+    t=t.replace(/\*\*|__|`/g,"");                              // bold and code markup
+    return t.trim();
+  }
+  function splitPair(t){
+    const i=t.indexOf("=");
+    if(i>=0) return [t.slice(0,i).trim(), t.slice(i+1).trim()];
+    for(const sep of ["\t"," — "," – "," - "]){ const j=t.indexOf(sep); if(j>0) return [t.slice(0,j).trim(), t.slice(j+sep.length).trim()]; }
+    return null;
+  }
+  function parseAnswer(text, sent){
+    const idx=libraryIndex(sent), seen=new Set(), out={fresh:[], dups:[], inBatch:0, junk:[]};
+    String(text||"").split("\n").forEach(raw=>{
+      const t=cleanLine(raw); if(!t) return;
+      const pr=splitPair(t);
+      if(!pr || !pr[0] || !pr[1] || !parseSide(pr[0]).primary || !parseSide(pr[1]).primary){ out.junk.push(t); return; }
+      const keys=itemKeys(pr[0],sent);
+      if(keys.some(k=>seen.has(k))){ out.inBatch++; return; }
+      keys.forEach(k=>seen.add(k));
+      const hit=keys.map(k=>idx.get(k)).find(Boolean);
+      if(hit) out.dups.push({nl:pr[0], de:pr[1], where:hit.list, existing:hit.de, keep:false});
+      else out.fresh.push({nl:pr[0], de:pr[1]});
+    });
+    return out;
+  }
+  function gwMatch(){
+    const H=gwState().history;
+    if(gwReq){ const h=H.find(x=>x.id===gwReq); if(h) return h; }
+    const t=gwe("gwTopic").value.trim().toLowerCase(), le=gwe("gwLearn").value.trim().toLowerCase(), me=gwe("gwMeaning").value.trim().toLowerCase();
+    return H.find(h=>h.dojo===S.dojo && (h.topic||"").toLowerCase()===t && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me)||null;
+  }
+  function gwExclusions(entry, sent){
+    if(!entry) return [];
+    const all=[...S.lists, ...(S.sLists||[])], out=[], cap=sent?40:300;     // prompt stays short; the import check covers the rest
+    [...entry.listIds].reverse().forEach(id=>{ const l=all.find(x=>x.id===id); if(!l) return; [...l.words].reverse().forEach(w=>{ if(out.length<cap) out.push(parseSide(w.nl).primary); }); });
+    return out;
+  }
+  function gwFromWords(){ const id=gwe("gwFrom").value; if(!id) return []; const l=S.lists.find(x=>x.id===id); return l ? l.words.slice(0,120).map(w=>parseSide(w.nl).primary) : []; }
+  function gwPrompt(){
+    const sent=isSent();
+    const learn=gwe("gwLearn").value.trim()||"[the language you're learning]", meaning=gwe("gwMeaning").value.trim()||"[your language]";
+    const topic=gwe("gwTopic").value.trim(), level=gwe("gwLevel").value, n=+gwe("gwCount").value, ask=n+Math.max(n<=10?3:5,Math.round(n*0.2));
+    const excl=gwExclusions(gwMatch(), sent), L=[];
+    if(!sent){
+      L.push(`Make a vocabulary list for someone learning ${learn}, with the meanings in ${meaning}.`);
+      L.push(`Topic: ${topic||"general, everyday vocabulary"}.`);
+      if(level) L.push(`Level: ${level} (CEFR) — choose words that fit that level.`);
+      const general=!topic || /\b(common|general|frequent|basic|everyday|most used)\b/i.test(topic);
+      const have=curLists().reduce((a,l)=>a+l.words.length,0);
+      if(general && have>300) L.push(`I already know roughly the ${Math.floor(have/100)*100} most common ${learn} words, so choose less common ones beyond those.`);
+      L.push(`Give ${ask} words or short expressions, one per line, in exactly this format:`);
+      L.push(`${learn} word = ${meaning} meaning`);
+      L.push(`- For nouns, include the article (or gender) if ${learn} has one.`);
+      L.push(`- Double-check every article before you answer.`);
+      L.push(`- If two ${learn} words mean exactly the same, put both on the left, separated by " / ".`);
+    } else {
+      L.push(`Write ${ask} natural sentences in ${learn} for a learner, with translations in ${meaning}.`);
+      L.push(`Topic: ${topic||"everyday life"}.`);
+      if(level) L.push(`Level: ${level} (CEFR) — keep the vocabulary and grammar right for that level.`);
+      const from=gwFromWords(); if(from.length) L.push(`Each sentence should use at least one of these words: ${from.join(", ")}.`);
+      L.push(`One sentence per line, in exactly this format:`);
+      L.push(`${learn} sentence = ${meaning} translation`);
+      L.push(`- 4 to 12 words per sentence.`);
+      L.push(`- For EVERY sentence, check whether the same words can go in another order that is also correct and natural. If so, you MUST add each such version after " / " on the left side (at most 3). This is common — for example when a time or place expression moves to the front. Only leave it out when no other order is correct.`);
+    }
+    if(excl.length) L.push(sent ? `Don't repeat any of these sentences, which I already have: ${excl.join(" | ")}` : `Don't include any of these words, which I already know: ${excl.join(", ")}.`);
+    L.push(`No numbering, no headings, no explanations — only the lines.`);
+    return L.join("\n");
+  }
+  const cap1=t=>t.charAt(0).toUpperCase()+t.slice(1);
+  function gwBase(){ const t=gwe("gwTopic").value.trim(), lv=gwe("gwLevel").value; return (t?cap1(t):(isSent()?"Sentences":"Common words"))+(lv?" "+lv:""); }
+  function gwSetDefaults(){
+    if(!gwe("gwName").dataset.touched) gwe("gwName").value=gwBase();
+    if(!gwe("gwGroup").dataset.touched){ const t=gwe("gwTopic").value.trim(); gwe("gwGroup").value=t?cap1(t):"Get words"; }
+  }
+  function gwRemember(){ const g=gwState(); g.learn=gwe("gwLearn").value.trim(); g.meaning=gwe("gwMeaning").value.trim(); g.level=gwe("gwLevel").value; if(isSent()) g.sCount=+gwe("gwCount").value; else g.count=+gwe("gwCount").value; save(); }
+  function gwFieldsChanged(){ gwe("gwPrompt").value=gwPrompt(); gwSetDefaults(); if(gwe("gwPaste").value.trim()) gwRefresh(); }
+  function renderGwMore(){
+    const hs=gwState().history.filter(h=>h.dojo===S.dojo).slice(-5).reverse();
+    gwe("gwMore").innerHTML = hs.length ? `<div class="gwmore"><span class="flabel">Get more of:</span>${hs.map(h=>`<button type="button" class="chip" data-h="${h.id}">${esc(h.topic?cap1(h.topic):"General")}${h.level?" · "+h.level:""} <small>${h.listIds.length} list${h.listIds.length===1?"":"s"}</small></button>`).join("")}</div>` : "";
+    gwe("gwMore").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
+      const h=gwState().history.find(x=>x.id===b.dataset.h); if(!h) return;
+      gwReq=h.id; gwe("gwTopic").value=h.topic||""; gwe("gwLearn").value=h.learn||""; gwe("gwMeaning").value=h.meaning||""; gwe("gwLevel").value=h.level||"";
+      gwFieldsChanged(); gwe("gwStatus").textContent="Continuing \u201c"+(h.topic?cap1(h.topic):"General")+"\u201d — the words you already have from it are left out.";
+    });
+  }
+  function openGetWords(){
+    const g=gwState(), sent=isSent();
+    gwe("gwTitle").textContent = sent ? "Get sentences" : "Get words";
+    gwe("gwLearn").value=g.learn||""; gwe("gwMeaning").value=g.meaning||"";
+    gwe("gwTopic").value=""; gwe("gwLevel").value=g.level||"";
+    gwe("gwCount").innerHTML=(sent?[5,10,20,50]:[10,25,50,100]).map(n=>`<option>${n}</option>`).join("");   // v22.2: smaller sentence batches
+    gwe("gwCount").value=String(sent?(g.sCount||10):(g.count||25));
+    gwe("gwFromWrap").hidden=!sent;
+    if(sent) gwe("gwFrom").innerHTML='<option value="">— none —</option>'+S.lists.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join("");
+    gwReq=null; gwParsed=null; gwe("gwPaste").value=""; gwe("gwSum").innerHTML=""; gwe("gwDups").innerHTML=""; gwe("gwStatus").textContent="";
+    ["gwName","gwGroup"].forEach(id=>{ gwe(id).value=""; delete gwe(id).dataset.touched; });
+    gwe("gwCreate").disabled=true; gwe("gwCreate").textContent="Create list";
+    gwFieldsChanged(); renderGwMore();
+    gwOverlay.classList.add("open");
+    (g.learn ? gwe("gwTopic") : gwe("gwLearn")).focus();
+  }
+  function gwRefresh(){
+    const sent=isSent(), n=+gwe("gwCount").value, unit=sent?"sentence":"word";
+    if(!gwe("gwPaste").value.trim()){ gwParsed=null; gwe("gwSum").innerHTML=""; gwe("gwDups").innerHTML=""; gwUpdateCreate(); return; }
+    const p=gwParsed=parseAnswer(gwe("gwPaste").value, sent);
+    const parts=[`<b>${p.fresh.length} new</b>`];
+    if(p.inBatch) parts.push(`${p.inBatch} repeated within the answer`);
+    if(p.junk.length) parts.push(`${p.junk.length} other line${p.junk.length===1?"":"s"} ignored`);
+    gwe("gwSum").innerHTML=parts.join(" · ")+'<span id="gwNote"></span>';
+    const nd=p.dups.length, them=nd===1?"it":"them";
+    gwe("gwDups").innerHTML=(nd?`<div class="gwdupbar"><span>${nd===1?"1 is":nd+" are"} already in your lists.</span><span class="dseg mini"><button type="button" data-all="skip" class="on">Skip ${them}</button><button type="button" data-all="keep">Keep ${them}</button></span><button type="button" class="linkish" id="gwDupOne">choose one by one</button></div><div id="gwDupList" hidden>${p.dups.map((d,i)=>`<label class="gwdup"><input type="checkbox" data-k="${i}"><span><b>Keep</b> ${esc(d.nl)} = ${esc(d.de)} <small>you have \u201c${esc(d.existing)}\u201d in ${esc(d.where)}</small></span></label>`).join("")}</div>`:"")+
+      (p.junk.length?`<details class="gwdet"><summary>Lines that weren't ${unit} pairs</summary>${p.junk.slice(0,40).map(j=>`<div class="gwjunk">${esc(j)}</div>`).join("")}</details>`:"");
+    const syncDup=()=>{ const kept=p.dups.filter(d=>d.keep).length;
+      gwe("gwDups").querySelectorAll("[data-all]").forEach(b=>b.classList.toggle("on", b.dataset.all==="keep" ? kept===p.dups.length : kept===0));
+      gwe("gwDups").querySelectorAll("[data-k]").forEach(c=>{ c.checked=p.dups[+c.dataset.k].keep; }); gwUpdateCreate(); };
+    gwe("gwDups").querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>{ p.dups.forEach(d=>{ d.keep = b.dataset.all==="keep"; }); syncDup(); });
+    const one=gwe("gwDupOne"); if(one) one.onclick=()=>{ gwe("gwDupList").hidden=false; one.hidden=true; };
+    gwe("gwDups").querySelectorAll("[data-k]").forEach(c=>c.onchange=()=>{ p.dups[+c.dataset.k].keep=c.checked; syncDup(); });
+    gwUpdateCreate();
+  }
+  function listSize(){ return isSent() ? (S.settings.sListSize||10) : (S.settings.wListSize||25); }   // v22.2
+  function gwItems(){
+    if(!gwParsed) return [];
+    const n=+gwe("gwCount").value, kept=gwParsed.dups.filter(d=>d.keep);   // v22.1: kept second meanings count toward the number
+    return kept.concat(gwParsed.fresh.slice(0, Math.max(0, n-kept.length))).map(x=>[x.nl,x.de]);
+  }
+  // v22.1: where the words will go — first fill the topic's last unfinished list (while still in Student), then new lists of 25
+  function gwPlan(){
+    const items=gwItems(), entry=gwMatch();
+    const prev=entry ? entry.listIds.map(id=>curLists().find(l=>l.id===id)).filter(Boolean) : [];
+    const last=prev[prev.length-1];
+    const L=listSize(), fill=(last && last.folder==="learn" && last.words.length<L) ? Math.min(L-last.words.length, items.length) : 0;
+    return {items, last: fill?last:null, fill, newLists: Math.ceil((items.length-fill)/L)};
+  }
+  function gwUpdateCreate(){
+    const P=gwPlan(), k=P.items.length;
+    gwe("gwCreate").disabled=k===0;
+    gwe("gwCreate").textContent = P.fill ? (P.newLists ? `Fill up and create ${P.newLists} list${P.newLists>1?"s":""}` : `Add to \u201c${P.last.name}\u201d`) : (P.newLists>1 ? `Create ${P.newLists} lists` : "Create list");
+    const note=gwe("gwNote"); if(!note) return;
+    const n=+gwe("gwCount").value, kept=gwParsed?gwParsed.dups.filter(d=>d.keep).length:0, room=Math.max(0,n-kept), bits=[];
+    if(gwParsed && gwParsed.fresh.length>room) bits.push(`using the first ${room} new ones, as you asked for ${n}${kept?` including ${kept} kept`:""}`);
+    if(P.fill) bits.push(`${P.fill} will fill up \u201c${P.last.name}\u201d to ${P.last.words.length+P.fill}`);
+    note.textContent = bits.length ? " — "+bits.join("; ") : "";
+  }
+  function gwCreate(){
+    let items=gwItems(); if(!items.length) return;
+    const sent=isSent(); gwRemember();
+    const g=gwState(); let entry=gwMatch();
+    if(!entry){ entry={id:uid(), dojo:S.dojo, learn:g.learn, meaning:g.meaning, topic:gwe("gwTopic").value.trim(), level:g.level, listIds:[], at:Date.now()}; g.history.push(entry); }
+    entry.level=g.level; entry.at=Date.now();
+    const base=gwe("gwName").value.trim()||gwBase(), group=gwe("gwGroup").value.trim();
+    // v22.1: fill the topic's last unfinished list up to 25 first (only while it's still in Student)
+    const prevLists=entry.listIds.map(id=>curLists().find(l=>l.id===id)).filter(Boolean);
+    const last=prevLists[prevLists.length-1]; let filled=null;
+    const LS=listSize();
+    if(last && last.folder==="learn" && last.words.length<LS){ const add=items.slice(0,LS-last.words.length); last.words.push(...seedWords(add)); items=items.slice(add.length); filled=last; }
+    const prior=prevLists.length;
+    const chunks=[]; for(let i=0;i<items.length;i+=LS) chunks.push(items.slice(i,i+LS));
+    const made=chunks.map((ch,i)=>{
+      const name=(prior||chunks.length>1) ? `${base} · ${prior+i+1}` : base;
+      const l=Object.assign({id:uid(), name, group, folder:"learn", completions:[], words:seedWords(ch)}, sent?{kind:"sentence"}:{});
+      curLists().push(l); entry.listIds.push(l.id); return l;
+    });
+    S.collapsed=(S.collapsed&&typeof S.collapsed==="object")?S.collapsed:{};
+    S.collapsed[folderKey("learn")]=false; S.collapsed[collapsedKey("learn", group||"Ungrouped")]=false;
+    save(); gwOverlay.classList.remove("open");
+    renderLibrary(true); paintHeader();
+    const target=made[0]||filled;
+    const first=target && stage.querySelector('.listcard[data-id="'+target.id+'"]');
+    if(first){ first.scrollIntoView({block:"center"}); first.classList.add("here"); setTimeout(()=>first.classList.remove("here"),1900); }
+  }
+  ["gwLearn","gwMeaning","gwTopic","gwLevel","gwCount","gwFrom"].forEach(id=>{ const e=gwe(id); e.addEventListener("input",()=>{ if(id==="gwTopic") gwReq=null; gwFieldsChanged(); }); e.addEventListener("change",gwFieldsChanged); });
+  ["gwName","gwGroup"].forEach(id=>gwe(id).addEventListener("input",()=>{ gwe(id).dataset.touched="1"; }));
+  gwe("gwPaste").addEventListener("input",gwRefresh);
+  gwe("gwCopy").onclick=async()=>{
+    gwRemember(); const text=gwPrompt(); gwe("gwPrompt").value=text;
+    let ok=false;
+    try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){}
+    if(!ok){ const ta=gwe("gwPrompt"); ta.closest("details").open=true; ta.focus(); ta.select(); try{ ok=document.execCommand("copy"); }catch(e){} }
+    gwe("gwStatus").textContent = ok ? "Copied — paste it into the AI chat you use, then paste its answer below." : "Select the prompt below and copy it.";
+    gwSetDefaults();
+  };
+  gwe("gwCreate").onclick=gwCreate;
+  gwe("gwClose").onclick=()=>gwOverlay.classList.remove("open");   // no closing on a stray backdrop click: a pasted answer would be lost
+
+  // ---- settings ----
+  const setOverlay=document.getElementById("setOverlay");
+  const tg={dir:"dirToggle",typo:"typoToggle",strict:"strictToggle",time:"timeToggle",slip:"slipToggle",retype:"retypeToggle"};
+  let setDojo="word";
+  function paintSettings(){
+    document.querySelectorAll("#setDojo [data-sd]").forEach(b=>{ const on=b.dataset.sd===setDojo; b.classList.toggle("on",on); b.setAttribute("aria-selected",String(on)); });
+    document.getElementById("setWordPane").hidden = setDojo!=="word";
+    document.getElementById("setSentPane").hidden = setDojo!=="sentence";
+    document.getElementById("sSlipToggle").classList.toggle("on",S.settings.sSlipResets!==false);
+    document.getElementById("sShowToggle").classList.toggle("on",!!S.settings.sShowFirst);
+    document.getElementById("wListSel").value=String(S.settings.wListSize||25);
+    document.getElementById("sListSel").value=String(S.settings.sListSize||10);
+    document.getElementById("sQuickToggle").classList.toggle("on",S.settings.sQuick!==false);
+    const s=S.settings, dl=document.getElementById("dirLabel"), dt=document.getElementById("dirToggle");
+    if(s.typeDutch){ dt.classList.add("on"); dl.innerHTML="Prompt with the meaning — type the word<small>Active recall of the word you're learning (recommended)</small>"; }
+    else { dt.classList.remove("on"); dl.innerHTML="Prompt with the word — type the meaning<small>Recognising the word you're learning</small>"; }
+    document.getElementById("typoToggle").classList.toggle("on",s.typoTolerance);
+    document.getElementById("strictToggle").classList.toggle("on",s.strictSpelling);
+    document.getElementById("timeToggle").classList.toggle("on",s.timeMatters);
+    document.getElementById("slipToggle").classList.toggle("on",s.slipResets);
+    document.getElementById("retypeToggle").classList.toggle("on",s.retypeOnError);
+  }
+  function openSettings(){ setDojo=S.dojo==="sentence"?"sentence":"word"; paintSettings(); updateLastExport(); document.getElementById("accentField").value=S.settings.accentChars||""; setOverlay.classList.add("open"); }
+  document.getElementById("dirToggle").onclick=()=>{ S.settings.typeDutch=!S.settings.typeDutch; save(); paintSettings(); };
+  document.getElementById("typoToggle").onclick=()=>{ S.settings.typoTolerance=!S.settings.typoTolerance; save(); paintSettings(); };
+  document.getElementById("strictToggle").onclick=()=>{ S.settings.strictSpelling=!S.settings.strictSpelling; save(); paintSettings(); };
+  document.getElementById("accentField").oninput=(e)=>{ S.settings.accentChars=e.target.value; save(); };
+  (function(){ const pr=document.getElementById("accentPresets"); const mk=(name,val)=>{ const b=document.createElement("button"); b.type="button"; b.className="preset"; b.textContent=name; b.onclick=()=>{ S.settings.accentChars=val; save(); document.getElementById("accentField").value=val; }; pr.appendChild(b); }; Object.keys(ACCENT_PRESETS).forEach(n=>mk(n,ACCENT_PRESETS[n])); mk("None",""); })();
+  document.getElementById("timeToggle").onclick=()=>{ S.settings.timeMatters=!S.settings.timeMatters; save(); paintSettings(); };
+  document.getElementById("slipToggle").onclick=()=>{ S.settings.slipResets=!S.settings.slipResets; save(); paintSettings(); };
+  document.querySelectorAll("#setDojo [data-sd]").forEach(b=>b.onclick=()=>{ setDojo=b.dataset.sd; paintSettings(); });
+  document.getElementById("wListSel").onchange=e=>{ S.settings.wListSize=+e.target.value; save(); };
+  document.getElementById("sListSel").onchange=e=>{ S.settings.sListSize=+e.target.value; save(); };
+  document.getElementById("sShowToggle").onclick=()=>{ S.settings.sShowFirst=!S.settings.sShowFirst; save(); paintSettings(); };
+  document.getElementById("sQuickToggle").onclick=()=>{ S.settings.sQuick=!(S.settings.sQuick!==false); save(); paintSettings(); };
+  document.getElementById("sSlipToggle").onclick=()=>{ S.settings.sSlipResets=!(S.settings.sSlipResets!==false); save(); paintSettings(); };
+  document.getElementById("retypeToggle").onclick=()=>{ S.settings.retypeOnError=!S.settings.retypeOnError; save(); paintSettings(); };
+  document.getElementById("setClose").onclick=()=>{ setOverlay.classList.remove("open"); render(); };
+
+  // ---- backup ----
+  function relTime(ts){ if(!ts) return "never"; const s=Math.floor((Date.now()-ts)/1000); if(s<45) return "just now"; const m=Math.round(s/60); if(m<60) return m+" minute"+(m===1?"":"s")+" ago"; const h=Math.round(m/60); if(h<24) return h+" hour"+(h===1?"":"s")+" ago"; const d=Math.round(h/24); return d+" day"+(d===1?"":"s")+" ago"; }
+  function updateLastExport(){ const el=document.getElementById("lastExportLine"); if(el) el.textContent="Last backup: "+relTime(S.lastExport); }
+  function download(text,name){
+    const blob=new Blob([text],{type:"application/json"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a");
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+  function doExport(){ download(JSON.stringify(S,null,2),"language-senpai-backup.json"); S.lastExport=Date.now(); save(); updateLastExport(); }
+  document.getElementById("exportBtn").onclick=doExport;
+  document.getElementById("verLine").innerHTML="<b>Language Senpai V"+APP_VERSION+"</b> · <button type=\"button\" class=\"linkish\" id=\"wnBtn\">What's new</button>";
+  // v22.2: "What's new" opens over Settings and closes back to exactly where you were
+  const wnOverlay=document.getElementById("wnOverlay");
+  function openWhatsNew(){ document.getElementById("wnList").innerHTML=CHANGELOG.map(c=>`<div class="wnv">Version ${c.v}</div><ul>${c.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`).join(""); wnOverlay.classList.add("open"); }
+  document.getElementById("wnBtn").onclick=openWhatsNew;
+  document.getElementById("wnClose").onclick=()=>wnOverlay.classList.remove("open");
+  wnOverlay.addEventListener("click",e=>{ if(e.target===wnOverlay) wnOverlay.classList.remove("open"); });
+  const importFile=document.getElementById("importFile");
+  document.getElementById("importBtn").onclick=()=>importFile.click();
+  importFile.onchange=()=>{ const f=importFile.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||!Array.isArray(p.lists)) throw 0; p.settings=fixSettings(p.settings); p.groupOrder=fixGroupOrder(p.groupOrder); if(!Array.isArray(p.sLists)) p.sLists=[]; p.sGroupOrder=fixGroupOrder(p.sGroupOrder); p.dojo=p.dojo==="sentence"?"sentence":"word"; p.collapsed=(p.collapsed&&typeof p.collapsed==="object")?p.collapsed:{}; p.view="library"; p.activeListId=null; S=p; save(); setOverlay.classList.remove("open"); render(); alert("Backup restored."); }
+      catch(e){ alert("That file doesn't look like a valid backup."); } importFile.value=""; };
+    r.readAsText(f); };
+
+  document.getElementById("brand").onclick=leaveStudy;   // v19: the wordmark is a way out too
+  document.getElementById("setBtnHdr").onclick=openSettings;
+  [listOverlay,setOverlay].forEach(o=>o.addEventListener("click",e=>{ if(e.target===o){ o.classList.remove("open"); if(o===setOverlay) render(); } }));
+  function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>
