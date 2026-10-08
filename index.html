@@ -239,6 +239,11 @@
   .feedback .correct{color:var(--ink);font-family:var(--serif);font-style:italic}
   .feedback .rt{color:var(--faint);font-size:12.5px}
   .feedback .tip{color:var(--faint);font-size:12.5px;display:block;margin-top:3px}
+  .feedback .also{display:block;color:var(--muted);font-size:12.5px;margin-top:3px} .feedback .also i{font-family:var(--serif);color:var(--ink)}
+  .show-also{text-align:center;color:var(--muted);font-size:12.5px;margin-top:4px} .show-also span{font-family:var(--serif);color:var(--indigo);font-size:16px}
+  .help-ico{display:inline-block;width:1.05em;height:1.05em;vertical-align:-0.17em;margin:0 1px} .help-ico svg{width:100%;height:100%;display:block}
+  .help-ico.bolt svg{fill:var(--rival)} .help-ico.pencil svg{fill:none;stroke:var(--indigo);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .wl-home[hidden]{display:none}
 
   .mastery{margin-top:22px;display:flex;align-items:center;gap:12px}
   .mastery .ml{color:var(--faint);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase}
@@ -385,9 +390,9 @@
     <input type="text" class="field" id="listName" placeholder="List name (e.g. Frequency 1–100, or Psychology terms)">
     <div class="grpwrap"><input type="text" class="field" id="listGroup" autocomplete="off" placeholder="Group (optional) — e.g. Frequency, Psychology. Blank = Ungrouped"><div class="grpmenu" id="grpMenu"></div></div>
     <p class="hint" id="listHelp">One pair per line: <code>word = meaning</code>. On the side you type, you can mark up alternatives:<br>
-      &nbsp;• <code>/</code> — both fully correct, either counts: <code>lopen = laufen / gehen</code><br>
-      &nbsp;• <code>[ ]</code> — valid but <b>not</b> the word being drilled: shows teal and asks you to type the target instead. Add as many as you need: <code>dichtbij [nabij] [vlakbij] = nahe</code><br>
-    &nbsp;• <code>( )</code> — something extra that's never required: shown as a hint when it's in the question, accepted but not needed when it's in your answer: <code>(zich) wassen</code> accepts "wassen" and "zich wassen"</p>
+      &nbsp;• <code>/</code> — both fully correct, either counts: <code>dōjō / dojo = training hall</code><br>
+      &nbsp;• <code>[ ]</code> — valid but <b>not</b> the word being drilled: shows teal and asks you to type the target instead. Add as many as you need: <code>sensei [shishō] [kyōshi] = teacher</code><br>
+    &nbsp;• <code>( )</code> — something extra that's never required: shown as a hint when it's in the question, accepted but not needed when it's in your answer: <code>arigatō (gozaimasu) = thank you</code> accepts "arigatō" and "arigatō gozaimasu"</p>
     <textarea id="listArea" spellcheck="false"></textarea>
     <div class="modal-row">
       <span class="hint" style="margin:0" id="listCount"></span>
@@ -424,8 +429,8 @@
     <div id="gwMore"></div>
     <h4>1 · Describe it</h4>
     <div class="gwgrid">
-      <label class="gwf"><span class="flabel">Learning</span><input type="text" class="field" id="gwLearn" placeholder="e.g. Dutch" autocomplete="off"></label>
-      <label class="gwf"><span class="flabel">Meanings in</span><input type="text" class="field" id="gwMeaning" placeholder="e.g. German" autocomplete="off"></label>
+      <label class="gwf"><span class="flabel">Learning</span><input type="text" class="field" id="gwLearn" placeholder="e.g. Japanese" autocomplete="off"></label>
+      <label class="gwf"><span class="flabel">Meanings in</span><input type="text" class="field" id="gwMeaning" placeholder="e.g. English" autocomplete="off"></label>
       <label class="gwf wide"><span class="flabel">Topic</span><input type="text" class="field" id="gwTopic" placeholder="e.g. psychology, travel, the most common words" autocomplete="off"></label>
       <label class="gwf wide" id="gwFromWrap"><span class="flabel">Use the words from <small>(optional)</small></span><select class="field" id="gwFrom"></select></label>
       <label class="gwf"><span class="flabel">Level</span><select class="field" id="gwLevel"><option value="">Any level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
@@ -497,6 +502,7 @@
     <p class="wl-sub">Your language journey begins here.</p>
     <p class="hint">Train words and sentences in two dojos, with practice that keeps bringing back what's hard until it sticks. Your progress stays in this browser — nothing leaves your device.</p>
     <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" id="wlSkip">I know my way</button><button class="btn" id="wlTour">Show me around</button></div></div>
+    <p class="hint wl-home" id="wlHome" hidden>Opened as an app from your Home Screen or Dock? It keeps its own storage, separate from your browser. If you've already practised in the browser, export a backup there and restore it here (Settings &amp; backup).</p>
     <p class="hint wl-fix">Seeing this every time you open the app? Then your browser is deleting what this page saves. <button type="button" class="linkish" id="wlFix">Here's how to fix it</button></p>
   </div>
 </div>
@@ -522,8 +528,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="22.4";
+  const APP_VERSION="22.5";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"22.5", items:["When a word has more than one accepted form, the answer now shows all of them \u2014 for example Chinese characters and their pinyin.","Help explains groups, shows where the rival bolt and the edit pencil sit on a card, and uses Japanese examples.","Opened from your Home Screen? The welcome screen explains that this copy keeps its own storage, and how to bring your progress over."]},
     {v:"22.4", items:["A welcome screen and a Help page (the Help button) that explain every part of the app.","If your browser keeps deleting your progress, Help explains why and how to fix it, and can ask the browser to protect this page's data.","Phone: the keyboard's Go key checks your answer, and the keyboard stays open from card to card.","Accent bar: off by default for new users, more languages, \u201cFrom my lists\u201d (the special letters your words use) and \u201cMy own\u201d (never lost when you try a preset)."]},
     {v:"22.3", items:["Get sentences: other word orders are recognised even when the AI puts them after the translation, and Dutch paraphrases no longer leak into the prompt. Lists already imported that way are repaired automatically."]},
     {v:"22.2", items:["Sentence Dojo: every word stays exactly where you put it. Drag a word onto any slot — onto another word and the two swap.","\u201cMy order is also correct\u201d: when your word order is right but the card didn't know it, one tap teaches the card.","Get sentences now asks the AI for every other correct word order.","Parentheses are never required: \u201c(zich) wassen\u201d accepts \u201cwassen\u201d and \u201czich wassen\u201d.","Get words: one simple question about words you already have, smaller sentence lists, and your own list size.","With \u201cA slip resets the word\u201d off, one slip on a word you knew costs one step, not three.","Fewer settings up front (the rest is under More options); punctuation tiles are gone."]},
@@ -906,6 +913,10 @@
   function answerText(w){ return S.settings.typeDutch ? w.nl : w.de; }
   function promptParts(w){ return parseSide(promptText(w)); }
   function answerPrimary(w){ return parseSide(answerText(w)).primary || answerText(w); }
+  // v22.5: when the answer is revealed, show every "/" form, not just the first (Mandarin: characters and pinyin)
+  function otherForms(w, shown){ const s=String(shown==null?"":shown).trim(); return parseSide(answerText(w)).green.filter(x=>x!==s); }
+  function showAlso(w){ const o=otherForms(w, answerPrimary(w)); return o.length?`<div class="show-also">also correct: ${o.map(x=>`<span>${esc(x)}</span>`).join(" · ")}</div>`:""; }
+  function alsoLine(w, shown){ const o=otherForms(w, shown); return o.length?`<span class="also">also correct: ${o.map(x=>`<i>${esc(x)}</i>`).join(" · ")}</span>`:""; }
   function dirText(){ return S.settings.typeDutch ? "meaning → word" : "word → meaning"; }
   function dotsHtml(l){
     const cells=liveWords(l).map(w=>{ let c="dot"; if(w.mastered)c+=" mastered"; else if(w.everSeen)c+=" practiced"; return '<span class="'+c+'"></span>'; }).join("");
@@ -938,7 +949,7 @@
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New word — type it once":"Translate"}</span></span><span class="rightgrp"><span class="dir">${dirText()}</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
         <div class="term">${esc(pp.green.join(" / ")||promptText(w))}</div>
         ${pp.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
-        ${guided?`<div class="show-answer">${esc(answerPrimary(w))}</div><span class="new-tag">copy it to learn it</span>`:``}
+        ${guided?`<div class="show-answer">${esc(answerPrimary(w))}</div>${showAlso(w)}<span class="new-tag">copy it to learn it</span>`:``}
         <form class="answer-row" id="ansForm" autocomplete="off" novalidate>
           <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="${guided?'type it here…':'type your answer…'}">
           <button type="button" class="btn" id="go">${guided?"Got it":"Check"}</button>
@@ -1005,10 +1016,10 @@
       if(r.verdict==="teal"){
         // v19: a valid alternative while correcting a miss. No new strike, no credit; the target stays shown.
         c.classList.remove("flash-bad"); c.classList.add("flash-teal");
-        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span><span class="tip">type the word shown to continue</span>`;
+        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type the word shown to continue</span>`;
       } else {
         c.classList.remove("flash-teal"); c.classList.add("flash-bad"); shake(c);
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span><span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type it once to continue</span>`;
       }
       fb.classList.add("show"); input.value=""; input.focus();
       return;
@@ -1061,10 +1072,10 @@
     } else {
       card.classList.add("flash-bad"); shake(card);
       if(S.settings.retypeOnError){
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span><span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}<span class="tip">type it once to continue</span>`;
         fb.classList.add("show"); input.value=""; input.focus(); go.textContent="Check"; phase="retype";
       } else {
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}`;
         fb.classList.add("show"); input.readOnly=true; go.textContent="Continue"; phase="reveal";
       }
     }
@@ -1160,8 +1171,8 @@
   let editing=null;
   const WORD_HELP=document.getElementById("listHelp").innerHTML;
   const SENT_HELP='One sentence per line: <code>sentence = translation</code>. The translation is your prompt; you build the sentence from its words.<br>'+
-    '&nbsp;• <code>/</code> — another correct word order (same words): <code>Ik ga morgen naar huis. / Morgen ga ik naar huis. = Ich gehe morgen nach Hause.</code><br>'+
-    '&nbsp;• <code>( )</code> — a hint shown under the prompt: <code>Hij belt me op. = Er ruft mich an. (opbellen)</code>';
+    '&nbsp;• <code>/</code> — another correct word order (same words): <code>Mainichi nihongo o benkyō shimasu. / Nihongo o mainichi benkyō shimasu. = I study Japanese every day.</code><br>'+
+    '&nbsp;• <code>( )</code> — a hint shown under the prompt: <code>Senpai wa dōjō ni imasu. = The senpai is in the dojo. (imasu: for people)</code>';
   function openList(l){ editing=l;
     document.getElementById("listHelp").innerHTML = isSent() ? SENT_HELP : WORD_HELP;
     listName.placeholder = isSent() ? "List name (e.g. Everyday sentences, or Subclauses)" : "List name (e.g. Frequency 1–100, or Psychology terms)"; listTitle.textContent=l?"Edit list":"New list"; listName.value=l?l.name:""; listGroup.value=l?(l.group||""):"";
@@ -1752,23 +1763,25 @@
     {id:"word", t:"Word Dojo", h:`<ul>
       <li>You see the prompt and type the answer. A brand-new word is shown once so you can copy it.</li>
       <li>Each word needs a few correct answers; words you already mastered come back now and then to space out the hard ones.</li>
-      <li>A wrong answer shows the right one. With "Make me retype words I get wrong" on, you type it once to continue.</li>
+      <li>A wrong answer shows the right one, plus any other forms that also count. With "Make me retype words I get wrong" on, you type it once to continue.</li>
       <li><b>Teal</b> means: valid, but this card wants a different word — type the one it asks for.</li>
-      <li>The <b>pencil</b> edits the card you're on; the <b>bolt</b> makes it a rival.</li>
+      <li>On every card, the <b>bolt</b> <span class="help-ico bolt">${BOLT}</span> in the top-left corner makes it a rival, and the <b>pencil</b> <span class="help-ico pencil">${PENCIL}</span> in the top-right corner edits it.</li>
       <li>On a phone, the keyboard's <b>Go</b> key checks your answer.</li></ul>`},
     {id:"sentence", t:"Sentence Dojo", h:`<ul>
       <li>You see a translation and build the sentence from word tiles.</li>
       <li><b>Tap</b> a word to place it in the next free slot; tap it again to send it back. Or <b>drag</b> it onto any slot — onto another word and the two swap.</li>
       <li><b>Check</b>: words in the right place turn green and stay put. <b>Hint</b> places the next word for you (that sentence then counts as a miss).</li>
       <li>If your word order is also correct but the card didn't know it, press <b>My order is also correct</b> — the card learns it.</li></ul>`},
-    {id:"rivals", t:"Rivals", h:`<p>Mark any card with the <b>bolt</b> to make it a rival. The red Rivals card at the top lets you challenge all of them at once. Afterwards you can leave behind the ones you got right on the first try.</p>`},
+    {id:"rivals", t:"Rivals", h:`<p>Tap the <b>bolt</b> <span class="help-ico bolt">${BOLT}</span> in the top-left corner of any card to make it a rival. The red Rivals card at the top lets you challenge all of them at once. Afterwards you can leave behind the ones you got right on the first try.</p>`},
     {id:"lists", t:"Your lists", h:`<ul>
       <li>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</li>
-      <li><code>/</code> — either counts: <code>lopen / gaan = gehen</code></li>
-      <li><code>[ ]</code> — also valid, shown in teal: <code>dichtbij [nabij] = nahe</code></li>
-      <li><code>( )</code> — never required: a hint in the question, optional in your answer: <code>(zich) wassen</code></li>
+      <li><code>/</code> — either counts: <code>dōjō / dojo = training hall</code></li>
+      <li><code>[ ]</code> — also valid, shown in teal: <code>sensei [shishō] = teacher</code></li>
+      <li><code>( )</code> — never required: a hint in the question, optional in your answer: <code>arigatō (gozaimasu) = thank you</code></li>
       <li>Sentences: other correct word orders (same words) go after <code>/</code>.</li>
-      <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Groups and folders fold away.</li></ul>`},
+      <li><b>Groups</b> keep related lists under one heading — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
+      <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
+      <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`},
     {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>. The accent bar adds one-tap special letters — try <b>From my lists</b>. Backups are shared by both dojos.</p>`},
     {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
@@ -1776,7 +1789,8 @@
       <li><b>Use a normal window.</b> Private or incognito windows forget everything when they close.</li>
       <li><b>Always open the same address</b> — bookmark it. A different address, or a newly downloaded copy of the file, starts empty.</li>
       <li><b>If your progress disappears when you close the browser</b>, a privacy setting or extension is deleting what websites save. Allow this site to keep its data — in many browsers through the small icon to the left of the address — or switch that setting off.</li>
-      <li><b>Safari can delete a website's data</b> after about a week without a visit. On an iPhone or iPad, add the page to your Home Screen — and keep backing up.</li></ul>
+      <li><b>Safari can delete a website's data</b> after about a week without a visit. On an iPhone or iPad, add the page to your Home Screen (Share → Add to Home Screen) — and keep backing up.</li>
+      <li><b>The Home Screen app keeps its own storage</b>, separate from the browser. Add it before you start — or, if you've already practised in the browser, export a backup there and restore it in the Home Screen app.</li></ul>
       <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
       <p class="hint">If saving is blocked completely, Language Senpai tells you straight away.</p>`}
   ];
@@ -1890,6 +1904,9 @@
 
   requestAnimationFrame(render);
 
+  // v22.5: an app opened from the Home Screen (or the Dock) has its own storage — say so on its first visit
+  function isStandaloneApp(){ try{ return window.navigator.standalone===true || (!!window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); }catch(e){ return false; } }
+  { const wh=document.getElementById("wlHome"); if(wh) wh.hidden=!isStandaloneApp(); }
   if(showWelcome) requestAnimationFrame(()=>wlOverlay.classList.add("open"));
 })();
 </script>
