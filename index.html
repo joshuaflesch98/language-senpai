@@ -528,8 +528,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="22.5";
+  const APP_VERSION="22.6";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"22.6", items:["Missing a word you knew before now costs the full three answers again \u2014 only a slip on a word you already mastered in this run (shown again to space out the last word) costs just one.","Chinese, Japanese and Thai sentences written without spaces are split into word tiles. Spaces you type yourself still decide the tiles."]},
     {v:"22.5", items:["When a word has more than one accepted form, the answer now shows all of them \u2014 for example Chinese characters and their pinyin.","Help explains groups, shows where the rival bolt and the edit pencil sit on a card, and uses Japanese examples.","Opened from your Home Screen? The welcome screen explains that this copy keeps its own storage, and how to bring your progress over."]},
     {v:"22.4", items:["A welcome screen and a Help page (the Help button) that explain every part of the app.","If your browser keeps deleting your progress, Help explains why and how to fix it, and can ask the browser to protect this page's data.","Phone: the keyboard's Go key checks your answer, and the keyboard stays open from card to card.","Accent bar: off by default for new users, more languages, \u201cFrom my lists\u201d (the special letters your words use) and \u201cMy own\u201d (never lost when you try a preset)."]},
     {v:"22.3", items:["Get sentences: other word orders are recognised even when the AI puts them after the translation, and Dutch paraphrases no longer leak into the prompt. Lists already imported that way are repaired automatically."]},
@@ -626,8 +627,13 @@
   function targetFor(w){
     // v22: in the Sentence Dojo one clean build is enough; after a miss it takes two
     if(listKind(activeList())==="sentence" && S.settings.sQuick!==false) return w.misses>0 ? 2 : 1;
-    return (w.days.length>0 && (w.misses===0 || !S.settings.slipResets)) ? REFRESH : FRESH;   // v22.2: off = a miss never raises the target
+    if(!(w.days.length>0)) return FRESH;
+    if(S.settings.slipResets) return w.misses===0 ? REFRESH : FRESH;   // on (strict): any miss, even a slip on a spacer, costs the full count
+    // v22.6 (corrects V22.2): off = a miss before the word is mastered in this run costs the full count again;
+    // only a slip on a word already mastered in this run (a spacer) leaves the target at one
+    return lapsedNow(w) ? FRESH : REFRESH;
   }
+  function lapsedNow(w){ return typeof w.lapsed==="boolean" ? w.lapsed : (w.misses>0 && !w.mastered); }
 
   // ---- matching ----
   function baseNorm(s){ return s.replace(/[\u2019\u2018\u201b]/g,"'").toLowerCase().trim().replace(/\s+/g," "); }
@@ -676,7 +682,7 @@
   // ---- session ----
   let work=[], lastIdx=null, trial=0, cur=null, phase="answer", shownAt=0, firstKey=0, timer=null;
   function startSession(l){
-    l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
+    l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w.lapsed=false; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
     work=[]; for(let i=0;i<l.words.length && work.length<SET_SIZE;i++) work.push(i);
     lastIdx=null; trial=0; S.view="study"; S.activeListId=l.id; save();
     const n=pickNext(l); if(n===null){ completeSession(l); return; } cur=n; render();
@@ -1052,6 +1058,7 @@
     } else if(correct){
       if(!slow){ w.streak++; if(w.streak>=targetFor(w)) w.mastered=true; }
     } else {
+      w.lapsed = lapsedNow(w) || !w.mastered;   // v22.6: missed before it was mastered in this run (a slip on a spacer doesn't count)
       if(S.settings.slipResets) w.streak=0; else w.streak=Math.max(0,w.streak-1);
       w.misses++; w.mastered = w.streak>=targetFor(w);
     }
@@ -1235,13 +1242,24 @@
   // ======================= v21: Sentence Dojo =======================
   // A sentence item is an ordinary list item: w.nl = "sentence / other valid order (hint)", w.de = "translation".
   // Scheduling, mastery, shurikens, rivals and the card editor are shared; only this card differs.
-  const QPUNCT="„“”\"«»—–,;:";
+  const QPUNCT="„“”\"«»—–,;:，、；：「」『』（）《》";
+  // v22.6: Chinese, Japanese and Thai are written without spaces — such a sentence is split into words by the browser.
+  // Spaces you type always win (a sentence that contains any space is split at the spaces, as before).
+  const NOSPACE=/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u0e00-\u0e7f]/;
+  function segLang(t){ return /[\u3040-\u30ff]/.test(t) ? "ja" : (/[\u0e00-\u0e7f]/.test(t) ? "th" : "zh"); }
+  function splitWords(t){
+    if(/\s/.test(t) || !NOSPACE.test(t)) return { parts:t.split(/\s+/).filter(Boolean), sep:" " };
+    try{ const seg=new Intl.Segmenter(segLang(t), {granularity:"word"});
+      const parts=[...seg.segment(t)].filter(x=>x.isWordLike).map(x=>x.segment);
+      if(parts.length) return { parts, sep:"" }; }catch(e){}
+    return { parts:[t], sep:"" };
+  }
   let SS=null, dragJustEnded=0;
   function tokenizeSent(str, punct){
     let t=String(str).trim(), fin="";
-    const m=t.match(/\s*([.!?…]+)\s*$/); if(m){ fin=m[1]; t=t.slice(0,m.index); }
-    const out=[];
-    t.split(/\s+/).filter(Boolean).forEach(tok=>{
+    const m=t.match(/\s*([.!?…。！？]+)\s*$/); if(m){ fin=m[1]; t=t.slice(0,m.index); }
+    const out=[], sp=splitWords(t);
+    sp.parts.forEach(tok=>{
       let a=0, b=tok.length;
       while(a<b && QPUNCT.includes(tok[a])) a++;
       while(b>a && QPUNCT.includes(tok[b-1])) b--;
@@ -1249,7 +1267,7 @@
       if(b>a) out.push({t:tok.slice(a,b),p:false});
       if(punct) [...tok.slice(b)].forEach(ch=>out.push({t:ch,p:true}));
     });
-    return {tokens:out, fin};
+    return {tokens:out, fin, sep:sp.sep};
   }
   function buildSentence(w){
     const punct=false;   // v22.2: commas are never tiles — many are optional; the solved sentence shows them
@@ -1268,8 +1286,8 @@
       if(i===0 && !x.p && !capsElsewhere.has(x.t) && !(x.t.length>1 && x.t===x.t.toUpperCase())) shown=x.t.charAt(0).toLowerCase()+x.t.slice(1);
       return {id:i, text:shown, norm:x.t.toLowerCase(), p:x.p};
     });
-    const withFin=v=>/[.!?…]\s*$/.test(v.text) ? v.text : v.text+(prim.fin||"");
-    return { tiles, orders:valid.map(v=>v.tokens.map(x=>x.t.toLowerCase())), fullTexts:valid.map(withFin), fin:prim.fin,
+    const withFin=v=>/[.!?…。！？]\s*$/.test(v.text) ? v.text : v.text+(prim.fin||"");
+    return { tiles, orders:valid.map(v=>v.tokens.map(x=>x.t.toLowerCase())), fullTexts:valid.map(withFin), fin:prim.fin, sep:prim.sep,
              prompt:(pd.green.join(" / ")||pd.primary||w.de), hint:[pd.hint, ps.hint].filter(Boolean).join(" · ") };
   }
   function shuffledIds(tiles, orders){
@@ -1284,7 +1302,7 @@
   function renderSentence(){
     const l=activeList(), w=l.words[cur], guided=!w.everSeen && !!S.settings.sShowFirst;
     const B=buildSentence(w);
-    SS={ l, w, guided, tiles:B.tiles, orders:B.orders, fullTexts:B.fullTexts, fin:B.fin, N:B.tiles.length,
+    SS={ l, w, guided, tiles:B.tiles, orders:B.orders, fullTexts:B.fullTexts, fin:B.fin, sep:B.sep, N:B.tiles.length,
          bank:shuffledIds(B.tiles,B.orders), slots:new Array(B.tiles.length).fill(null), pins:{}, missed:false, done:false, hinted:false,
          snap:{streak:w.streak, misses:w.misses, mastered:w.mastered, everSeen:w.everSeen, _seen:w._seen, _aced:w._aced} };
     stage.innerHTML=`
@@ -1422,7 +1440,7 @@
     if(!SS || SS.done || !SS.lastBuilt) return;
     const lp=SS.lastBuilt, w=SS.w;
     const ws=lp.map(id=>SS.tiles[id].text); ws[0]=ws[0].charAt(0).toUpperCase()+ws[0].slice(1);
-    const text=ws.join(" ")+(SS.fin||""), order=lp.map(id=>SS.tiles[id].norm);
+    const text=ws.join(SS.sep==null?" ":SS.sep)+(SS.fin||""), order=lp.map(id=>SS.tiles[id].norm);
     w.nl = String(w.nl).replace(/\s+$/,"") + " / " + text;
     Object.assign(w, SS.snap);
     SS.orders.push(order); SS.fullTexts.push(text);
@@ -1532,7 +1550,7 @@
     const parts=t.split(" "); if(parts.length>1 && ARTICLES.has(parts[0])) parts.shift();
     return parts.join(" ");
   }
-  function normSent(x){ return String(x).toLowerCase().replace(/[.,!?;:„“”"«»—–…]/g,"").replace(/\s+/g," ").trim(); }
+  function normSent(x){ return String(x).toLowerCase().replace(/[.,!?;:„“”"«»—–…。，！？、；：「」『』]/g,"").replace(/\s+/g," ").trim(); }
   function itemKeys(nl, sent){ const ps=parseSide(nl); const alts=ps.green.length?ps.green:[ps.primary||nl]; return alts.map(a=>sent?normSent(a):normWord(a)).filter(Boolean); }
   function libraryIndex(sent){
     const idx=new Map();
