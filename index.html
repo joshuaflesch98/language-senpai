@@ -201,6 +201,30 @@
   .hardcard .hc-bolt svg{width:20px;height:20px;fill:var(--rival)}
   .hardcard .hc-name{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink)}
   .hardcard .hc-sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+  /* v23: Revisit — mastered words, oldest first; sits above Master */
+  .revcard{background:var(--indigo-soft);border:1px solid #C9D3E3;border-radius:16px;padding:15px 18px;margin:4px 0 22px;opacity:0;animation:rise .6s .12s ease forwards}
+  .revcard.noanim,#stage.quiet .revcard{animation:none;opacity:1}
+  .revcard .rv-top{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .revcard .rv-left{display:flex;align-items:center;gap:13px;min-width:0}
+  .revcard .rv-ico{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid #C9D3E3;flex:none}
+  .rv-ico svg,.bigrev svg{fill:none;stroke:var(--indigo);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .revcard .rv-ico svg{width:20px;height:20px}
+  .revcard .rv-name{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink)}
+  .revcard .rv-sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .revcard .rv-from{margin-top:11px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+  .revcard .rv-pick{background:var(--surface);border:1px solid var(--line-2);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .revcard .rv-pick:hover{border-color:var(--indigo)}
+  .revcard .rv-panel{margin-top:10px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;padding:10px 12px}
+  .revcard .rv-panel[hidden],.revcard .rv-row[hidden]{display:none}
+  .revcard .rv-search{display:flex;gap:8px;align-items:center}
+  .revcard .rv-search input{flex:1;min-width:0;height:34px;border:1px solid var(--line-2);border-radius:9px;padding:0 10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}
+  .revcard .rv-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 2px;font-size:13.5px;cursor:pointer;color:var(--ink)}
+  .revcard .rv-row > span:first-child{display:flex;gap:8px;align-items:center;min-width:0}
+  .revcard .rv-row .n{color:var(--faint);font-size:12px;flex:none}
+  .revcard .rv-all{margin-top:6px;color:var(--muted)}
+  .revcard .rv-list{max-height:240px;overflow:auto;border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+  .bigrev{width:66px;height:66px;margin:4px auto 18px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--indigo-soft);border:1px solid #C9D3E3}
+  .bigrev svg{width:32px;height:32px}
   .btn.rival{background:var(--rival)} .btn.rival:hover{background:var(--rival-dk)}
   .screen .bigbolt{width:66px;height:66px;margin:4px auto 18px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--rival-soft);border:1px solid var(--rival-line);animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
   .screen .bigbolt svg{width:32px;height:32px;fill:var(--rival)}
@@ -528,8 +552,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="22.6";
+  const APP_VERSION="23";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"23", items:["New: Revisit, above Master. It brings back the words you mastered longest ago \u2014 25 at a time, oldest first. Every word you finish counts right away, even if you stop halfway, and \"From\" lets you pick one or several groups.","Revisit works in both dojos and never changes a list's shurikens."]},
     {v:"22.6", items:["Missing a word you knew before now costs the full three answers again \u2014 only a slip on a word you already mastered in this run (shown again to space out the last word) costs just one.","Chinese, Japanese and Thai sentences written without spaces are split into word tiles. Spaces you type yourself still decide the tiles."]},
     {v:"22.5", items:["When a word has more than one accepted form, the answer now shows all of them \u2014 for example Chinese characters and their pinyin.","Help explains groups, shows where the rival bolt and the edit pencil sit on a card, and uses Japanese examples.","Opened from your Home Screen? The welcome screen explains that this copy keeps its own storage, and how to bring your progress over."]},
     {v:"22.4", items:["A welcome screen and a Help page (the Help button) that explain every part of the app.","If your browser keeps deleting your progress, Help explains why and how to fix it, and can ask the browser to protect this page's data.","Phone: the keyboard's Go key checks your answer, and the keyboard stays open from card to card.","Accent bar: off by default for new users, more languages, \u201cFrom my lists\u201d (the special letters your words use) and \u201cMy own\u201d (never lost when you try a preset)."]},
@@ -588,7 +613,8 @@
   }
   function uid(){ return "l"+Math.random().toString(36).slice(2,9); }
   function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
-  function fixSettings(s){ s=s||{}; return { wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
+  function fixRevSel(v){ const one=x=>Array.isArray(x)&&x.length?x.filter(g=>typeof g==="string"):null; v=(v&&typeof v==="object")?v:{}; return {word:one(v.word), sentence:one(v.sentence)}; }
+  function fixSettings(s){ s=s||{}; return { revisitGroups:fixRevSel(s.revisitGroups), wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
   function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
 
   let rescued=null, saveBlocked=false, bootSave=false, saveWarned=false;   // v22: declared before load/save first run
@@ -599,7 +625,7 @@
     let raw=null;
     try{ raw=localStorage.getItem(KEY); }catch(e){}
     if(raw){
-      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); repairSentenceOrders(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__"){ s.view="library"; s.activeListId=null; } return s; } }catch(e){}
+      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); repairSentenceOrders(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__" || s.activeListId==="__revisit__"){ s.view="library"; s.activeListId=null; } return s; } }catch(e){}
       // v22: a save exists but this version can't read it — set it aside first, never overwrite it
       const rk=KEY+"_rescued_"+Date.now();
       try{ localStorage.setItem(rk, raw); rescued={key:rk, raw}; }catch(e){ rescued={key:null, raw}; saveBlocked=true; }
@@ -619,7 +645,7 @@
   function curGroupOrder(){ S.sGroupOrder=fixGroupOrder(S.sGroupOrder); S.groupOrder=fixGroupOrder(S.groupOrder); return isSent() ? S.sGroupOrder : S.groupOrder; }
   function listKind(l){ return l && l.kind==="sentence" ? "sentence" : "word"; }
   function unitOf(l){ return listKind(l)==="sentence" ? "sentence" : "word"; }
-  const activeList=()=> S.activeListId==="__hard__" ? hardList : (S.lists.find(l=>l.id===S.activeListId) || (S.sLists||[]).find(l=>l.id===S.activeListId));
+  const activeList=()=> S.activeListId==="__hard__" ? hardList : S.activeListId==="__revisit__" ? revList : (S.lists.find(l=>l.id===S.activeListId) || (S.sLists||[]).find(l=>l.id===S.activeListId));
   function listRank(l){ const n=(l.completions||[]).length; return n>=3?"gold":(n>=1?"silver":"none"); }
   // v19: in a Rivals drill, words unmarked mid-session drop out of every tally immediately
   function liveWords(l){ return l._virtual ? l.words.filter(w=>!w._drop) : l.words; }
@@ -688,6 +714,93 @@
     const n=pickNext(l); if(n===null){ completeSession(l); return; } cur=n; render();
   }
   function hardWords(){ const out=[]; curLists().forEach(l=>l.words.forEach(w=>{ if(w.hard) out.push(w); })); return out; }
+  // ---- v23: Revisit — mastered words, oldest first. A word counts as revisited the moment it is mastered in a round
+  // (its day is stamped at once), so stopping halfway or switching groups never loses what you did. ----
+  let revList=null; const revUI={open:false, q:""};
+  const REVISIT_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 12a8.4 8.4 0 1 0 2.5-6"/><path d="M3.6 4.4v4.7h4.7"/><path d="M12 7.6V12l3 1.9"/></svg>';
+  function dayKey(d){ const p=String(d).split("-").map(Number); return (p[0]||0)*10000+(p[1]||0)*100+(p[2]||0); }
+  function lastDayKey(w){ let m=0; (w.days||[]).forEach(d=>{ const k=dayKey(d); if(k>m) m=k; }); return m; }
+  function fmtDay(k){ const y=Math.floor(k/10000), dt=new Date(y, Math.floor(k/100)%100-1, k%100);
+    return dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"})+(y!==new Date().getFullYear()?" "+y:""); }
+  function revUnit(n){ const u=isSent()?"sentence":"word"; return n===1?u:u+"s"; }
+  function revSel(){ const r=S.settings.revisitGroups||{}; const v=r[isSent()?"sentence":"word"]; return Array.isArray(v)&&v.length?v:null; }
+  function setRevSel(v){ S.settings.revisitGroups=fixRevSel(S.settings.revisitGroups); S.settings.revisitGroups[isSent()?"sentence":"word"]=(v&&v.length)?v:null; save(); }
+  function revGroups(){   // groups that hold mastered words, in library order
+    const m=new Map();
+    curLists().forEach(l=>{ const k=l.group||""; const n=l.words.filter(w=>w.days&&w.days.length).length; if(!n) return; m.set(k,(m.get(k)||0)+n); });
+    return [...m.entries()].map(([key,count])=>({key, label:key||"Ungrouped", count}));
+  }
+  function revisitPool(){
+    const sel=revSel(), tk=dayKey(today()), out=[];
+    curLists().forEach((l,li)=>{ if(sel && !sel.includes(l.group||"")) return;
+      l.words.forEach((w,wi)=>{ if(!(w.days&&w.days.length)) return; const last=lastDayKey(w); if(last>=tk) return; out.push({w,last,n:w.days.length,li,wi}); }); });
+    out.sort((a,b)=>a.last-b.last || a.n-b.n || a.li-b.li || a.wi-b.wi);   // oldest first; ties: fewer mastered days, then list order
+    return out;
+  }
+  function revDoneToday(){ const sel=revSel(), tk=dayKey(today()); let n=0;
+    curLists().forEach(l=>{ if(sel && !sel.includes(l.group||"")) return; l.words.forEach(w=>{ if(w.days&&w.days.length&&lastDayKey(w)>=tk) n++; }); }); return n; }
+  function startRevisit(){
+    const pool=revisitPool(); if(!pool.length) return;
+    revUI.open=false;
+    revList={ id:"__revisit__", name:"Revisit", kind:isSent()?"sentence":"word", _virtual:true, _revisit:true, completions:[], words:pool.slice(0,listSize()).map(x=>x.w) };
+    revList.words.forEach(w=>{ if(!w._home) w._home={m:w.mastered, s:w.streak, x:w.misses, l:w.lapsed}; });
+    startSession(revList);
+  }
+  // the home lists keep their own progress: a round only borrows mastered/streak/misses and gives them back
+  function restoreRevisitHome(){ let any=false; [S.lists, S.sLists||[]].forEach(L=>L.forEach(l=>l.words.forEach(w=>{ if(w._home){ w.mastered=!!w._home.m; w.streak=w._home.s||0; w.misses=w._home.x||0; w.lapsed=!!w._home.l; delete w._home; any=true; } }))); return any; }
+  function revisitCredit(l,w){ if(!l || !l._revisit || !w.mastered) return; const d=today(); if(!w.days.includes(d)) w.days.push(d); }
+  function revisitCardHtml(noAnim){
+    const groups=revGroups(), total=groups.reduce((a,g)=>a+g.count,0), pool=revisitPool(), n=pool.length, t=revDoneToday(), sel=revSel();
+    let sub;
+    if(!total) sub=isSent()?"Sentences you master come back here.":"Words you master come back here.";
+    else if(!n) sub="All caught up for today"+(t?` — ${t} done`:"")+".";
+    else sub=`${n} ${revUnit(n)} · oldest last seen ${fmtDay(pool[0].last)}`+(t?` · ${t} done today`:"");
+    const label = !sel ? "All groups" : (sel.length===1 ? (sel[0]||"Ungrouped") : `${sel[0]||"Ungrouped"} + ${sel.length-1} more`);
+    const k=Math.min(listSize(), n);
+    const panel = groups.length ? `<div class="rv-from">From <button type="button" class="rv-pick" id="rvPick" aria-expanded="${revUI.open}">${esc(label)} ${revUI.open?"▴":"▾"}</button></div>
+      <div class="rv-panel" id="rvPanel"${revUI.open?"":" hidden"}>
+        <div class="rv-search"><input type="text" id="rvQ" placeholder="Filter groups" value="${esc(revUI.q)}" autocomplete="off" aria-label="Filter groups"><button type="button" class="btn ghost sm" id="rvTick">Tick all shown</button></div>
+        <label class="rv-row rv-all"><span><input type="checkbox" id="rvAll"${sel?"":" checked"}> All groups</span></label>
+        <div class="rv-list">${groups.map(g=>`<label class="rv-row" data-g="${esc(g.key)}"><span><input type="checkbox" data-gk="${esc(g.key)}"${sel&&sel.includes(g.key)?" checked":""}> ${esc(g.label)}</span><span class="n">${g.count}</span></label>`).join("")}</div>
+      </div>` : "";
+    return `<div class="revcard${noAnim?" noanim":""}" id="revCard"><div class="rv-top"><div class="rv-left"><span class="rv-ico">${REVISIT_ICON}</span><div><div class="rv-name">Revisit</div><div class="rv-sub" id="rvSub">${esc(sub)}</div></div></div>${k?`<button class="btn sm" id="rvGo">Revisit ${k} ${revUnit(k)}</button>`:""}</div>${panel}</div>`;
+  }
+  function refreshRevisitCard(){ const c=document.getElementById("revCard"); if(!c) return; c.outerHTML=revisitCardHtml(true); wireRevisit(); }
+  function applyRevFilter(){ const q=revUI.q.trim().toLowerCase();
+    document.querySelectorAll("#rvPanel .rv-list .rv-row").forEach(r=>{ r.hidden = !!q && !((r.dataset.g||"Ungrouped").toLowerCase().includes(q) || (!r.dataset.g && "ungrouped".includes(q))); }); }
+  function wireRevisit(){
+    const go=document.getElementById("rvGo"); if(go) go.onclick=startRevisit;
+    const pick=document.getElementById("rvPick"); if(pick) pick.onclick=()=>{ revUI.open=!revUI.open; refreshRevisitCard();
+      if(revUI.open && window.matchMedia && window.matchMedia("(hover: hover)").matches){ const q=document.getElementById("rvQ"); if(q) q.focus(); } };
+    const q=document.getElementById("rvQ"); if(q){ q.oninput=()=>{ revUI.q=q.value; applyRevFilter(); };
+      q.onkeydown=e=>{ if(e.key==="Escape"){ revUI.open=false; refreshRevisitCard(); } }; }
+    const all=document.getElementById("rvAll"); if(all) all.onchange=()=>{ setRevSel(null); refreshRevisitCard(); };
+    document.querySelectorAll("#rvPanel [data-gk]").forEach(cb=>cb.onchange=()=>{ const k=cb.dataset.gk; let sel=(revSel()||[]).slice();
+      if(cb.checked){ if(!sel.includes(k)) sel.push(k); } else sel=sel.filter(x=>x!==k);
+      setRevSel(sel.length?sel:null); refreshRevisitCard(); });
+    const tick=document.getElementById("rvTick"); if(tick) tick.onclick=()=>{
+      const shown=[...document.querySelectorAll("#rvPanel .rv-list .rv-row")].filter(r=>!r.hidden).map(r=>r.dataset.g);
+      if(!shown.length) return; const allKeys=revGroups().map(g=>g.key);
+      const sel=[...new Set([...(revSel()||[]), ...shown])];
+      setRevSel(sel.length>=allKeys.length ? null : sel); refreshRevisitCard(); };
+    applyRevFilter();
+  }
+  function showRevisitComplete(l, res){
+    const live=res.filter(r=>!r.dr), n=live.length, a=live.filter(r=>r.a).length;
+    const next=revisitPool(), k=Math.min(listSize(), next.length);
+    const p = a===n ? (n===1?"Right on the first try.":`All ${n} right on the first try.`) : `${a} of ${n} right on the first try.`;
+    const p2 = next.length ? `Next up: ${k} ${revUnit(k)} last seen around ${fmtDay(next[0].last)}.` : "That's everything you picked, for today.";
+    stage.innerHTML=`<div class="backbar"><button class="link" id="backBtn">‹ Library</button></div>
+      <div class="card"><div class="screen">
+        <div class="bigrev">${REVISIT_ICON}</div>
+        <h2>${n} ${revUnit(n)} revisited</h2>
+        <p>${p} ${p2}</p>
+        <div class="actions">${next.length?`<button class="btn" id="rvMore">Keep going</button>`:""}<button class="btn ghost" id="lib">Done for now</button></div>
+      </div></div>`;
+    const more=document.getElementById("rvMore"); if(more) more.onclick=startRevisit;
+    const back=()=>{ S.view="library"; save(); render(); };
+    document.getElementById("lib").onclick=back; document.getElementById("backBtn").onclick=back;
+  }
   function startHardDrill(){ const ws=hardWords(); if(!ws.length) return; hardList={ id:"__hard__", name:"Rivals", kind:isSent()?"sentence":"word", _virtual:true, completions:[], words:ws }; startSession(hardList); }
   function introduceIfNeeded(l){
     if(work.length>=Math.min(SET_SIZE,l.words.length)) return;
@@ -804,6 +917,7 @@
     head.addEventListener("keydown",e=>{ if(e.target!==head) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
   }
   function renderLibrary(quiet){
+    if((S.activeListId!=="__revisit__" || S.view==="library") && restoreRevisitHome()) save();
     const keepY = quiet ? window.scrollY : 0;
     const L=curLists(), sent=isSent();
     const learn=L.filter(l=>l.folder==="learn"), learned=L.filter(l=>l.folder==="learned");
@@ -816,6 +930,7 @@
       <p class="lib-intro">${intro}</p>
       <div class="hardcard"><div class="hc-left"><span class="hc-bolt">${BOLT}</span><div><div class="hc-name">Rivals</div><div class="hc-sub">${hard.length===0?"No rivals right now":hard.length===1?"1 rival awaits you":`${hard.length} rivals await you`}</div></div></div>${hard.length?`<button class="btn sm rival" id="hardGo">${hard.length===1?"Challenge your rival":"Challenge your rivals"}</button>`:""}</div>
       ${folderHtml("learn","Student",learn.length,true)}
+      ${revisitCardHtml(!!quiet)}
       ${folderHtml("learned","Master",learned.length,false)}`;
     fillFolder("learnWrap", "learn"); fillFolder("learnedWrap", "learned");
     stage.querySelectorAll(".fhead").forEach(h=>wireFold(h, h.nextElementSibling, folderKey(h.dataset.fk)));
@@ -823,12 +938,14 @@
     document.getElementById("gwBtn").onclick=openGetWords;
     wireNotice();
     const hg=document.getElementById("hardGo"); if(hg) hg.onclick=startHardDrill;
+    wireRevisit();
     stage.querySelectorAll("[data-dojo]").forEach(b=>b.onclick=()=>{ if(S.dojo===b.dataset.dojo) return; S.dojo=b.dataset.dojo; save(); window.scrollTo(0,0); renderLibrary(); paintHeader(); });
     if(quiet) window.scrollTo(0,keepY);
   }
   // v21: coming back from a session lands you on the list you just studied, not at the top
   function returnToList(){
     const id=S.activeListId;
+    if(id==="__revisit__"){ const rc=document.getElementById("revCard"); if(rc) rc.scrollIntoView({block:"center"}); else window.scrollTo(0,0); return; }
     if(!id || id==="__hard__"){ window.scrollTo(0,0); return; }
     const card=stage.querySelector('.listcard[data-id="'+id+'"]');
     if(!card){ window.scrollTo(0,0); return; }
@@ -1062,6 +1179,7 @@
       if(S.settings.slipResets) w.streak=0; else w.streak=Math.max(0,w.streak-1);
       w.misses++; w.mastered = w.streak>=targetFor(w);
     }
+    revisitCredit(l,w);
     save();
     const card=document.getElementById("card"), fb=document.getElementById("fb"), go=document.getElementById("go");
     refreshDots(l); updateMastery(w);
@@ -1100,7 +1218,7 @@
 
   function completeSession(l){
     const d=today();
-    if(l._virtual){ l.words.forEach(w=>{ if(w.mastered && !w.days.includes(d)) w.days.push(d); }); save(); paintHeader(); showDrillComplete(l); return; }
+    if(l._virtual){ l.words.forEach(w=>{ if(w.mastered && !w.days.includes(d)) w.days.push(d); }); if(l._revisit){ const res=l.words.map(w=>({w, a:w._aced, dr:w._drop})); restoreRevisitHome(); save(); paintHeader(); showRevisitComplete(l, res); return; } save(); paintHeader(); showDrillComplete(l); return; }
     if(!l.completions) l.completions=[];
     const fresh=!l.completions.includes(d);      // a second finish on the same day earns nothing new
     if(fresh) l.completions.push(d);
@@ -1414,6 +1532,7 @@
     if(SS.guided){ if(correct){ w.everSeen=true; w.streak=1; if(w.streak>=targetFor(w)) w.mastered=true; } }
     else if(correct){ w.streak++; if(w.streak>=targetFor(w)) w.mastered=true; }
     else { if(S.settings.sSlipResets!==false) w.streak=0; else w.streak=Math.max(0,w.streak-1); w.misses++; w.mastered=w.streak>=targetFor(w); }
+    revisitCredit(l,w);
     save(); refreshDots(l); updateMastery(w);
   }
   function sentGo(){
@@ -1791,6 +1910,12 @@
       <li><b>Check</b>: words in the right place turn green and stay put. <b>Hint</b> places the next word for you (that sentence then counts as a miss).</li>
       <li>If your word order is also correct but the card didn't know it, press <b>My order is also correct</b> — the card learns it.</li></ul>`},
     {id:"rivals", t:"Rivals", h:`<p>Tap the <b>bolt</b> <span class="help-ico bolt">${BOLT}</span> in the top-left corner of any card to make it a rival. The red Rivals card at the top lets you challenge all of them at once. Afterwards you can leave behind the ones you got right on the first try.</p>`},
+    {id:"revisit", t:"Revisit", h:`<p><b>Revisit</b> brings back the words you mastered longest ago, so they stay fresh. It sits above <b>Master</b>, in both dojos.</p><ul>
+      <li>Each round takes your oldest words — as many as a list holds (Settings). Right on the first try: done. A miss: three correct answers, as in any list.</li>
+      <li>Every word you finish is dated today and moves to the back of the line. Stop whenever you like — what you've done counts, even if you switch groups in between.</li>
+      <li>Words you've done today wait until tomorrow.</li>
+      <li><b>From</b> picks the groups: type a few letters to filter, then tick one or several — <b>Tick all shown</b> takes every match at once.</li>
+      <li>Revisit never changes a list's shurikens.</li></ul>`},
     {id:"lists", t:"Your lists", h:`<ul>
       <li>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</li>
       <li><code>/</code> — either counts: <code>dōjō / dojo = training hall</code></li>
