@@ -513,7 +513,8 @@
     <div class="divider"></div>
     <h4>Backup (whole library)</h4>
     <p class="hint"><b style="color:var(--ink)">Progress lives only in this browser.</b> Export now and then so you never lose it — especially before moving the file.</p>
-    <p class="hint" id="lastExportLine" style="margin-bottom:12px"></p>
+    <p class="hint" id="lastExportLine" style="margin-bottom:4px"></p>
+    <p class="hint" id="storageLine" style="margin-bottom:12px"></p>
     <div class="data-row">
       <button class="btn ghost" id="exportBtn">⤓ Export backup</button>
       <button class="btn ghost" id="importBtn">⤒ Restore backup</button>
@@ -557,8 +558,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="23.2";
+  const APP_VERSION="23.3";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"23.3", items:["Get words also leaves out the words from related topics you asked for before (\u201cemotions\u201d and \u201cemotions and feelings\u201d count as related).","If your browser offers to translate this page, it now translates the menus but never your cards.","Settings & backup shows how much room your saved data takes in the browser.","With \u201cAccept small typos\u201d on, a small typo in a teal alternative counts as that alternative \u2014 and typing a teal alternative exactly is never marked wrong."]},
     {v:"23.2", items:["Easier on the eye: text is back in the previous, sturdier font (Familjen Grotesk). Headings stay in Shippori Mincho and are a little bolder at small sizes."]},
     {v:"23.1", items:["A new look: Language Senpai now writes in Japanese typefaces (Shippori Mincho and Zen Kaku Gothic New), so Chinese and Japanese cards match the rest of the text.","Labels use normal capitals instead of spaced-out ones.","The app has its logo: the red seal with the white shuriken \u2014 in the header, in the browser tab and on your Home Screen."]},
     {v:"23", items:["New: Revisit, above Master. It brings back the words you mastered longest ago \u2014 25 at a time, oldest first. Every word you finish counts right away, even if you stop halfway, and \"From\" lets you pick one or several groups.","Revisit works in both dojos and never changes a list's shurikens."]},
@@ -707,8 +709,10 @@
     const rank={wrong:0,typo:1,accent:2,exact:3};
     let best={verdict:"wrong",canonical:canon,rank:0};
     for(const alt of greens){ const v=verdictOne(input,alt); if(rank[v]>best.rank) best={verdict:v,canonical:alt,rank:rank[v]}; }
-    if(best.rank>0) return best;                                   // a fully-correct answer wins
+    if(best.rank>=2) return best;                                  // a fully-correct answer wins
     for(const alt of teal){ if(baseNorm(input)===baseNorm(alt)||looseNorm(input)===looseNorm(alt)) return {verdict:"teal",canonical:canon,typedAlt:alt,rank:0}; }
+    if(best.rank>0) return best;                                   // v23.3: an exact teal answer beats a near-miss of a green one
+    if(S.settings.typoTolerance){ for(const alt of teal){ if(verdictOne(input,alt)==="typo") return {verdict:"teal",canonical:canon,typedAlt:alt,rank:0}; } }
     return {verdict:"wrong",canonical:canon,rank:0};
   }
 
@@ -987,7 +991,7 @@
   function listCard(l, sibs, idx){
     const c=counts(l), lvl=listRank(l);
     const card=document.createElement("div"); card.className="listcard"; card.dataset.id=l.id;
-    card.innerHTML=`<div class="top"><div><div class="name">${esc(l.name)}</div>
+    card.innerHTML=`<div class="top"><div><div class="name" translate="no">${esc(l.name)}</div>
         <div class="meta">${c.total} ${unitOf(l)}${c.total===1?"":"s"} · <span class="m">${c.m} mastered</span></div></div>
         <div class="shuris">${shuriRow(lvl,(l.completions||[]).length)}</div></div>
       <div class="acts">
@@ -1023,7 +1027,7 @@
       const collapsed=!!(S.collapsed && S.collapsed[collapsedKey(fk,g)]);
       const sg=document.createElement("div"); sg.className="subgroup";
       sg.innerHTML=`<div class="subhead${collapsed?' collapsed':''}">
-          <span class="chev">▾</span><span class="nm">${esc(g)}</span><span class="cnt">${lists.length}</span>
+          <span class="chev">▾</span><span class="nm" translate="no">${esc(g)}</span><span class="cnt">${lists.length}</span>
           <span class="subgrip">${g==="Ungrouped"?"":`<span data-ga="ren" title="Rename group" class="ren">✎</span>`}<span data-ga="up" title="Move group up" class="${gi===0?'off':''}">▲</span><span data-ga="down" title="Move group down" class="${gi===groups.length-1?'off':''}">▼</span></span>
         </div><div class="fold${collapsed?' shut':''}"${collapsed?' inert':''}><div class="foldin subbody"></div></div>`;
       const head=sg.querySelector('.subhead'), body=sg.querySelector('.subbody');
@@ -1045,8 +1049,8 @@
   function answerPrimary(w){ return parseSide(answerText(w)).primary || answerText(w); }
   // v22.5: when the answer is revealed, show every "/" form, not just the first (Mandarin: characters and pinyin)
   function otherForms(w, shown){ const s=String(shown==null?"":shown).trim(); return parseSide(answerText(w)).green.filter(x=>x!==s); }
-  function showAlso(w){ const o=otherForms(w, answerPrimary(w)); return o.length?`<div class="show-also">also correct: ${o.map(x=>`<span>${esc(x)}</span>`).join(" · ")}</div>`:""; }
-  function alsoLine(w, shown){ const o=otherForms(w, shown); return o.length?`<span class="also">also correct: ${o.map(x=>`<i>${esc(x)}</i>`).join(" · ")}</span>`:""; }
+  function showAlso(w){ const o=otherForms(w, answerPrimary(w)); return o.length?`<div class="show-also" translate="no">also correct: ${o.map(x=>`<span>${esc(x)}</span>`).join(" · ")}</div>`:""; }
+  function alsoLine(w, shown){ const o=otherForms(w, shown); return o.length?`<span class="also" translate="no">also correct: ${o.map(x=>`<i>${esc(x)}</i>`).join(" · ")}</span>`:""; }
   function dirText(){ return S.settings.typeDutch ? "Meaning → word" : "Word → meaning"; }
   function dotsHtml(l){
     const cells=liveWords(l).map(w=>{ let c="dot"; if(w.mastered)c+=" mastered"; else if(w.everSeen)c+=" practiced"; return '<span class="'+c+'"></span>'; }).join("");
@@ -1077,9 +1081,9 @@
       <div class="backbar"><button class="link" id="backBtn">‹ Library</button><span class="bbr"><button class="link quiet" id="helpBtn">Help</button><button class="link quiet" id="setBtn">Settings</button></span></div>
       <div class="card" id="card">
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New word — type it once":"Translate"}</span></span><span class="rightgrp"><span class="dir">${dirText()}</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
-        <div class="term">${esc(pp.green.join(" / ")||promptText(w))}</div>
-        ${pp.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
-        ${guided?`<div class="show-answer">${esc(answerPrimary(w))}</div>${showAlso(w)}<span class="new-tag">Copy it to learn it</span>`:``}
+        <div class="term" translate="no">${esc(pp.green.join(" / ")||promptText(w))}</div>
+        ${pp.hint?`<div class="prompt-hint" translate="no"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
+        ${guided?`<div class="show-answer" translate="no">${esc(answerPrimary(w))}</div>${showAlso(w)}<span class="new-tag">Copy it to learn it</span>`:``}
         <form class="answer-row" id="ansForm" autocomplete="off" novalidate>
           <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="${guided?'type it here…':'type your answer…'}">
           <button type="button" class="btn" id="go">${guided?"Got it":"Check"}</button>
@@ -1146,10 +1150,10 @@
       if(r.verdict==="teal"){
         // v19: a valid alternative while correcting a miss. No new strike, no credit; the target stays shown.
         c.classList.remove("flash-bad"); c.classList.add("flash-teal");
-        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type the word shown to continue</span>`;
+        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type the word shown to continue</span>`;
       } else {
         c.classList.remove("flash-teal"); c.classList.add("flash-bad"); shake(c);
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type it once to continue</span>`;
       }
       fb.classList.add("show"); input.value=""; input.focus();
       return;
@@ -1193,7 +1197,7 @@
 
     if(kind==="good"||kind==="almost"){
       card.classList.add(kind==="good"?"flash-good":"flash-almost");
-      let msg = kind==="good" ? `<span class="ok">Correct</span>` : `<span class="alm">Almost — close enough</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>`;
+      let msg = kind==="good" ? `<span class="ok">Correct</span>` : `<span class="alm">Almost — close enough</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>`;
       let extra = `<span class="rt">${(rt/1000).toFixed(1)}s</span>`;
       if(note) extra += ` &nbsp;<span class="rt">· ${esc(note)}</span>`;
       if(slow) extra += ` &nbsp;<span class="rt">· a bit slow — let's see it again</span>`;
@@ -1204,10 +1208,10 @@
     } else {
       card.classList.add("flash-bad"); shake(card);
       if(S.settings.retypeOnError){
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}<span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}<span class="tip">type it once to continue</span>`;
         fb.classList.add("show"); input.value=""; input.focus(); go.textContent="Check"; phase="retype";
       } else {
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}`;
         fb.classList.add("show"); input.readOnly=true; go.textContent="Continue"; phase="reveal";
       }
     }
@@ -1434,9 +1438,9 @@
       <div class="backbar"><button class="link" id="backBtn">‹ Library</button><span class="bbr"><button class="link quiet" id="helpBtn">Help</button><button class="link quiet" id="setBtn">Settings</button></span></div>
       <div class="card scard" id="card">
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New sentence — build it once":"Build the sentence"}</span></span><span class="rightgrp"><span class="dir">Word order</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
-        <div class="sprompt">${esc(B.prompt)}</div>
-        ${B.hint?`<div class="prompt-hint"><b>Hint:</b><i>${esc(B.hint)}</i></div>`:``}
-        ${guided?`<div class="s-answer">${esc(B.fullTexts[0])}</div><span class="new-tag">Build it once to learn it</span>`:``}
+        <div class="sprompt" translate="no">${esc(B.prompt)}</div>
+        ${B.hint?`<div class="prompt-hint" translate="no"><b>Hint:</b><i>${esc(B.hint)}</i></div>`:``}
+        ${guided?`<div class="s-answer" translate="no">${esc(B.fullTexts[0])}</div><span class="new-tag">Build it once to learn it</span>`:``}
         <div class="sline" id="sline" tabindex="-1" aria-label="Your sentence"></div>
         <div class="sbank" id="sbank" aria-label="Words to place"></div>
         <div class="srow"><button class="btn ghost" id="hintBtn">Hint</button><button class="btn" id="go">Check</button></div>
@@ -1461,13 +1465,13 @@
   function isPinned(p){ return SS.pins[p]!=null; }
   function tileHtml(id, where, pos){
     const t=SS.tiles[id], pinned = where==="line" && isPinned(pos);
-    return `<button type="button" class="tile${t.p?' punct':''}${pinned?' pin':''}" data-id="${id}" data-where="${where}"${pos!=null?` data-pos="${pos}"`:''}${pinned?' aria-disabled="true" tabindex="-1"':''}>${esc(t.text)}</button>`;
+    return `<button type="button" class="tile${t.p?' punct':''}${pinned?' pin':''}" translate="no" data-id="${id}" data-where="${where}"${pos!=null?` data-pos="${pos}"`:''}${pinned?' aria-disabled="true" tabindex="-1"':''}>${esc(t.text)}</button>`;
   }
   function paintSentence(){
     const line=document.getElementById("sline"), bank=document.getElementById("sbank"); if(!line||!bank) return;
-    line.innerHTML = SS.slots.map((id,p)=> id==null ? `<span class="slot" data-pos="${p}"></span>` : tileHtml(id,"line",p)).join("") + (SS.fin?`<span class="sfin">${esc(SS.fin)}</span>`:"");
+    line.innerHTML = SS.slots.map((id,p)=> id==null ? `<span class="slot" data-pos="${p}"></span>` : tileHtml(id,"line",p)).join("") + (SS.fin?`<span class="sfin" translate="no">${esc(SS.fin)}</span>`:"");
     const placed=placedSet();
-    bank.innerHTML = SS.bank.map(id=> placed.has(id) ? `<span class="tile ghost" aria-hidden="true">${esc(SS.tiles[id].text)}</span>` : tileHtml(id,"bank",null)).join("");
+    bank.innerHTML = SS.bank.map(id=> placed.has(id) ? `<span class="tile ghost" translate="no" aria-hidden="true">${esc(SS.tiles[id].text)}</span>` : tileHtml(id,"bank",null)).join("");
     const go=document.getElementById("go"), hb=document.getElementById("hintBtn");
     if(SS.done){ go.textContent="Next →"; go.disabled=false; hb.disabled=true; }
     else { go.textContent="Check"; go.disabled = placed.size<SS.N; hb.disabled=false; }
@@ -1605,7 +1609,7 @@
     const others=SS.fullTexts.filter((_,i)=>i!==idx);
     const fb=document.getElementById("fb");
     fb.innerHTML=`<span class="${clean?'ok':'alm'}">${clean?"Correct":"Solved"}</span>${SS.w.mastered?` &nbsp;<span class="rt">· mastered <span class="shuri gold mini">${SHURI}</span></span>`:""}`+
-      `<div class="sfull">${esc(SS.fullTexts[idx])}</div>`+(others.length?`<div class="salso">Also correct: ${others.map(esc).join(" · ")}</div>`:"");
+      `<div class="sfull" translate="no">${esc(SS.fullTexts[idx])}</div>`+(others.length?`<div class="salso" translate="no">Also correct: ${others.map(esc).join(" · ")}</div>`:"");
     fb.classList.add("show");
     const go=document.getElementById("go"); if(go) go.focus({preventScroll:true});
   }
@@ -1740,10 +1744,21 @@
     const t=gwe("gwTopic").value.trim().toLowerCase(), le=gwe("gwLearn").value.trim().toLowerCase(), me=gwe("gwMeaning").value.trim().toLowerCase();
     return H.find(h=>h.dojo===S.dojo && (h.topic||"").toLowerCase()===t && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me)||null;
   }
-  function gwExclusions(entry, sent){
-    if(!entry) return [];
-    const all=[...S.lists, ...(S.sLists||[])], out=[], cap=sent?40:300;     // prompt stays short; the import check covers the rest
-    [...entry.listIds].reverse().forEach(id=>{ const l=all.find(x=>x.id===id); if(!l) return; [...l.words].reverse().forEach(w=>{ if(out.length<cap) out.push(parseSide(w.nl).primary); }); });
+  // v23.3: related topics leave out each other's words too ("emotions" ~ "emotions and feelings": a shared meaningful word)
+  const GW_STOP=new Set(["and","or","the","a","an","of","for","in","on","at","to","with","about","my","some","more","words","word","vocabulary","vocab","list","lists","sentences","sentence","basic","common","general","everyday","useful","important"]);
+  function topicWords(t){ return String(t||"").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w && !GW_STOP.has(w)).map(w=>w.length>3 && w.endsWith("s") ? w.slice(0,-1) : w); }
+  function gwRelated(){
+    const H=gwState().history, first=gwMatch();
+    const le=gwe("gwLearn").value.trim().toLowerCase(), me=gwe("gwMeaning").value.trim().toLowerCase();
+    const tw=new Set(topicWords(first ? first.topic : gwe("gwTopic").value));
+    const rel = tw.size ? H.filter(h=>h!==first && h.dojo===S.dojo && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me && topicWords(h.topic).some(w=>tw.has(w))) : [];
+    return first ? [first, ...rel] : rel;
+  }
+  function gwExclusions(entries, sent){
+    if(!entries || !entries.length) return [];
+    const all=[...S.lists, ...(S.sLists||[])], out=[], seen=new Set(), cap=sent?40:300;     // prompt stays short; the import check covers the rest
+    entries.forEach(entry=>{ [...entry.listIds].reverse().forEach(id=>{ const l=all.find(x=>x.id===id); if(!l) return;
+      [...l.words].reverse().forEach(w=>{ if(out.length>=cap) return; const p=parseSide(w.nl).primary, k=String(p).toLowerCase(); if(seen.has(k)) return; seen.add(k); out.push(p); }); }); });
     return out;
   }
   function gwFromWords(){ const id=gwe("gwFrom").value; if(!id) return []; const l=S.lists.find(x=>x.id===id); return l ? l.words.slice(0,120).map(w=>parseSide(w.nl).primary) : []; }
@@ -1751,7 +1766,7 @@
     const sent=isSent();
     const learn=gwe("gwLearn").value.trim()||"[the language you're learning]", meaning=gwe("gwMeaning").value.trim()||"[your language]";
     const topic=gwe("gwTopic").value.trim(), level=gwe("gwLevel").value, n=+gwe("gwCount").value, ask=n+Math.max(n<=10?3:5,Math.round(n*0.2));
-    const excl=gwExclusions(gwMatch(), sent), L=[];
+    const excl=gwExclusions(gwRelated(), sent), L=[];
     if(!sent){
       L.push(`Make a vocabulary list for someone learning ${learn}, with the meanings in ${meaning}.`);
       L.push(`Topic: ${topic||"general, everyday vocabulary"}.`);
@@ -2025,7 +2040,12 @@
 
   // ---- backup ----
   function relTime(ts){ if(!ts) return "never"; const s=Math.floor((Date.now()-ts)/1000); if(s<45) return "just now"; const m=Math.round(s/60); if(m<60) return m+" minute"+(m===1?"":"s")+" ago"; const h=Math.round(m/60); if(h<24) return h+" hour"+(h===1?"":"s")+" ago"; const d=Math.round(h/24); return d+" day"+(d===1?"":"s")+" ago"; }
-  function updateLastExport(){ const el=document.getElementById("lastExportLine"); if(el) el.textContent="Last backup: "+relTime(S.lastExport); }
+  function updateLastExport(){ const el=document.getElementById("lastExportLine"); if(el) el.textContent="Last backup: "+relTime(S.lastExport); updateStorageLine(); }
+  // v23.3: how much of the browser's room (about 5 MB per website) the save uses — counted generously (2 bytes per character)
+  function updateStorageLine(){ const el=document.getElementById("storageLine"); if(!el) return;
+    let n=0; try{ n=(localStorage.getItem(KEY)||"").length*2; }catch(e){}
+    const mb=n/1048576, txt = mb<0.1 ? "under 0.1" : mb.toFixed(1);
+    el.textContent=`Saved data: ${txt} MB of about 5 MB this browser keeps for a website.`+(mb>=4?" That's getting close \u2014 export a backup and keep it safe.":""); }
   function download(text,name){
     const blob=new Blob([text],{type:"application/json"});
     const url=URL.createObjectURL(blob); const a=document.createElement("a");
