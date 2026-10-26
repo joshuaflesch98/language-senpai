@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;600;700;800&family=Familjen+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     /* v20 palette: washi paper ground, indigo (藍) primary, vermilion (朱) for rivals + misses, gold for mastery */
@@ -23,7 +23,7 @@
     --rival:#CF4A2E; --rival-dk:#B03C23; --rival-soft:#FAEDEA; --rival-line:#F1C9C0;
     --icon-off:#CFC5B5; --shadow:rgba(70,50,30,.26);
     --serif:'Shippori Mincho B1','Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
-    --sans:'Zen Kaku Gothic New',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --sans:'Familjen Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -116,7 +116,7 @@
   .dojo .dk{flex:none;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-family:var(--serif);font-size:20px;line-height:1;color:var(--faint)}
   .dojo.on .dk{background:var(--indigo);border-color:var(--indigo);color:#fff}
   .dojo .dt{display:flex;flex-direction:column;line-height:1.25;min-width:0}
-  .dojo .dn{font-family:var(--serif);font-size:17px;font-weight:600;color:inherit}
+  .dojo .dn{font-family:var(--serif);font-size:17px;font-weight:700;color:inherit}
   .dojo .ds{font-size:12px;color:var(--faint)}
   .dojo:focus-visible,.fhead:focus-visible,.subhead:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
   /* v21: folders and groups fold in place */
@@ -137,7 +137,7 @@
   .dseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(40,30,20,.14)}
   .btn:disabled{opacity:.42;cursor:default}
   /* v21: Sentence Dojo card */
-  .sprompt{font-family:var(--serif);font-weight:600;font-size:clamp(21px,3.6vw,27px);line-height:1.3;text-align:center;color:var(--ink);padding:2px 4px 4px}
+  .sprompt{font-family:var(--serif);font-weight:700;font-size:clamp(21px,3.6vw,27px);line-height:1.3;text-align:center;color:var(--ink);padding:2px 4px 4px}
   .s-answer{font-family:var(--serif);font-size:19px;text-align:center;color:var(--indigo);margin-top:10px}
   .sline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:64px;padding:12px;margin-top:22px;border:1.5px dashed var(--line-2);border-radius:14px;background:var(--surface-2);outline:none}
   .sbank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;min-height:42px}
@@ -304,7 +304,7 @@
   .listcard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px 18px;margin-bottom:10px;box-shadow:0 10px 26px -20px var(--shadow);transition:border-color .18s}
   .listcard:hover{border-color:var(--line-2)}
   .listcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-  .listcard .name{font-family:var(--serif);font-size:18px;font-weight:600}
+  .listcard .name{font-family:var(--serif);font-size:18px;font-weight:700}
   .listcard .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
   .listcard .meta .m{color:var(--gold-text)}
   .listcard .shuris{display:flex;gap:4px;flex-shrink:0;margin-top:2px}
@@ -317,7 +317,7 @@
   .subhead{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 8px 9px;border-radius:10px;user-select:none;transition:background .15s}
   .subhead .chev{font-size:13px;color:var(--muted);width:13px;display:inline-block;transition:transform .2s,color .15s}
   .subhead.collapsed .chev{transform:rotate(-90deg)}
-  .subhead .nm{font-family:var(--serif);font-size:16px;color:var(--ink);font-weight:600}
+  .subhead .nm{font-family:var(--serif);font-size:16px;color:var(--ink);font-weight:700}
   .subhead .cnt{background:var(--surface-3);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--muted)}
   .subhead:hover{background:var(--surface-2)}
   .subhead:hover .nm{color:var(--indigo)}
@@ -397,6 +397,8 @@
   .preset-row{display:flex;flex-wrap:wrap;gap:7px}
   .preset-row .preset{font-size:12.5px;padding:6px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--muted);cursor:pointer;font-family:var(--sans)}
   .preset-row .preset:hover{border-color:var(--indigo);color:var(--indigo)}
+  /* v23.2: the mincho at text sizes: never at its thin default weight */
+  .wl-sub,.wnv,.s-answer,.tile,.sfin,.sfull,.show-answer,.show-also span,.dojo .dk{font-weight:600}
 </style>
 </head>
 <body>
@@ -555,8 +557,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="23.1";
+  const APP_VERSION="23.2";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"23.2", items:["Easier on the eye: text is back in the previous, sturdier font (Familjen Grotesk). Headings stay in Shippori Mincho and are a little bolder at small sizes."]},
     {v:"23.1", items:["A new look: Language Senpai now writes in Japanese typefaces (Shippori Mincho and Zen Kaku Gothic New), so Chinese and Japanese cards match the rest of the text.","Labels use normal capitals instead of spaced-out ones.","The app has its logo: the red seal with the white shuriken \u2014 in the header, in the browser tab and on your Home Screen."]},
     {v:"23", items:["New: Revisit, above Master. It brings back the words you mastered longest ago \u2014 25 at a time, oldest first. Every word you finish counts right away, even if you stop halfway, and \"From\" lets you pick one or several groups.","Revisit works in both dojos and never changes a list's shurikens."]},
     {v:"22.6", items:["Missing a word you knew before now costs the full three answers again \u2014 only a slip on a word you already mastered in this run (shown again to space out the last word) costs just one.","Chinese, Japanese and Thai sentences written without spaces are split into word tiles. Spaces you type yourself still decide the tiles."]},
