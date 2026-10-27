@@ -397,6 +397,14 @@
   .preset-row{display:flex;flex-wrap:wrap;gap:7px}
   .preset-row .preset{font-size:12.5px;padding:6px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--muted);cursor:pointer;font-family:var(--sans)}
   .preset-row .preset:hover{border-color:var(--indigo);color:var(--indigo)}
+  /* v24: the speaker */
+  .spk{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin-left:8px;padding:0;border:0;background:none;border-radius:50%;color:var(--faint);cursor:pointer;vertical-align:middle;flex:none;font:inherit}
+  .spk svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .spk:hover,.spk:focus-visible{color:var(--indigo);background:var(--indigo-soft);outline:none}
+  .spk.off{opacity:.45}
+  .term .spk{width:40px;height:40px;margin-left:10px} .term .spk svg{width:25px;height:25px}
+  .feedback .spk{width:26px;height:26px;margin-left:4px} .feedback .spk svg{width:17px;height:17px}
+  .help-ico.spkico svg{fill:none;stroke:var(--indigo);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   /* v23.2: the mincho at text sizes: never at its thin default weight */
   .wl-sub,.wnv,.s-answer,.tile,.sfin,.sfull,.show-answer,.show-also span,.dojo .dk{font-weight:600}
 </style>
@@ -418,6 +426,7 @@
     <h3 id="listTitle">New list</h3>
     <input type="text" class="field" id="listName" placeholder="List name (e.g. Frequency 1–100, or Psychology terms)">
     <div class="grpwrap"><input type="text" class="field" id="listGroup" autocomplete="off" placeholder="Group (optional) — e.g. Frequency, Psychology. Blank = Ungrouped"><div class="grpmenu" id="grpMenu"></div></div>
+    <label class="setsel listlang">Reads aloud in <select class="field" id="listLang"></select></label>
     <p class="hint" id="listHelp">One pair per line: <code>word = meaning</code>. On the side you type, you can mark up alternatives:<br>
       &nbsp;• <code>/</code> — both fully correct, either counts: <code>dōjō / dojo = training hall</code><br>
       &nbsp;• <code>[ ]</code> — valid but <b>not</b> the word being drilled: shows teal and asks you to type the target instead. Add as many as you need: <code>sensei [shishō] [kyōshi] = teacher</code><br>
@@ -494,6 +503,9 @@
       <input type="text" class="field" id="accentField" autocomplete="off" spellcheck="false" placeholder="leave empty to hide the bar">
       <div class="preset-row" id="accentPresets"></div>
     </div>
+    <h4>Reading aloud</h4>
+    <label class="setsel">Language you're learning <select class="field" id="wLangSel"></select><small id="wLangNote"></small></label>
+    <div class="toggle" id="wAutoToggle"><div class="switch"></div><div>Read words aloud automatically<small>Plays each word as it appears. The speaker next to a word always works.</small></div></div>
     <details class="moreopts"><summary>More options</summary>
     <div class="toggle" id="strictToggle"><div class="switch"></div><div>Require exact accents &amp; apostrophes<small>Off by default, so a missing ë or ' still passes (the correct spelling is always shown). On = drill exact orthography.</small></div></div>
     <div class="toggle" id="timeToggle"><div class="switch"></div><div>Time matters<small>Off = speed never affects mastery. On = a slow answer won't count toward mastery (a runaway pause is always capped either way).</small></div></div>
@@ -504,6 +516,9 @@
     <div id="setSentPane" hidden>
     <h4>How you're tested</h4>
     <div class="toggle" id="sShowToggle"><div class="switch"></div><div>Show new sentences first<small>On = a new sentence is shown once for you to copy. Off = it's a real attempt from the start; Hint is your safety net.</small></div></div>
+    <h4>Reading aloud</h4>
+    <label class="setsel">Language you're learning <select class="field" id="sLangSel"></select><small id="sLangNote"></small></label>
+    <div class="toggle" id="sAutoToggle"><div class="switch"></div><div>Read sentences aloud automatically<small>Plays each sentence when you've built it.</small></div></div>
     <details class="moreopts"><summary>More options</summary>
     <div class="toggle" id="sQuickToggle"><div class="switch"></div><div>One clean build is enough<small>On = right on the first try masters a sentence for the day; after a miss it needs two correct builds. Off = the same rhythm as words.</small></div></div>
     <div class="toggle" id="sSlipToggle"><div class="switch"></div><div>A slip resets the sentence<small>On = a failed check or a hint wipes that sentence's streak, so you re-earn it from scratch. Off = it only costs one step.</small></div></div>
@@ -558,8 +573,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="23.3";
+  const APP_VERSION="24";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"24", items:["New: hear your words. Tap the speaker next to a word to hear it \u2014 tap again for slower. It shows up whenever the word you're learning is on screen, so it never gives an answer away.","Settings: choose the language you're learning (one per dojo) and, if you like, \"Read aloud automatically\". A list can use another language in its editor; Chinese, Japanese, Korean and Thai are recognised from the characters.","The voices come from your own device, so they're free and save nothing."]},
     {v:"23.3", items:["Get words also leaves out the words from related topics you asked for before (\u201cemotions\u201d and \u201cemotions and feelings\u201d count as related).","If your browser offers to translate this page, it now translates the menus but never your cards.","Settings & backup shows how much room your saved data takes in the browser.","With \u201cAccept small typos\u201d on, a small typo in a teal alternative counts as that alternative \u2014 and typing a teal alternative exactly is never marked wrong."]},
     {v:"23.2", items:["Easier on the eye: text is back in the previous, sturdier font (Familjen Grotesk). Headings stay in Shippori Mincho and are a little bolder at small sizes."]},
     {v:"23.1", items:["A new look: Language Senpai now writes in Japanese typefaces (Shippori Mincho and Zen Kaku Gothic New), so Chinese and Japanese cards match the rest of the text.","Labels use normal capitals instead of spaced-out ones.","The app has its logo: the red seal with the white shuriken \u2014 in the header, in the browser tab and on your Home Screen."]},
@@ -623,7 +639,8 @@
   function uid(){ return "l"+Math.random().toString(36).slice(2,9); }
   function today(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
   function fixRevSel(v){ const one=x=>Array.isArray(x)&&x.length?x.filter(g=>typeof g==="string"):null; v=(v&&typeof v==="object")?v:{}; return {word:one(v.word), sentence:one(v.sentence)}; }
-  function fixSettings(s){ s=s||{}; return { revisitGroups:fixRevSel(s.revisitGroups), wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
+  function fixSpeak(v){ const one=x=>({lang:(x&&typeof x.lang==="string")?x.lang:"", auto:!!(x&&x.auto)}); v=(v&&typeof v==="object")?v:{}; return {word:one(v.word), sentence:one(v.sentence)}; }
+  function fixSettings(s){ s=s||{}; return { speak:fixSpeak(s.speak), revisitGroups:fixRevSel(s.revisitGroups), wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
   function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
 
   let rescued=null, saveBlocked=false, bootSave=false, saveWarned=false;   // v22: declared before load/save first run
@@ -702,6 +719,81 @@
     });
     return out;
   }
+  // ---- v24: reading aloud with the device's own voices (Web Speech API) ----
+  const SPEAKER='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.6h3.4L12 5.6v12.8l-4.6-4H4z"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6"/><path d="M18.1 6.7a7.6 7.6 0 0 1 0 10.6"/></svg>';
+  const SPEAK_LANGS=[["Arabic","ar-SA"],["Chinese (Cantonese)","zh-HK"],["Chinese (Mandarin, simplified)","zh-CN"],["Chinese (Mandarin, Taiwan)","zh-TW"],["Czech","cs-CZ"],["Danish","da-DK"],["Dutch","nl-NL"],["English (UK)","en-GB"],["English (US)","en-US"],["Finnish","fi-FI"],["French","fr-FR"],["German","de-DE"],["Greek","el-GR"],["Hebrew","he-IL"],["Hindi","hi-IN"],["Hungarian","hu-HU"],["Indonesian","id-ID"],["Italian","it-IT"],["Japanese","ja-JP"],["Korean","ko-KR"],["Norwegian","nb-NO"],["Polish","pl-PL"],["Portuguese (Brazil)","pt-BR"],["Portuguese (Portugal)","pt-PT"],["Romanian","ro-RO"],["Russian","ru-RU"],["Spanish (Latin America)","es-MX"],["Spanish (Spain)","es-ES"],["Swedish","sv-SE"],["Thai","th-TH"],["Turkish","tr-TR"],["Ukrainian","uk-UA"],["Vietnamese","vi-VN"]];
+  const LANG_ALIASES={dutch:"nl-NL",nederlands:"nl-NL",german:"de-DE",deutsch:"de-DE",english:"en-GB",french:"fr-FR","français":"fr-FR",francais:"fr-FR",spanish:"es-ES","español":"es-ES",espanol:"es-ES",italian:"it-IT",italiano:"it-IT",portuguese:"pt-PT",japanese:"ja-JP","日本語":"ja-JP",chinese:"zh-CN",mandarin:"zh-CN","中文":"zh-CN",cantonese:"zh-HK",korean:"ko-KR","한국어":"ko-KR",thai:"th-TH",russian:"ru-RU",polish:"pl-PL",czech:"cs-CZ",swedish:"sv-SE",norwegian:"nb-NO",danish:"da-DK",finnish:"fi-FI",turkish:"tr-TR",greek:"el-GR",arabic:"ar-SA",hebrew:"he-IL",hindi:"hi-IN",indonesian:"id-ID",vietnamese:"vi-VN",ukrainian:"uk-UA",romanian:"ro-RO",hungarian:"hu-HU"};
+  function langCodeFromName(n){ const t=String(n||"").trim().toLowerCase(); if(!t) return ""; if(LANG_ALIASES[t]) return LANG_ALIASES[t];
+    const e=SPEAK_LANGS.find(x=>x[0].toLowerCase()===t); if(e) return e[1]; return LANG_ALIASES[t.split(/[\s(,]/)[0]]||""; }
+  function langName(code){ const e=SPEAK_LANGS.find(x=>x[1]===code); return e?e[0]:(code||""); }
+  function scriptBases(t){ t=String(t||"");
+    if(/[\u3040-\u30ff]/.test(t)) return ["ja"];
+    if(/[\uac00-\ud7af\u1100-\u11ff]/.test(t)) return ["ko"];
+    if(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(t)) return ["zh","ja"];
+    if(/[\u0e00-\u0e7f]/.test(t)) return ["th"];
+    if(/[\u0400-\u04ff]/.test(t)) return ["ru","uk","bg","sr","mk","be","kk"];
+    if(/[\u0370-\u03ff]/.test(t)) return ["el"];
+    if(/[\u0590-\u05ff]/.test(t)) return ["he","yi"];
+    if(/[\u0600-\u06ff]/.test(t)) return ["ar","fa","ur"];
+    return null; }
+  const BASE_DEFAULT={ja:"ja-JP",ko:"ko-KR",zh:"zh-CN",th:"th-TH",ru:"ru-RU",el:"el-GR",he:"he-IL",ar:"ar-SA"};
+  const TTS={ ok: typeof window!=="undefined" && ("speechSynthesis" in window) && typeof window.SpeechSynthesisUtterance==="function" };
+  let ttsVoices=[];
+  function loadVoices(){ if(!TTS.ok) return; try{ ttsVoices=window.speechSynthesis.getVoices()||[]; }catch(e){ ttsVoices=[]; } }
+  function pickVoice(lang){ if(!lang || !ttsVoices.length) return null; const nm=x=>String(x||"").toLowerCase().replace("_","-"), L=nm(lang), base=L.split("-")[0];
+    return ttsVoices.find(v=>nm(v.lang)===L) || ttsVoices.find(v=>nm(v.lang).split("-")[0]===base) || null; }
+  function speakSet(d){ const sp=S.settings.speak||{}; return sp[d||(isSent()?"sentence":"word")]||{lang:"",auto:false}; }
+  function dojoLang(d){ return speakSet(d).lang || langCodeFromName((S.gw&&S.gw.learn)||""); }   // until chosen: the language you last asked Get words for
+  function speakAuto(){ return TTS.ok && !!speakSet().auto; }
+  function homeListOf(w){ for(const L of [S.lists, S.sLists||[]]) for(const l of L) if(l.words.includes(w)) return l; return null; }
+  function spokenText(w, text){ return text!=null ? String(text) : (parseSide(w.nl).primary || String(w.nl||"")); }
+  function langFor(w, text){
+    const hl=homeListOf(w); if(hl && hl.lang) return hl.lang;
+    const dl=dojoLang(), fam=scriptBases(spokenText(w,text));
+    if(fam){ if(dl && fam.includes(dl.split("-")[0])) return dl; return BASE_DEFAULT[fam[0]]||""; }
+    return dl||"";
+  }
+  function spkTitle(lang){ const v=lang?pickVoice(lang):null; return !lang ? "Choose the language you're learning (Settings) to hear it" : (v ? "Hear it — tap again for slower" : "No "+langName(lang)+" voice on this device yet — see Help"); }
+  function spkFor(w, text){
+    if(!TTS.ok) return ""; const t=spokenText(w,text); if(!t) return "";
+    const lang=langFor(w,t), v=lang?pickVoice(lang):null;
+    return `<button type="button" class="spk${v?"":" off"}" data-spk="${esc(t)}" data-lang="${esc(lang)}" title="${esc(spkTitle(lang))}" aria-label="Hear it">${SPEAKER}</button>`;
+  }
+  function fbSpk(w){ return S.settings.typeDutch!==false ? spkFor(w) : ""; }   // the answer is in the language you're learning
+  let lastSaid={t:"",at:0,slow:false};
+  function sayText(t, lang){
+    if(!TTS.ok || !t) return false; const v=pickVoice(lang); if(!v) return false;
+    const now=Date.now(), slow = lastSaid.t===t && now-lastSaid.at<5000 && !lastSaid.slow;
+    try{ const ss=window.speechSynthesis; ss.cancel(); const u=new SpeechSynthesisUtterance(t); u.voice=v; u.lang=v.lang||lang; u.rate=slow?0.6:0.9; ss.speak(u); }catch(e){ return false; }
+    lastSaid={t, at:now, slow}; return true;
+  }
+  function sayWord(w, text){ const t=spokenText(w,text); lastSaid={t:"",at:0,slow:false}; return sayText(t, langFor(w,t)); }   // automatic: normal speed
+  function refreshSpeakers(){
+    document.querySelectorAll(".spk").forEach(b=>{ const lang=b.dataset.lang; b.classList.toggle("off", !(lang && pickVoice(lang))); b.title=spkTitle(lang); });
+    paintSpeakNotes();
+  }
+  function speakNote(code){ if(!TTS.ok) return "This browser can't read aloud."; if(!code) return "Pick it so the right voice reads your words.";
+    const v=pickVoice(code); return v ? "Read by \u201c"+v.name+"\u201d on this device." : "No "+langName(code)+" voice on this device yet \u2014 Help \u2192 Reading aloud shows how to add one."; }
+  function paintSpeakNotes(){ [["wLangSel","wLangNote"],["sLangSel","sLangNote"]].forEach(([si,ni])=>{ const sel=document.getElementById(si), n=document.getElementById(ni); if(sel && n) n.textContent=speakNote(sel.value); }); }
+  function langOptions(first){ return `<option value="">${esc(first)}</option>`+SPEAK_LANGS.map(([n,c])=>`<option value="${c}">${esc(n)}</option>`).join(""); }
+  let lastAutoKey="";
+  function autoSpeakAfterRender(){
+    if(!speakAuto()) return; const l=activeList(); if(!l || cur==null) return; const w=l.words[cur]; if(!w) return;
+    const key=(l.id||"")+"|"+trial+"|"+cur; if(key===lastAutoKey) return;
+    if(listKind(l)==="sentence"){ if(SS && SS.guided){ lastAutoKey=key; sayWord(w, SS.fullTexts[0]); } return; }
+    if(S.settings.typeDutch===false || !w.everSeen){ lastAutoKey=key; sayWord(w); }
+  }
+  if(TTS.ok){ loadVoices(); const vc=()=>{ loadVoices(); refreshSpeakers(); };
+    try{ window.speechSynthesis.addEventListener("voiceschanged", vc); }catch(e){ try{ window.speechSynthesis.onvoiceschanged=vc; }catch(e2){} } }
+  document.addEventListener("mousedown", e=>{ if(e.target.closest && e.target.closest(".spk")) e.preventDefault(); });   // keep the answer box focused
+  document.addEventListener("click", e=>{
+    const b=e.target.closest && e.target.closest(".spk"); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const lang=b.dataset.lang;
+    if(!lang){ openSettings(); return; }
+    if(!sayText(b.dataset.spk, lang)){ openHelp("audio"); return; }
+    const ans=document.getElementById("ans"); if(ans && !ans.readOnly && document.activeElement!==ans) ans.focus({preventScroll:true});
+  });
   function check(input,target){
     const {green,teal,primary}=parseSide(target);
     const greens=(green.length?green:[String(target||"")]).concat(optionalForms(target));
@@ -861,7 +953,7 @@
   const stage=document.getElementById("stage");
   let lastView="";
   function render(){
-    if(S.view==="study" && activeList() && cur!=null && activeList().words[cur]){ renderStudy(); lastView="study"; }
+    if(S.view==="study" && activeList() && cur!=null && activeList().words[cur]){ renderStudy(); lastView="study"; autoSpeakAfterRender(); }
     else { const fromStudy=lastView==="study"; S.view="library"; renderLibrary(); lastView="library"; if(fromStudy) returnToList(); }
     paintHeader();
   }
@@ -1081,9 +1173,9 @@
       <div class="backbar"><button class="link" id="backBtn">‹ Library</button><span class="bbr"><button class="link quiet" id="helpBtn">Help</button><button class="link quiet" id="setBtn">Settings</button></span></div>
       <div class="card" id="card">
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New word — type it once":"Translate"}</span></span><span class="rightgrp"><span class="dir">${dirText()}</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
-        <div class="term" translate="no">${esc(pp.green.join(" / ")||promptText(w))}</div>
+        <div class="term" translate="no">${esc(pp.green.join(" / ")||promptText(w))}${S.settings.typeDutch===false?spkFor(w):""}</div>
         ${pp.hint?`<div class="prompt-hint" translate="no"><b>Hint:</b><i>${esc(pp.hint)}</i></div>`:``}
-        ${guided?`<div class="show-answer" translate="no">${esc(answerPrimary(w))}</div>${showAlso(w)}<span class="new-tag">Copy it to learn it</span>`:``}
+        ${guided?`<div class="show-answer" translate="no">${esc(answerPrimary(w))}${S.settings.typeDutch!==false?spkFor(w):""}</div>${showAlso(w)}<span class="new-tag">Copy it to learn it</span>`:``}
         <form class="answer-row" id="ansForm" autocomplete="off" novalidate>
           <input type="text" id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="${guided?'type it here…':'type your answer…'}">
           <button type="button" class="btn" id="go">${guided?"Got it":"Check"}</button>
@@ -1150,10 +1242,10 @@
       if(r.verdict==="teal"){
         // v19: a valid alternative while correcting a miss. No new strike, no credit; the target stays shown.
         c.classList.remove("flash-bad"); c.classList.add("flash-teal");
-        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type the word shown to continue</span>`;
+        fb.innerHTML=`<span class="teal">“${esc(r.typedAlt||input.value.trim())}” is also a valid translation</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${fbSpk(w)}${alsoLine(w, r.canonical)}<span class="tip">type the word shown to continue</span>`;
       } else {
         c.classList.remove("flash-teal"); c.classList.add("flash-bad"); shake(c);
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${alsoLine(w, r.canonical)}<span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(r.canonical)}</span>${fbSpk(w)}${alsoLine(w, r.canonical)}<span class="tip">type it once to continue</span>`;
       }
       fb.classList.add("show"); input.value=""; input.focus();
       return;
@@ -1192,6 +1284,7 @@
     }
     revisitCredit(l,w);
     save();
+    if(phase!=="guided" && S.settings.typeDutch!==false && speakAuto()) sayWord(w);   // v24: hear the word you just answered
     const card=document.getElementById("card"), fb=document.getElementById("fb"), go=document.getElementById("go");
     refreshDots(l); updateMastery(w);
 
@@ -1208,10 +1301,10 @@
     } else {
       card.classList.add("flash-bad"); shake(card);
       if(S.settings.retypeOnError){
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}<span class="tip">type it once to continue</span>`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${fbSpk(w)}${alsoLine(w, res.canonical)}<span class="tip">type it once to continue</span>`;
         fb.classList.add("show"); input.value=""; input.focus(); go.textContent="Check"; phase="retype";
       } else {
-        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${alsoLine(w, res.canonical)}`;
+        fb.innerHTML=`<span class="no">Not quite</span> &nbsp;→&nbsp; <span class="correct" translate="no">${esc(res.canonical)}</span>${fbSpk(w)}${alsoLine(w, res.canonical)}`;
         fb.classList.add("show"); input.readOnly=true; go.textContent="Continue"; phase="reveal";
       }
     }
@@ -1312,6 +1405,7 @@
   function openList(l){ editing=l;
     document.getElementById("listHelp").innerHTML = isSent() ? SENT_HELP : WORD_HELP;
     listName.placeholder = isSent() ? "List name (e.g. Everyday sentences, or Subclauses)" : "List name (e.g. Frequency 1–100, or Psychology terms)"; listTitle.textContent=l?"Edit list":"New list"; listName.value=l?l.name:""; listGroup.value=l?(l.group||""):"";
+    { const d=dojoLang(), sel=document.getElementById("listLang"); sel.innerHTML=langOptions(d?"Same as Settings ("+langName(d)+")":"Same as Settings"); sel.value=(l&&l.lang)||""; }
     closeGrpMenu();
     listArea.value=l?l.words.map(w=>w.nl+" = "+w.de).join("\n"):""; updateListCount(); listOverlay.classList.add("open"); (l?listArea:listName).focus(); }
   listArea.addEventListener("input",updateListCount);
@@ -1360,9 +1454,11 @@
       pairs.forEach((p,i)=>{ if(!out[i]) out[i]=pick(i,w=>key(w.nl)===key(p[0])); });
       pairs.forEach((p,i)=>{ if(!out[i]) out[i]=pick(i,w=>key(w.de)===key(p[1]),true); });
       editing.name=name; editing.group=group;
+      { const lg=document.getElementById("listLang").value; if(lg) editing.lang=lg; else delete editing.lang; }
       editing.words=pairs.map((p,i)=>{ const w=out[i]; if(w){ w.nl=p[0]; w.de=p[1]; return w; } return {nl:p[0],de:p[1],everSeen:false,mastered:false,streak:0,misses:0,days:[]}; });
     } else {
-      curLists().push(Object.assign({id:uid(),name:name,group:group,folder:"learn",completions:[],words:seedWords(pairs)}, isSent()?{kind:"sentence"}:{}));
+      const lg=document.getElementById("listLang").value;
+      curLists().push(Object.assign({id:uid(),name:name,group:group,folder:"learn",completions:[],words:seedWords(pairs)}, isSent()?{kind:"sentence"}:{}, lg?{lang:lg}:{}));
     }
     save(); listOverlay.classList.remove("open"); render();
   };
@@ -1440,7 +1536,7 @@
         <div class="prompt-meta"><span class="leftgrp"><button class="hardtoggle ${w.hard?'on':'off'}" id="hardBtn" title="${w.hard?'One of your rivals — tap to remove':'Mark as a rival'}" aria-label="Mark as a rival">${BOLT}</button><span>${guided?"New sentence — build it once":"Build the sentence"}</span></span><span class="rightgrp"><span class="dir">Word order</span><button class="edittoggle" id="editBtn" title="Edit this card" aria-label="Edit this card">${PENCIL}</button></span></div>
         <div class="sprompt" translate="no">${esc(B.prompt)}</div>
         ${B.hint?`<div class="prompt-hint" translate="no"><b>Hint:</b><i>${esc(B.hint)}</i></div>`:``}
-        ${guided?`<div class="s-answer" translate="no">${esc(B.fullTexts[0])}</div><span class="new-tag">Build it once to learn it</span>`:``}
+        ${guided?`<div class="s-answer" translate="no">${esc(B.fullTexts[0])}${spkFor(w, B.fullTexts[0])}</div><span class="new-tag">Build it once to learn it</span>`:``}
         <div class="sline" id="sline" tabindex="-1" aria-label="Your sentence"></div>
         <div class="sbank" id="sbank" aria-label="Words to place"></div>
         <div class="srow"><button class="btn ghost" id="hintBtn">Hint</button><button class="btn" id="go">Check</button></div>
@@ -1609,8 +1705,9 @@
     const others=SS.fullTexts.filter((_,i)=>i!==idx);
     const fb=document.getElementById("fb");
     fb.innerHTML=`<span class="${clean?'ok':'alm'}">${clean?"Correct":"Solved"}</span>${SS.w.mastered?` &nbsp;<span class="rt">· mastered <span class="shuri gold mini">${SHURI}</span></span>`:""}`+
-      `<div class="sfull" translate="no">${esc(SS.fullTexts[idx])}</div>`+(others.length?`<div class="salso" translate="no">Also correct: ${others.map(esc).join(" · ")}</div>`:"");
+      `<div class="sfull" translate="no">${esc(SS.fullTexts[idx])}${spkFor(SS.w, SS.fullTexts[idx])}</div>`+(others.length?`<div class="salso" translate="no">Also correct: ${others.map(esc).join(" · ")}</div>`:"");
     fb.classList.add("show");
+    if(speakAuto()) sayWord(SS.w, SS.fullTexts[idx]);
     const go=document.getElementById("go"); if(go) go.focus({preventScroll:true});
   }
   document.addEventListener("keydown",e=>{
@@ -1886,7 +1983,8 @@
     const chunks=[]; for(let i=0;i<items.length;i+=LS) chunks.push(items.slice(i,i+LS));
     const made=chunks.map((ch,i)=>{
       const name=(prior||chunks.length>1) ? `${base} · ${prior+i+1}` : base;
-      const l=Object.assign({id:uid(), name, group, folder:"learn", completions:[], words:seedWords(ch)}, sent?{kind:"sentence"}:{});
+      const glc=langCodeFromName(g.learn), exp=speakSet().lang;
+      const l=Object.assign({id:uid(), name, group, folder:"learn", completions:[], words:seedWords(ch)}, sent?{kind:"sentence"}:{}, (glc && !(exp && exp.split("-")[0]===glc.split("-")[0]))?{lang:glc}:{});
       curLists().push(l); entry.listIds.push(l.id); return l;
     });
     S.collapsed=(S.collapsed&&typeof S.collapsed==="object")?S.collapsed:{};
@@ -1938,6 +2036,10 @@
       <li>Words you've done today wait until tomorrow.</li>
       <li><b>From</b> picks the groups: type a few letters to filter, then tick one or several — <b>Tick all shown</b> takes every match at once.</li>
       <li>Revisit never changes a list's shurikens.</li></ul>`},
+    {id:"audio", t:"Reading aloud", h:`<p>Tap the <b>speaker</b> <span class="help-ico spkico">${SPEAKER}</span> next to a word to hear it — tap it again within a few seconds to hear it slower. It shows up whenever the word you're learning is on screen: after you answer, not before, so it never gives the answer away.</p><ul>
+      <li><b>Language:</b> choose the language you're learning once in Settings (each dojo has its own). A list can read in another language — set it in the list's editor. Chinese, Japanese, Korean and Thai are recognised from the characters.</li>
+      <li><b>Read aloud automatically</b> (Settings, off by default) plays each word as it appears.</li>
+      <li>The voices come from your device, so they're free. A faded speaker means there's no voice for that language on this device yet: on iPhone, iPad and Mac, add one under Accessibility → Spoken Content; on other devices, search the settings for "text-to-speech".</li></ul>`},
     {id:"lists", t:"Your lists", h:`<ul>
       <li>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</li>
       <li><code>/</code> — either counts: <code>dōjō / dojo = training hall</code></li>
@@ -2004,6 +2106,10 @@
     document.getElementById("timeToggle").classList.toggle("on",s.timeMatters);
     document.getElementById("slipToggle").classList.toggle("on",s.slipResets);
     document.getElementById("retypeToggle").classList.toggle("on",s.retypeOnError);
+    const sw=speakSet("word"), ssn=speakSet("sentence");
+    document.getElementById("wLangSel").value=dojoLang("word"); document.getElementById("sLangSel").value=dojoLang("sentence");
+    document.getElementById("wAutoToggle").classList.toggle("on",!!sw.auto); document.getElementById("sAutoToggle").classList.toggle("on",!!ssn.auto);
+    paintSpeakNotes();
   }
   function openSettings(){ setDojo=S.dojo==="sentence"?"sentence":"word"; paintSettings(); updateLastExport(); document.getElementById("accentField").value=S.settings.accentChars||""; setOverlay.classList.add("open"); }
   document.getElementById("dirToggle").onclick=()=>{ S.settings.typeDutch=!S.settings.typeDutch; save(); paintSettings(); };
@@ -2027,6 +2133,13 @@
     mk("None",()=>"");
   }
   paintAccentPresets();
+  // v24: reading aloud
+  ["wLangSel","sLangSel"].forEach(id=>{ document.getElementById(id).innerHTML=langOptions("Choose…"); });
+  function setSpeak(d,key,val){ S.settings.speak=fixSpeak(S.settings.speak); S.settings.speak[d][key]=val; save(); paintSettings(); }
+  document.getElementById("wLangSel").onchange=e=>setSpeak("word","lang",e.target.value);
+  document.getElementById("sLangSel").onchange=e=>setSpeak("sentence","lang",e.target.value);
+  document.getElementById("wAutoToggle").onclick=()=>setSpeak("word","auto",!speakSet("word").auto);
+  document.getElementById("sAutoToggle").onclick=()=>setSpeak("sentence","auto",!speakSet("sentence").auto);
   document.getElementById("timeToggle").onclick=()=>{ S.settings.timeMatters=!S.settings.timeMatters; save(); paintSettings(); };
   document.getElementById("slipToggle").onclick=()=>{ S.settings.slipResets=!S.settings.slipResets; save(); paintSettings(); };
   document.querySelectorAll("#setDojo [data-sd]").forEach(b=>b.onclick=()=>{ setDojo=b.dataset.sd; paintSettings(); });
