@@ -573,8 +573,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="24";
+  const APP_VERSION="24.1";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"24.1", items:["Help is up to date again: Getting started, Settings, Get words and Saving your progress now cover Revisit, reading aloud, related topics and the storage gauge."]},
     {v:"24", items:["New: hear your words. Tap the speaker next to a word to hear it \u2014 tap again for slower. It shows up whenever the word you're learning is on screen, so it never gives an answer away.","Settings: choose the language you're learning (one per dojo) and, if you like, \"Read aloud automatically\". A list can use another language in its editor; Chinese, Japanese, Korean and Thai are recognised from the characters.","The voices come from your own device, so they're free and save nothing."]},
     {v:"23.3", items:["Get words also leaves out the words from related topics you asked for before (\u201cemotions\u201d and \u201cemotions and feelings\u201d count as related).","If your browser offers to translate this page, it now translates the menus but never your cards.","Settings & backup shows how much room your saved data takes in the browser.","With \u201cAccept small typos\u201d on, a small typo in a teal alternative counts as that alternative \u2014 and typing a teal alternative exactly is never marked wrong."]},
     {v:"23.2", items:["Easier on the eye: text is back in the previous, sturdier font (Familjen Grotesk). Headings stay in Shippori Mincho and are a little bolder at small sizes."]},
@@ -2016,6 +2017,8 @@
       <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words) or the <b>Sentence Dojo</b> (you build sentences from word tiles).</li>
       <li><b>Try the sample list</b>, or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
       <li>Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
+      <li>Words you've mastered come back in <b>Revisit</b>, above Master — the ones you haven't seen for longest first.</li>
+      <li>Tap the <b>speaker</b> next to a word to hear it. Choose the language you're learning once in Settings.</li>
       <li><b>Back up</b> now and then (Settings &amp; backup → Export backup).</li></ol>`},
     {id:"word", t:"Word Dojo", h:`<ul>
       <li>You see the prompt and type the answer. A brand-new word is shown once so you can copy it.</li>
@@ -2049,8 +2052,11 @@
       <li><b>Groups</b> keep related lists under one heading — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`},
-    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats.</p>`},
-    {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>. The accent bar adds one-tap special letters — try <b>From my lists</b>. Backups are shared by both dojos.</p>`},
+    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
+    {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
+      <li><b>Reading aloud:</b> choose the language you're learning and, if you like, have each word read aloud automatically.</li>
+      <li>The <b>accent bar</b> adds one-tap special letters — try <b>From my lists</b>.</li>
+      <li><b>Backups</b> are shared by both dojos. The backup area also shows how much room your saved data takes.</li></ul>`},
     {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
       <li><b>Back up regularly</b> — once a week is a good habit (Settings &amp; backup → Export backup). A backup restores everything, in any browser.</li>
       <li><b>Use a normal window.</b> Private or incognito windows forget everything when they close.</li>
@@ -2059,7 +2065,7 @@
       <li><b>Safari can delete a website's data</b> after about a week without a visit. On an iPhone or iPad, add the page to your Home Screen (Share → Add to Home Screen) — and keep backing up.</li>
       <li><b>The Home Screen app keeps its own storage</b>, separate from the browser. Add it before you start — or, if you've already practised in the browser, export a backup there and restore it in the Home Screen app.</li></ul>
       <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
-      <p class="hint">If saving is blocked completely, Language Senpai tells you straight away.</p>`}
+      <p class="hint">If saving is blocked completely, Language Senpai tells you straight away. Settings &amp; backup shows how much room your progress takes: browsers keep about 5 MB per website — room for well over 10,000 words — and the app warns you long before it's full.</p>`}
   ];
   const helpOverlay=document.getElementById("helpOverlay"), wlOverlay=document.getElementById("wlOverlay");
   function openHelp(id){
