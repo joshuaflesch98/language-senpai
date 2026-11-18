@@ -458,6 +458,10 @@
   .sorttoast .tbtn:focus-visible{outline:2px solid #C9D6EE;outline-offset:1px}
   .help-ico.srtico svg{fill:none;stroke:var(--indigo);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
   @media (prefers-reduced-motion: reduce){ .sortmenu,.sorttoast.show{animation:none} }
+  /* v24.5: pasted lists that lost their line breaks */
+  .gwwarn{background:var(--rival-soft);border:1px solid var(--rival-line);color:var(--rival-dk);border-radius:11px;padding:10px 13px;font-size:13.5px;line-height:1.45;margin:8px 0 10px}
+  .gwwarn b{font-weight:600}
+  .lc-warn{color:var(--rival-dk);font-weight:500}
 </style>
 </head>
 <body>
@@ -528,7 +532,7 @@
     <div class="gwrow"><button class="btn" id="gwCopy">Copy prompt</button><span class="gwstatus" id="gwStatus" role="status"></span></div>
     <details class="gwshow"><summary>See the prompt</summary><textarea id="gwPrompt" readonly rows="8"></textarea></details>
     <h4>2 · Paste the answer</h4>
-    <textarea id="gwPaste" rows="7" placeholder="Paste your AI's answer here"></textarea>
+    <textarea id="gwPaste" rows="7" placeholder="Paste your AI's answer here (copy it with the Copy button on its code box)"></textarea>
     <div class="gwsum" id="gwSum" role="status"></div>
     <div id="gwDups"></div>
     <div class="gwgrid">
@@ -632,8 +636,9 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="24.4";
+  const APP_VERSION="24.5";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"24.5", items:["Fixed: on a phone, an AI's answer could arrive without its line breaks and become one giant card. Every kind of line break now counts, and a list that arrives as one long line is split at its numbers \u2014 or Language Senpai tells you what happened and creates nothing.","Get words and Get sentences now ask the AI for numbered lines in one code block: tap Copy on that box, then paste.","+ New list warns you before saving a line that holds several pairs.","Answers in other shapes become cards too: a table, bold or italic words, bullets and emoji, arrows instead of \u201c=\u201d, quotes around words. Invisible characters and accents stored in an unusual way are cleaned up, also in the cards you already have, so a card that looks right can always be answered right."]},
     {v:"24.4", items:["Sort your lists: the new sort button next to a group's name sorts its lists, and the one next to Student or Master sorts their groups (in a folder without groups, its lists).","Sort by name (1-500 comes before 501-1000), by the date a list was made, or by when you last practised it — either way round.","Sorting happens once, so the arrows still move things by hand afterwards. Changed your mind? Undo appears for a few seconds.","New lists now remember the day they were made. Lists made before this version count as oldest."]},
     {v:"24.3", items:["Revisit: choose how many words a round has, next to “From”. The card now counts only the words you revisited today.","Once you've practised, a line under the dojos shows what you learned and revisited today.","A symbol you hit by accident, like the + in “sensei+”, no longer makes an answer wrong. Letters, accents, apostrophes and hyphens still count.","Other accepted forms now show as “or: …” under the answer.","“Restore backup” is now called “Import backup”.","Help explains what a rival is, has a box for the card shorthand / [ ] ( ) (the ? in the list editor opens it), and its links take you to the right place.","Accent bar: “From my lists” and “My own” have their own row, above the languages."]},
     {v:"24.2", items:["Chinese characters are drawn in Chinese shapes again (the new heading font had drawn them the Japanese way). With \"Chinese (Mandarin, Taiwan)\" chosen, you get Taiwanese shapes \u2014 and a Taiwanese voice.","\"Language you're learning\" now has its own place at the top of each dojo's settings, and new users are asked for it on the welcome screen.","Under the answer box you'll see the previous word with its speaker, until you answer \u2014 tap to hear it. Hide it under Settings \u2192 More options."]},
@@ -692,6 +697,15 @@
       else if(w.nl==="Ze belt haar moeder elke zondag op. / Elke zondag belt ze haar moeder op."){ w.nl+=" / Ze belt elke zondag haar moeder op."; bootSave=true; }
     }); });
   }
+  // v24.5: pasted text, tidied. Accents in one form (NFC: "é" typed on a phone matches "é" pasted from anywhere, even with
+  // exact accents on), no invisible characters (zero-width, soft hyphen, direction marks; ZWJ/ZWNJ stay, some scripts need
+  // them). tidyPaste also turns odd spaces into plain ones and the wide "＝" of Chinese/Japanese keyboards into "=".
+  function tidyCard(t){ return String(t==null?"":t).normalize("NFC").replace(/[\u200B\u2060\uFEFF\u00AD\u200E\u200F\u202A-\u202E\u2066-\u2069]/g,""); }
+  function tidyPaste(t){ return tidyCard(t).replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g," ").replace(/\uFF1D/g,"="); }
+  function tidyStoredCards(st){   // cards made before V24.5 may hold such characters: a card that looks right but can never be answered
+    [st.lists||[], st.sLists||[]].forEach(L=>(Array.isArray(L)?L:[]).forEach(l=>(l&&Array.isArray(l.words)?l.words:[]).forEach(w=>{
+      ["nl","de"].forEach(k=>{ if(typeof w[k]==="string"){ const v=tidyCard(w[k]); if(v!==w[k]){ w[k]=v; bootSave=true; } } }); })));
+  }
   function seedWords(arr){ return arr.map(p=>({nl:p[0],de:p[1],everSeen:false,mastered:false,streak:0,misses:0,days:[]})); }
   function defaultState(){
     return {
@@ -717,7 +731,7 @@
     let raw=null;
     try{ raw=localStorage.getItem(KEY); }catch(e){}
     if(raw){
-      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); repairSentenceOrders(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__" || s.activeListId==="__revisit__"){ s.view="library"; s.activeListId=null; } [...(s.lists||[]), ...(s.sLists||[])].forEach(l=>{ if(l && l.demo && !l.lang) l.lang="ja-JP"; }); return s; } }catch(e){}
+      try{ const s=JSON.parse(raw); if(s&&Array.isArray(s.lists)){ s.settings=fixSettings(s.settings); s.view=s.view||"library"; s.groupOrder=fixGroupOrder(s.groupOrder); if(!Array.isArray(s.sLists)) s.sLists=[demoSentences()]; fixStarterSentences(s); repairSentenceOrders(s); tidyStoredCards(s); s.sGroupOrder=fixGroupOrder(s.sGroupOrder); s.dojo=s.dojo==="sentence"?"sentence":"word"; s.collapsed=(s.collapsed&&typeof s.collapsed==="object")?s.collapsed:{}; if(s.activeListId==="__hard__" || s.activeListId==="__revisit__"){ s.view="library"; s.activeListId=null; } [...(s.lists||[]), ...(s.sLists||[])].forEach(l=>{ if(l && l.demo && !l.lang) l.lang="ja-JP"; }); return s; } }catch(e){}
       // v22: a save exists but this version can't read it — set it aside first, never overwrite it
       const rk=KEY+"_rescued_"+Date.now();
       try{ localStorage.setItem(rk, raw); rescued={key:rk, raw}; }catch(e){ rescued={key:null, raw}; saveBlocked=true; }
@@ -1646,7 +1660,26 @@
     closeGrpMenu();
     listArea.value=l?l.words.map(w=>w.nl+" = "+w.de).join("\n"):""; updateListCount(); listOverlay.classList.add("open"); (l?listArea:listName).focus(); }
   listArea.addEventListener("input",updateListCount);
-  function updateListCount(){ const c=listArea.value.split("\n").filter(x=>x.includes("=")&&x.trim()).length; listCount.textContent=c+(isSent()?" sentence":" word")+(c===1?"":"s"); }
+  // v24.5: every kind of line break; a list numbered throughout loses its numbers (a pasted AI answer); a line with
+  // several pairs is split at its numbers, or held back with a warning (never saved as one giant card)
+  function readListText(text){
+    const lines=[];
+    splitLines(tidyPaste(text)).forEach(ln=>{ const parts=eqCount(ln)>1 && splitNumbered(ln); if(parts) parts.forEach(t=>lines.push({t, num:true})); else lines.push({t:ln, num:false}); });
+    const withEq=lines.filter(x=>x.t.includes("="));
+    const numbered=withEq.length>0 && withEq.every(x=>x.num || LIST_NUM.test(x.t));
+    const pairs=[], glued=[];
+    withEq.forEach(x=>{
+      let t=x.t.replace(FENCE," "); if(numbered || x.num) t=t.replace(LIST_NUM,"");
+      if(eqCount(t)>1){ glued.push(t.trim()); return; }
+      const i=t.indexOf("="), nl=t.slice(0,i).trim(), de=t.slice(i+1).trim(); if(nl&&de) pairs.push([nl,de]);
+    });
+    return {pairs, glued};
+  }
+  function updateListCount(){
+    const r=readListText(listArea.value), c=r.pairs.length, ng=r.glued.length;
+    listCount.textContent=c+(isSent()?" sentence":" word")+(c===1?"":"s");
+    if(ng){ const w=document.createElement("span"); w.className="lc-warn"; w.textContent=` · ${ng===1?"1 line holds":ng+" lines hold"} several pairs`; listCount.appendChild(w); }
+  }
   // ---- custom group dropdown (replaces native datalist: readable, filterable, capped height) ----
   const grpMenu=document.getElementById("grpMenu");
   function allGroups(){ return [...new Set(curLists().map(x=>(x.group||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)); }
@@ -1671,8 +1704,8 @@
   document.getElementById("listSave").onclick=()=>{
     const name=listName.value.trim()||"Untitled list";
     const group=listGroup.value.trim();
-    const pairs=[];
-    for(const ln of listArea.value.split("\n")){ if(!ln.includes("=")) continue; const i=ln.indexOf("="); const nl=ln.slice(0,i).trim(); const de=ln.slice(i+1).trim(); if(nl&&de) pairs.push([nl,de]); }
+    const read=readListText(listArea.value), pairs=read.pairs;
+    if(read.glued.length){ const ng=read.glued.length, g0=read.glued[0]; alert(`${ng===1?"One line holds":ng+" lines hold"} several pairs, so ${ng===1?"it":"each"} would become one giant card:\n\n\u201c${g0.length>90?g0.slice(0,90)+"\u2026":g0}\u201d\n\nPut each pair on its own line. If you pasted an AI's answer, its line breaks got lost while copying: copy it again with the AI's Copy button.`); return; }
     if(!pairs.length){ alert("Add at least one pair like:  het huis = das Haus"); return; }
     if(editing){
       // v20: a changed line keeps its word's progress and rival flag. Match in passes, preferring the same
@@ -1985,9 +2018,10 @@
   function cardEditError(msg){ cardErr.textContent=msg; cardErr.classList.add("show"); }
   function saveCardEdit(){
     const w=editingWord; if(!w) return;
-    const nl=cardWord.value.trim(), de=cardMeaning.value.trim();
+    const nl=tidyPaste(cardWord.value).trim(), de=tidyPaste(cardMeaning.value).trim();   // v24.5
     if(!nl||!de) return cardEditError("Both sides need text.");
     if(nl.includes("=")) return cardEditError("The word can't contain “=”. It separates word and meaning in your lists.");
+    if(de.includes("=")) return cardEditError("The meaning can't contain “=” either. It separates word and meaning in your lists.");
     if(!parseSide(nl).primary||!parseSide(de).primary) return cardEditError("Each side needs a main word outside the [ ] and ( ) brackets.");
     w.nl=nl; w.de=de; save();
     cardOverlay.classList.remove("open"); editingWord=null;
@@ -2021,17 +2055,41 @@
     curLists().forEach(l=>l.words.forEach(w=>itemKeys(w.nl,sent).forEach(k=>{ if(!idx.has(k)) idx.set(k,{list:l.name, de:w.de}); })));
     return idx;
   }
+  // v24.5: copying an AI's answer on a phone can bring line separators (U+2028/U+2029) instead of \n, or lose the line
+  // breaks entirely. Every kind of line break counts; a line holding several pairs is split at its numbers
+  // ("1. a = b 2. c = d"), and one that can't be split is reported, never turned into one giant card.
+  const LINE_BREAK=/\r\n|[\n\r\u2028\u2029\u0085\v\f]/, LIST_NUM=/^\s*\d{1,3}\s*[.)]\s+/;
+  const FENCE=/`{3,}(?:(?:plaintext|text|txt|markdown|md|csv)(?=\s|$))?/gi;
+  function splitLines(text){ return String(text==null?"":text).split(LINE_BREAK); }
+  function eqCount(t){ return (String(t).match(/=(?!>)/g)||[]).length; }
+  const ARROWS=[" → "," -> "," => "," ⇒ "," ➔ "," ➜ "," ⟶ "];
+  function pairCount(t){ const e=eqCount(t); return e ? e : ARROWS.reduce((a,x)=>a+String(t).split(x).length-1,0); }   // arrows count only without "="
+  const TABLE_DIV=/^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;   // |---|:-:|
+  function tableCells(t){ const x=String(t).trim(); return /^\|.*\|$/.test(x) && x.length>2 ? x.slice(1,-1).split("|").map(c=>c.trim()) : null; }
+  function twoCells(c){ c=c.filter(Boolean); if(c.length>2 && /^\d+[.)]?$/.test(c[0])) c=c.slice(1); return c.length>=2 ? c[0]+" = "+c[1] : null; }   // a number column is dropped
+  function splitNumbered(t){   // cut before "1. ", "2. ", "3. " … in order; null if there aren't at least two
+    t=String(t); const cuts=[]; let from=0;
+    for(let k=1;;k++){
+      const re=new RegExp("(?:^|\\s)("+k+"\\s*[.)]\\s+)","g"); re.lastIndex=from;
+      const m=re.exec(t); if(!m) break;
+      const at=m.index+m[0].length-m[1].length; cuts.push(at); from=at+m[1].length;
+    }
+    if(cuts.length<2) return null;
+    return [t.slice(0,cuts[0]), ...cuts.map((c,i)=>t.slice(c, i+1<cuts.length?cuts[i+1]:t.length))].map(x=>x.trim()).filter(Boolean);
+  }
   function cleanLine(line){
     let t=String(line).replace(/\r/g,"").trim();
-    if(/^```/.test(t)) return "";
-    t=t.replace(/^(?:\d+\s*[.)]|[-*•–—>])\s+/,"");          // numbering, bullets, quote marks
-    t=t.replace(/\*\*|__|`/g,"");                              // bold and code markup
+    if(/^`{3,}[\w-]*$/.test(t)) return "";                   // a code fence on its own line
+    t=t.replace(FENCE," ").trim();                              // v24.5: a fence glued to a line whose breaks got lost
+    t=t.replace(/\*\*|__|`/g,"");                              // bold and code markup (v24.5: before the list marks, so "**1. a** = b" works)
+    t=t.replace(/(^|[\s(])[*_]([^\s*_](?:[^*_]*[^\s*_])?)[*_](?=$|[\s),.;:!?=])/g,"$1$2");   // v24.5: *italic*, _italic_
+    for(let i=0;i<2;i++) t=t.replace(/^(?:(?:\d+\s*[.)]|[-*•–—>▪◦‣])\s+|\d\uFE0F?\u20E3\s*|[\u2190-\u21FF\u2300-\u23FF\u25A0-\u27BF\u2B00-\u2BFF\u{1F300}-\u{1FAFF}][\uFE0F\u200D]*\s*)/u,"").trim();   // numbering, bullets, quote marks, emoji bullets ("- 1. " too)
     return t.trim();
   }
   function splitPair(t){
-    const i=t.indexOf("=");
+    const i=t.search(/=(?!>)/);   // v24.5: "=>" is an arrow; arrows (→ -> =>) also separate
     if(i>=0) return [t.slice(0,i).trim(), t.slice(i+1).trim()];
-    for(const sep of ["\t"," — "," – "," - "]){ const j=t.indexOf(sep); if(j>0) return [t.slice(0,j).trim(), t.slice(j+sep.length).trim()]; }
+    for(const sep of ["\t", ...ARROWS, " — "," – "," - "]){ const j=t.indexOf(sep); if(j>0) return [t.slice(0,j).trim(), t.slice(j+sep.length).trim()]; }
     return null;
   }
   // v22.3: AIs sometimes write "sentence = translation / other order". A segment after "=" that uses exactly the
@@ -2057,10 +2115,21 @@
     (st.sLists||[]).forEach(l=>(l.words||[]).forEach(w=>{ const pr=[w.nl,w.de]; fixMisplacedOrders(pr); if(pr[0]!==w.nl||pr[1]!==w.de){ w.nl=pr[0]; w.de=pr[1]; bootSave=true; } }));
   }
   function parseAnswer(text, sent){
-    const idx=libraryIndex(sent), seen=new Set(), out={fresh:[], dups:[], inBatch:0, junk:[]};
-    String(text||"").split("\n").forEach(raw=>{
+    const idx=libraryIndex(sent), seen=new Set(), out={fresh:[], dups:[], inBatch:0, junk:[], glued:[]};
+    const rows=[], lines=[];
+    splitLines(tidyPaste(text)).forEach(raw=>{ const parts=pairCount(raw)>1 && splitNumbered(raw); if(parts) rows.push(...parts); else rows.push(raw); });
+    rows.forEach((raw,i)=>{   // v24.5: a Markdown table (header and |---| skipped) or tab-separated columns → "cell = cell"
+      if(TABLE_DIV.test(raw) && raw.includes("-")) return;
+      const cells=tableCells(raw);
+      if(cells){ if(i+1<rows.length && TABLE_DIV.test(rows[i+1]) && rows[i+1].includes("-")) return; const two=twoCells(cells); lines.push(two||raw); return; }
+      if(raw.split("\t").length>2){ const two=twoCells(raw.split("\t").map(c=>c.trim())); if(two){ lines.push(two); return; } }
+      lines.push(raw);
+    });
+    const tidySide=x=>{ x=String(x).replace(/\s*[,;]+$/,"").trim(); const m=x.match(/^["“”„«»](.*)["“”„«»]$/); return m && m[1].trim() ? m[1].trim() : x; };   // v24.5: "quoted", trailing , ;
+    lines.forEach(raw=>{
       const t=cleanLine(raw); if(!t) return;
-      const pr=splitPair(t);
+      if(pairCount(t)>1){ out.glued.push(t); return; }   // several pairs on one line: never one giant card
+      const pr0=splitPair(t), pr=pr0 && pr0.map(tidySide);
       if(!pr || !pr[0] || !pr[1] || !parseSide(pr[0]).primary || !parseSide(pr[1]).primary){ out.junk.push(t); return; }
       if(sent) fixMisplacedOrders(pr);
       const keys=itemKeys(pr[0],sent);
@@ -2125,7 +2194,8 @@
       L.push(`- Every ${learn} version goes BEFORE the "=". After the "=" comes only the ${meaning} translation.`);
     }
     if(excl.length) L.push(sent ? `Don't repeat any of these sentences, which I already have: ${excl.join(" | ")}` : `Don't include any of these words, which I already know: ${excl.join(", ")}.`);
-    L.push(`No numbering, no headings, no explanations — only the lines.`);
+    L.push(`Number the lines (1. 2. 3. …) and put them all in one code block, so the line breaks survive copying.`);   // v24.5
+    L.push(`No headings, no explanations — only the numbered lines.`);
     return L.join("\n");
   }
   const cap1=t=>t.charAt(0).toUpperCase()+t.slice(1);
@@ -2169,8 +2239,10 @@
     if(p.inBatch) parts.push(`${p.inBatch} repeated within the answer`);
     if(p.junk.length) parts.push(`${p.junk.length} other line${p.junk.length===1?"":"s"} ignored`);
     gwe("gwSum").innerHTML=parts.join(" · ")+'<span id="gwNote"></span>';
-    const nd=p.dups.length, them=nd===1?"it":"them";
-    gwe("gwDups").innerHTML=(nd?`<div class="gwdupbar"><span>${nd===1?"1 is":nd+" are"} already in your lists.</span><span class="dseg mini"><button type="button" data-all="skip" class="on">Skip ${them}</button><button type="button" data-all="keep">Keep ${them}</button></span><button type="button" class="linkish" id="gwDupOne">choose one by one</button></div><div id="gwDupList" hidden>${p.dups.map((d,i)=>`<label class="gwdup"><input type="checkbox" data-k="${i}"><span><b>Keep</b> ${esc(d.nl)} = ${esc(d.de)} <small>you have \u201c${esc(d.existing)}\u201d in ${esc(d.where)}</small></span></label>`).join("")}</div>`:"")+
+    const nd=p.dups.length, them=nd===1?"it":"them", ng=p.glued.length;
+    const none = !ng && !(p.fresh.length+nd) && p.junk.length ? `<div class="gwwarn" id="gwNone" role="alert"><b>No line here looks like \u201c${unit} = ${sent?"translation":"meaning"}\u201d</b>, so nothing can become a card. Paste your AI's answer to the prompt above: it asks for exactly that shape.</div>` : "";
+    const glued = !ng ? none : `<div class="gwwarn" id="gwGlued" role="alert">${(p.fresh.length+nd) ? `<b>${ng===1?"1 line holds":ng+" lines hold"} several ${unit} pairs</b>: their line breaks got lost while copying. Copy the answer again with your AI's Copy button, or put each pair on its own line here.` : `<b>This arrived as one long line</b>: the line breaks got lost while copying (it happens on phones). In your AI chat, tap the Copy button on its code box, or under its answer, instead of selecting the text. Then paste here again.`}</div>`;
+    gwe("gwDups").innerHTML=glued+(nd?`<div class="gwdupbar"><span>${nd===1?"1 is":nd+" are"} already in your lists.</span><span class="dseg mini"><button type="button" data-all="skip" class="on">Skip ${them}</button><button type="button" data-all="keep">Keep ${them}</button></span><button type="button" class="linkish" id="gwDupOne">choose one by one</button></div><div id="gwDupList" hidden>${p.dups.map((d,i)=>`<label class="gwdup"><input type="checkbox" data-k="${i}"><span><b>Keep</b> ${esc(d.nl)} = ${esc(d.de)} <small>you have \u201c${esc(d.existing)}\u201d in ${esc(d.where)}</small></span></label>`).join("")}</div>`:"")+
       (p.junk.length?`<details class="gwdet"><summary>Lines that weren't ${unit} pairs</summary>${p.junk.slice(0,40).map(j=>`<div class="gwjunk">${esc(j)}</div>`).join("")}</details>`:"");
     const syncDup=()=>{ const kept=p.dups.filter(d=>d.keep).length;
       gwe("gwDups").querySelectorAll("[data-all]").forEach(b=>b.classList.toggle("on", b.dataset.all==="keep" ? kept===p.dups.length : kept===0));
@@ -2196,7 +2268,7 @@
   }
   function gwUpdateCreate(){
     const P=gwPlan(), k=P.items.length;
-    gwe("gwCreate").disabled=k===0;
+    gwe("gwCreate").disabled=k===0 || !!(gwParsed && gwParsed.glued.length);   // v24.5: fix the copy first
     gwe("gwCreate").textContent = P.fill ? (P.newLists ? `Fill up and create ${P.newLists} list${P.newLists>1?"s":""}` : `Add to \u201c${P.last.name}\u201d`) : (P.newLists>1 ? `Create ${P.newLists} lists` : "Create list");
     const note=gwe("gwNote"); if(!note) return;
     const n=+gwe("gwCount").value, kept=gwParsed?gwParsed.dups.filter(d=>d.keep).length:0, room=Math.max(0,n-kept), bits=[];
@@ -2295,7 +2367,7 @@
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date made</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists made before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`},
-    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
+    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
       <li><b>Language you're learning</b> (at the top): picks the speaker's voice and how characters are drawn — e.g. Taiwanese or mainland shapes for Chinese.</li>
       <li><b>Reading aloud:</b> have each word read aloud automatically, if you like.</li>
@@ -2452,7 +2524,7 @@
   const importFile=document.getElementById("importFile");
   document.getElementById("importBtn").onclick=()=>importFile.click();
   importFile.onchange=()=>{ const f=importFile.files[0]; if(!f) return; const r=new FileReader();
-    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||!Array.isArray(p.lists)) throw 0; p.settings=fixSettings(p.settings); p.groupOrder=fixGroupOrder(p.groupOrder); if(!Array.isArray(p.sLists)) p.sLists=[]; p.sGroupOrder=fixGroupOrder(p.sGroupOrder); p.dojo=p.dojo==="sentence"?"sentence":"word"; p.collapsed=(p.collapsed&&typeof p.collapsed==="object")?p.collapsed:{}; p.view="library"; p.activeListId=null; S=p; save(); setOverlay.classList.remove("open"); render(); alert("Backup imported."); }
+    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||!Array.isArray(p.lists)) throw 0; p.settings=fixSettings(p.settings); p.groupOrder=fixGroupOrder(p.groupOrder); tidyStoredCards(p); if(!Array.isArray(p.sLists)) p.sLists=[]; p.sGroupOrder=fixGroupOrder(p.sGroupOrder); p.dojo=p.dojo==="sentence"?"sentence":"word"; p.collapsed=(p.collapsed&&typeof p.collapsed==="object")?p.collapsed:{}; p.view="library"; p.activeListId=null; S=p; save(); setOverlay.classList.remove("open"); render(); alert("Backup imported."); }
       catch(e){ alert("That file doesn't look like a valid backup."); } importFile.value=""; };
     r.readAsText(f); };
 

@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (545 at V24.4)
+ * Language Senpai — automated checks (584 at V24.5)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -932,7 +932,7 @@ async function headSum(page) { const t = await page.textContent('.progress .head
     await page.selectOption('#gwLevel', 'B2'); await page.selectOption('#gwCount', '25'); await page.waitForTimeout(80);
     const pr = await page.inputValue('#gwPrompt');
     ok(/learning Dutch, with the meanings in German/.test(pr) && /Topic: psychology/.test(pr) && /Level: B2 \(CEFR\)/.test(pr), 'prompt carries language, meanings, topic and level');
-    ok(/Give 30 words/.test(pr) && /Dutch word = German meaning/.test(pr) && /article/.test(pr) && /" \/ "/.test(pr) && /only the lines/.test(pr), 'asks for a buffer (30 for 25), the exact format, articles and "/"');
+    ok(/Give 30 words/.test(pr) && /Dutch word = German meaning/.test(pr) && /article/.test(pr) && /" \/ "/.test(pr) && /only the numbered lines/.test(pr), 'asks for a buffer (30 for 25), the exact format, articles and "/"');
     ok(await page.inputValue('#gwName') === 'Psychology B2' && await page.inputValue('#gwGroup') === 'Psychology', 'list name and group filled in from the topic');
     await page.click('#gwCopy'); await page.waitForTimeout(200);
     ok(((await page.textContent('#gwStatus')) || '').length > 5, 'Copy prompt gives feedback');
@@ -1360,7 +1360,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.4"')), 'version 24.4');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.5"')), 'version 24.5');
     await ctx.close();
   }
   {
@@ -2199,6 +2199,161 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await ctx.close();
   }
 
+  console.log('\n[33] V24.5: pasted lists that lost their line breaks (phones) never become one giant card');
+  const P33 = ['le marché = der Markt, der Wochenmarkt', "faire les courses = einkaufen gehen", 'un rendez-vous = eine Verabredung', 'une fourchette (am Tisch) = die Gabel'];
+  const N33 = P33.map((x, i) => (i + 1) + '. ' + x);
+  {
+    const { ctx, page } = await freshD(state([list('Have', [word('huis', 'Haus')])]));
+    const paste = async txt => { await page.fill('#gwPaste', txt); await page.waitForTimeout(150); return { sum: (await page.textContent('#gwSum')).replace(/\s+/g, ' ').trim(), off: await page.$eval('#gwCreate', b => b.disabled), warn: await page.$eval('#gwDups', d => (d.querySelector('#gwGlued') || {}).textContent || '') }; };
+    await page.click('#gwBtn'); await page.waitForTimeout(120);
+    let r = await paste(P33.join(' '));
+    ok(/^4 new/.test(r.sum) && !r.off && !r.warn, 'a phone copy with line separators (U+2028) → 4 new (V24.4 said "1 new")');
+    r = await paste(P33.join(' '));
+    ok(/^4 new/.test(r.sum) && !r.off, '…paragraph separators (U+2029) count too');
+    r = await paste(N33.join(' '));
+    ok(/^4 new/.test(r.sum) && !r.off && !r.warn, 'line breaks lost, but the lines are numbered → split at the numbers: 4 new');
+    r = await paste(P33.join(' '));
+    ok(/^0 new/.test(r.sum) && r.off && /This arrived as one long line/.test(r.warn) && /tap the Copy button on its code box/.test(r.warn), 'one long line without numbers → "This arrived as one long line…" and Create is off (no giant card)');
+    r = await paste(P33.slice(0, 3).join('\n') + '\nun ami = der Freund une amie = die Freundin');
+    ok(/^3 new/.test(r.sum) && r.off && /1 line holds several word pairs/.test(r.warn), 'one glued line among good ones → named, and Create stays off until it\'s fixed');
+    r = await paste(P33.slice(0, 3).join('\n') + '\nun ami = der Freund\nune amie = die Freundin');
+    ok(/^5 new/.test(r.sum) && !r.off && !r.warn, 'putting each pair on its own line clears the warning');
+    await page.fill('#gwLearn', 'French'); await page.fill('#gwMeaning', 'German'); await page.waitForTimeout(80);
+    const pr = await page.inputValue('#gwPrompt');
+    ok(/Number the lines \(1\. 2\. 3\. …\) and put them all in one code block/.test(pr) && /only the numbered lines/.test(pr) && !/No numbering/.test(pr), 'the prompt asks for numbered lines in one code block');
+    ok(/Copy button on its code box/.test(await page.getAttribute('#gwPaste', 'placeholder')), 'the paste box says to copy with the code box\'s Copy button');
+    r = await paste('Here you go: ```text ' + N33.join(' ') + ' ```');
+    ok(r.sum === '4 new · 1 other line ignored' && !r.off, 'a whole message copied with separators: the fences drop out, the intro is the 1 other line, 4 new');
+    r = await paste('```text ' + N33.join(' ') + ' ```');
+    ok(/^4 new/.test(r.sum) && !r.off, 'numbered lines and code fences glued into one line → still 4 new');
+    await page.fill('#gwName', 'Rescued'); await page.click('#gwCreate'); await page.waitForTimeout(300);
+    const made = (await getS(page)).lists.find(l => l.name === 'Rescued');
+    ok(!!made && JSON.stringify(made.words.map(w => w.nl + ' = ' + w.de)) === JSON.stringify(P33), 'the four cards come out clean: no numbers, no backticks');
+    await ctx.close();
+  }
+  {
+    const ss = sstate([slist('Have', [word('Ik ben hier.', 'Ich bin hier.')])]);
+    const { ctx, page } = await freshD(ss);
+    await page.click('#gwBtn'); await page.waitForTimeout(120);
+    const SN = ['1. Ik ga morgen naar huis. / Morgen ga ik naar huis. = Ich gehe morgen nach Hause.', '2. Zij leest een boek. = Sie liest ein Buch.', '3. Wij wonen in Groningen. = Wir wohnen in Groningen.'];
+    await page.fill('#gwPaste', SN.join(' ')); await page.waitForTimeout(150);
+    ok(/^3 new/.test((await page.textContent('#gwSum')).trim()) && !(await page.$eval('#gwCreate', b => b.disabled)), 'Get sentences: numbered sentences that lost their line breaks → 3 new');
+    await page.fill('#gwName', 'Zinnen'); await page.click('#gwCreate'); await page.waitForTimeout(300);
+    const z = (await getS(page)).sLists.find(l => l.name === 'Zinnen');
+    ok(!!z && z.words.length === 3 && z.words[0].nl === 'Ik ga morgen naar huis. / Morgen ga ik naar huis.' && z.words[2].de === 'Wir wohnen in Groningen.', '…each sentence its own card, other word order kept');
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await freshD(state([list('Have', [word('huis', 'Haus')])]));
+    const count = async () => (await page.textContent('#listCount')).replace(/\s+/g, ' ').trim();
+    await page.click('#addBtn'); await page.waitForTimeout(120);
+    await page.fill('#listName', 'Separators'); await page.fill('#listArea', P33.join(' ')); await page.waitForTimeout(80);
+    ok(await count() === '4 words', '+ New list: line separators count as line breaks ("4 words")');
+    await page.click('#listSave'); await page.waitForTimeout(250);
+    let S5 = await getS(page);
+    ok(JSON.stringify((S5.lists.find(l => l.name === 'Separators') || { words: [] }).words.map(w => w.nl + ' = ' + w.de)) === JSON.stringify(P33), '…and saves four cards');
+    await page.click('#addBtn'); await page.waitForTimeout(120);
+    await page.fill('#listName', 'Glued'); await page.fill('#listArea', P33.join(' ')); await page.waitForTimeout(80);
+    ok(await count() === '0 words · 1 line holds several pairs' && await page.$eval('#listCount .lc-warn', e => getComputedStyle(e).color) === 'rgb(176, 60, 35)', 'a glued line is flagged in the counter, in vermilion');
+    lastDialog = '';
+    await page.click('#listSave'); await page.waitForTimeout(200);
+    S5 = await getS(page);
+    ok(/One line holds several pairs/.test(lastDialog) && /one giant card/.test(lastDialog) && /AI's Copy button/.test(lastDialog) && !S5.lists.some(l => l.name === 'Glued') && await page.$eval('#listOverlay', o => o.classList.contains('open')), 'saving it explains what happened, saves nothing and keeps the editor open');
+    await page.fill('#listArea', N33.join(' ')); await page.waitForTimeout(80);
+    ok(await count() === '4 words', 'numbered pairs glued into one line → split at the numbers ("4 words")');
+    await page.click('#listSave'); await page.waitForTimeout(250);
+    S5 = await getS(page);
+    ok(JSON.stringify((S5.lists.find(l => l.name === 'Glued') || { words: [] }).words.map(w => w.nl + ' = ' + w.de)) === JSON.stringify(P33), '…saved as four clean cards (numbers gone)');
+    await page.click('#addBtn'); await page.waitForTimeout(120);
+    await page.fill('#listName', 'Numbered'); await page.fill('#listArea', N33.join('\n')); await page.click('#listSave'); await page.waitForTimeout(250);
+    S5 = await getS(page);
+    ok(JSON.stringify((S5.lists.find(l => l.name === 'Numbered') || { words: [] }).words.map(w => w.nl)) === JSON.stringify(P33.map(x => x.split(' = ')[0])), 'a pasted list numbered throughout loses its numbers');
+    await page.click('#addBtn'); await page.waitForTimeout(120);
+    await page.fill('#listName', 'One date'); await page.fill('#listArea', '1. Mai = der erste Mai\nzon = Sonne'); await page.click('#listSave'); await page.waitForTimeout(250);
+    S5 = await getS(page);
+    ok(JSON.stringify((S5.lists.find(l => l.name === 'One date') || { words: [] }).words.map(w => w.nl)) === JSON.stringify(['1. Mai', 'zon']), '…but a single word that starts with a number keeps it');
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await freshD(state([list('H', [word('huis', 'Haus')])]));
+    await page.click('#helpBtnHdr'); await page.waitForTimeout(80);
+    await page.click('#helpNav [data-help="get"]'); await page.waitForTimeout(60);
+    const h = await page.textContent('#helpBody');
+    ok(/numbers its lines and puts them in a box/.test(h) && /Copy button rather than selecting the text/.test(h) && /one giant card/.test(h), 'Help → Get words: copy with the box\'s Copy button; what happens if the line breaks get lost');
+    await ctx.close();
+  }
+  console.log('\n[33b] V24.5: a safety net for other AIs\' habits — tables, markup, arrows, quotes, invisible characters');
+  {
+    const { ctx, page } = await freshD(state([list('Have', [word('huis', 'Haus')])], { strictSpelling: true }));
+    const gw = async (txt, name) => {
+      await page.click('#gwBtn'); await page.waitForTimeout(100);
+      await page.fill('#gwTopic', name); await page.fill('#gwPaste', txt); await page.waitForTimeout(150);
+      const sum = (await page.textContent('#gwSum')).replace(/\s+/g, ' ').trim();
+      const warn = await page.$eval('#gwDups', d => [...d.querySelectorAll('.gwwarn')].map(x => x.id + ':' + x.textContent).join(' '));
+      if (await page.$eval('#gwCreate', b => b.disabled)) { await page.click('#gwClose'); await page.waitForTimeout(80); return { sum, warn, cards: null }; }
+      await page.fill('#gwName', name); await page.click('#gwCreate'); await page.waitForTimeout(250);
+      const l = (await getS(page)).lists.find(x => x.name === name);
+      return { sum, warn, cards: l ? l.words.map(w => w.nl + ' = ' + w.de) : null };
+    };
+    const same = (r, arr) => !!r.cards && JSON.stringify(r.cards) === JSON.stringify(arr);
+    let r = await gw('| French | German |\n|---|---|\n| le chat | die Katze |\n| le chien | der Hund |', 'T1');
+    ok(same(r, ['le chat = die Katze', 'le chien = der Hund']), 'a Markdown table → one card per row; the header row is skipped');
+    r = await gw('| # | Französisch | Deutsch |\n|:-:|:--|--:|\n| 1 | la maison | das Haus |\n| 2 | le jardin | der Garten |', 'T2');
+    ok(same(r, ['la maison = das Haus', 'le jardin = der Garten']), '…also with a number column and alignment marks in the divider');
+    r = await gw('1\tla porte\tdie Tür\n2\tla fenêtre\tdas Fenster', 'T3');
+    ok(same(r, ['la porte = die Tür', 'la fenêtre = das Fenster']), 'tab-separated columns (a table copied as text) → cards, number column dropped');
+    r = await gw('1. **le pain** = das Brot\n**2. le beurre** = die Butter\n*le lait* = _die Milch_\n- 3. le sel = das Salz', 'T4');
+    ok(same(r, ['le pain = das Brot', 'le beurre = die Butter', 'le lait = die Milch', 'le sel = das Salz']), 'bold, italics, numbers inside bold and "- 1." are all cleaned off');
+    r = await gw('🔹 la pomme = der Apfel\n✅ la poire = die Birne\n1️⃣ la cerise = die Kirsche\n➡️ la prune = die Pflaume', 'T5');
+    ok(same(r, ['la pomme = der Apfel', 'la poire = die Birne', 'la cerise = die Kirsche', 'la prune = die Pflaume']), 'emoji bullets (🔹 ✅ 1️⃣ ➡️) are cleaned off');
+    r = await gw('le train → der Zug\nle bus -> der Bus\nle vélo => das Fahrrad', 'T6');
+    ok(same(r, ['le train = der Zug', 'le bus = der Bus', 'le vélo = das Fahrrad']), 'arrows (→ -> =>) work instead of "="');
+    r = await gw('"le livre" = "das Buch"\n„la page“ = „die Seite“\n«le stylo» = «der Stift»\nla gomme = der Radiergummi,\nla règle = das Lineal;', 'T7');
+    ok(same(r, ['le livre = das Buch', 'la page = die Seite', 'le stylo = der Stift', 'la gomme = der Radiergummi', 'la règle = das Lineal']), 'quotes around words and a trailing , or ; are dropped');
+    r = await gw('你好 ＝ hello\n谢谢　＝　thank you', 'T8');
+    ok(same(r, ['你好 = hello', '谢谢 = thank you']), 'the wide ＝ (and wide spaces) of Chinese/Japanese keyboards work');
+    r = await gw('le dé\u200Bsir = das Ver\u00ADlangen\nle re\u0302ve = der Traum', 'T9');
+    ok(same(r, ['le désir = das Verlangen', 'le r\u00eave = der Traum']) && r.cards[1].charCodeAt(4) === 0xEA, 'invisible characters are removed and accents stored in one form (e + ^ → ê, U+00EA)');
+    r = await gw('le soleil\nder Sonne\nla lune', 'T10');
+    ok(r.cards === null && /gwNone:No line here looks like “word = meaning”/.test(r.warn), 'nothing with the right shape → "No line here looks like “word = meaning”", nothing created');
+    r = await gw('le ciel → der Himmel la mer → das Meer', 'T11');
+    ok(r.cards === null && /gwGlued/.test(r.warn), 'arrow pairs glued into one line are caught too');
+    // the point of it: a card pasted with a decomposed accent can be answered with exact accents on
+    await page.click('.listcard:has-text("T9") [data-a="study"]'); await page.waitForTimeout(300);
+    const t9 = { 'das Verlangen': 'le désir', 'der Traum': 'le rêve' };
+    const p1 = await term(page); await typeEnter(page, t9[p1]); await page.waitForTimeout(150);
+    ok(!/Not quite/.test(await fb(page)), 'with exact accents on, typing "' + t9[p1] + '" counts as right');
+    await ctx.close();
+  }
+  {
+    // cards saved before V24.5 with invisible characters or decomposed accents are repaired on opening, and in backups
+    const bad = Object.assign(list('Old paste', [word('le re\u0302ve\u200B', 'der Traum'), word('la nuit', 'die Nacht')]), {});
+    const { ctx, page } = await freshD(state([bad]));
+    const w0 = (await getS(page)).lists[0].words[0];
+    ok(w0.nl === 'le rêve' && w0.nl.length === 7, 'an old card with a zero-width space and a decomposed ê is repaired on opening (and saved)');
+    require('fs').writeFileSync(path.join(require('os').tmpdir(), 'v245_backup.json'), JSON.stringify(state([list('From backup', [word('la plénitude', 'die Fülle')])])));
+    await page.click('#setBtnHdr'); await page.waitForTimeout(120);
+    await page.setInputFiles('#importFile', path.join(require('os').tmpdir(), 'v245_backup.json')); await page.waitForTimeout(500);
+    ok((await getS(page)).lists[0].words[0].nl === 'la plénitude', '…and so is a card in an imported backup');
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await freshD(state([list('Edit me', [word('la clé', 'der Schlüssel'), word('la porte', 'die Tür')])]));
+    await page.click('[data-a="study"]'); await page.waitForTimeout(300);
+    await page.click('#editBtn'); await page.waitForTimeout(150);
+    await page.fill('#cardMeaning', 'der Schlüssel = the key'); await page.click('#cardSave'); await page.waitForTimeout(120);
+    ok(/The meaning can't contain “=” either/.test(await page.textContent('#cardErr')), 'the card editor refuses "=" in the meaning too (it would split the card in two)');
+    await page.fill('#cardMeaning', 'der Schlüssel ＝ the key'); await page.click('#cardSave'); await page.waitForTimeout(120);
+    ok(/The meaning can't contain “=” either/.test(await page.textContent('#cardErr')), '…the wide ＝ as well');
+    await page.click('#cardCancel'); await page.waitForTimeout(80);
+    await page.click('#backBtn'); await page.waitForTimeout(250);
+    await page.click('#addBtn'); await page.waitForTimeout(120);
+    await page.fill('#listName', 'Wide'); await page.fill('#listArea', '你好 ＝ hello\nle gâteau = der Kuchen​'); await page.click('#listSave'); await page.waitForTimeout(250);
+    const wl = (await getS(page)).lists.find(l => l.name === 'Wide');
+    ok(!!wl && JSON.stringify(wl.words.map(w => w.nl + ' = ' + w.de)) === JSON.stringify(['你好 = hello', 'le gâteau = der Kuchen']), '+ New list: the wide ＝ works, invisible characters go, accents in one form');
+    await ctx.close();
+  }
+
   // ---------------- screenshots ----------------
   {
     const st = state([list('Shots', [word('dichtbij [nabij] [vlakbij]', 'nahe (bij het station)', { hard: true }), word('huis', 'Haus')])]);
@@ -2285,6 +2440,14 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('#helpBtnHdr'); await page.waitForTimeout(100); await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(80);
       await page.evaluate(() => document.getElementById('hSort').scrollIntoView({ block: 'center' })); await page.waitForTimeout(150);
       await page.screenshot({ path: 'shot_v244_help.png' });
+      await ctx.close();
+    }
+    {
+      ({ ctx, page } = await fresh(browser, state([list('Have', [word('huis', 'Haus')])]), { width: 390, height: 844 }));
+      await page.click('#gwBtn'); await page.waitForTimeout(150);
+      await page.fill('#gwPaste', ['le marché = der Markt, der Wochenmarkt', "faire les courses = einkaufen gehen", 'un rendez-vous = eine Verabredung'].join(' ')); await page.waitForTimeout(200);
+      await page.evaluate(() => document.getElementById('gwPaste').scrollIntoView({ block: 'start' })); await page.waitForTimeout(150);
+      await page.screenshot({ path: 'shot_v245_glued.png' });
       await ctx.close();
     }
   }
