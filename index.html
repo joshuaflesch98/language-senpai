@@ -431,6 +431,33 @@
   .help-ico.spkico svg{fill:none;stroke:var(--indigo);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   /* v23.2: the mincho at text sizes: never at its thin default weight */
   .wl-sub,.wnv,.s-answer,.tile,.sfin,.sfull,.show-answer,.show-also span,.dojo .dk{font-weight:600}
+  /* v24.4: sorting */
+  .srt{display:inline-flex;align-items:center;justify-content:center;color:var(--faint);cursor:pointer;border-radius:7px;line-height:0}
+  .srt svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .srt:hover,.srt.on{color:var(--indigo)}
+  .srt:focus-visible{outline:2px solid var(--indigo);outline-offset:1px}
+  .subgrip .srt{padding:4px;margin:-4px -2px;line-height:0}
+  .fhead .fsort{margin:-5px -5px -5px auto;padding:6px}
+  .fhead .fsort svg{width:16px;height:16px}
+  .fhead .fsort:hover,.fhead .fsort.on{background:var(--surface-3)}
+  .sortmenu{position:absolute;z-index:45;width:min(304px,calc(100vw - 16px));background:var(--surface);border:1px solid var(--line-2);border-radius:14px;box-shadow:0 18px 44px -18px rgba(40,30,20,.45);padding:12px 12px 11px;animation:fade .12s ease}
+  .sortmenu[hidden]{display:none}
+  .sortmenu .st{font-family:var(--serif);font-weight:700;font-size:15px;color:var(--ink);margin:0 2px 2px;line-height:1.3;overflow-wrap:anywhere}
+  .sortmenu .sl{font-size:12px;color:var(--muted);margin:9px 2px 4px}
+  .sortmenu .sb{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .sortmenu .sb button{font-family:var(--sans);font-size:13px;line-height:1.25;padding:7px 6px;border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);cursor:pointer}
+  .sortmenu .sb button:hover{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-soft)}
+  .sortmenu .sb button:focus-visible{outline:2px solid var(--indigo);outline-offset:1px}
+  .sortmenu .snote{font-size:11.5px;color:var(--faint);margin:10px 2px 0;line-height:1.4}
+  .sorttoast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 24px);background:var(--ink);color:#FFFCF7;border-radius:12px;padding:9px 10px 9px 16px;font-size:13.5px;line-height:1.35;box-shadow:0 14px 34px -14px rgba(20,15,10,.55)}
+  .sorttoast[hidden]{display:none}
+  .sorttoast.show{animation:toastin .22s ease}
+  @keyframes toastin{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+  .sorttoast .tbtn{flex:none;font-family:var(--sans);font-size:13.5px;font-weight:600;color:#C9D6EE;background:none;border:0;padding:5px 8px;border-radius:7px;cursor:pointer}
+  .sorttoast .tbtn:hover{color:#fff;background:rgba(255,255,255,.1)}
+  .sorttoast .tbtn:focus-visible{outline:2px solid #C9D6EE;outline-offset:1px}
+  .help-ico.srtico svg{fill:none;stroke:var(--indigo);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  @media (prefers-reduced-motion: reduce){ .sortmenu,.sorttoast.show{animation:none} }
 </style>
 </head>
 <body>
@@ -597,12 +624,17 @@
   </div>
 </div>
 
+<!-- v24.4: sorting -->
+<div class="sortmenu" id="sortMenu" role="dialog" hidden></div>
+<div class="sorttoast" id="sortToast" role="status" aria-live="polite" hidden></div>
+
 <script>
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="24.3";
+  const APP_VERSION="24.4";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"24.4", items:["Sort your lists: the new sort button next to a group's name sorts its lists, and the one next to Student or Master sorts their groups (in a folder without groups, its lists).","Sort by name (1-500 comes before 501-1000), by the date a list was made, or by when you last practised it — either way round.","Sorting happens once, so the arrows still move things by hand afterwards. Changed your mind? Undo appears for a few seconds.","New lists now remember the day they were made. Lists made before this version count as oldest."]},
     {v:"24.3", items:["Revisit: choose how many words a round has, next to “From”. The card now counts only the words you revisited today.","Once you've practised, a line under the dojos shows what you learned and revisited today.","A symbol you hit by accident, like the + in “sensei+”, no longer makes an answer wrong. Letters, accents, apostrophes and hyphens still count.","Other accepted forms now show as “or: …” under the answer.","“Restore backup” is now called “Import backup”.","Help explains what a rival is, has a box for the card shorthand / [ ] ( ) (the ? in the list editor opens it), and its links take you to the right place.","Accent bar: “From my lists” and “My own” have their own row, above the languages."]},
     {v:"24.2", items:["Chinese characters are drawn in Chinese shapes again (the new heading font had drawn them the Japanese way). With \"Chinese (Mandarin, Taiwan)\" chosen, you get Taiwanese shapes \u2014 and a Taiwanese voice.","\"Language you're learning\" now has its own place at the top of each dojo's settings, and new users are asked for it on the welcome screen.","Under the answer box you'll see the previous word with its speaker, until you answer \u2014 tap to hear it. Hide it under Settings \u2192 More options."]},
     {v:"24.1", items:["Help is up to date again: Getting started, Settings, Get words and Saving your progress now cover Revisit, reading aloud, related topics and the storage gauge."]},
@@ -625,6 +657,8 @@
   const SHURI='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="'+SHURI_D+'"/></svg>';
   const BOLT='<svg viewBox="0 0 20 20"><path d="M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z"/></svg>';
   const PENCIL='<svg viewBox="0 0 20 20"><path d="M13.6 3.4a1.9 1.9 0 0 1 2.7 2.7L7 15.4l-3.6.9.9-3.6 9.3-9.3Z"/><path d="M12.2 4.8l3 3"/></svg>';
+  // v24.4: the sort button (an arrow beside A over Z) — paths only, so it adds no text to a heading
+  const SORT_ICON='<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.6v14.6M2.5 14.6 5 17.4l2.5-2.8"/><path d="M12 8.8 14.9 1.8 17.8 8.8M13.1 6.4h3.6"/><path d="M12.2 11.4h5.4l-5.4 6.4h5.4"/></svg>';
   const DEFAULT_ACCENTS="é è ë ï ö ü á à '";
   const ACCENT_PRESETS={ Dutch:"é è ë ï ö ü á à '", German:"ä ö ü ß", French:"à â ç é è ê ë î ï ô û ù œ", Spanish:"á é í ó ú ñ ¿ ¡",
     Italian:"à è é ì ò ù", Portuguese:"á â ã à ç é ê í ó ô õ ú", Polish:"ą ć ę ł ń ó ś ź ż", Czech:"á č ď é ě í ň ó ř š ť ú ů ý ž",
@@ -634,7 +668,7 @@
   // v22: on-brand sample lists for new users — Japanese in Latin letters, English meanings, kanji as hints.
   // They teach the app itself: "/" alternatives, [ ] teal answers, ( ) hints and other word orders.
   function demoWords(){
-    return {id:uid(), name:"Dojo words (sample)", group:"Samples", folder:"learn", demo:true, lang:"ja-JP", completions:[], words:seedWords([
+    return {id:uid(), name:"Dojo words (sample)", group:"Samples", folder:"learn", demo:true, lang:"ja-JP", created:Date.now(), completions:[], words:seedWords([
       ["senpai","senior / mentor (先輩)"],
       ["kōhai / kohai","junior (後輩)"],
       ["sensei [shishō / shisho]","teacher (先生)"],
@@ -645,7 +679,7 @@
       ["ganbatte","do your best (頑張って)"]])};
   }
   function demoSentences(){
-    return {id:uid(), name:"Dojo sentences (sample)", group:"Samples", folder:"learn", kind:"sentence", demo:true, lang:"ja-JP", completions:[], words:seedWords([
+    return {id:uid(), name:"Dojo sentences (sample)", group:"Samples", folder:"learn", kind:"sentence", demo:true, lang:"ja-JP", created:Date.now(), completions:[], words:seedWords([
       ["Watashi wa gakusei desu.","I am a student."],
       ["Senpai wa dōjō ni imasu.","The senpai is in the dojo."],
       ["Mainichi nihongo o benkyō shimasu. / Nihongo o mainichi benkyō shimasu.","I study Japanese every day."],
@@ -881,7 +915,7 @@
 
   // ---- session ----
   let work=[], lastIdx=null, trial=0, cur=null, phase="answer", shownAt=0, firstKey=0, timer=null;
-  function startSession(l){ lastAnswered=null;
+  function startSession(l){ lastAnswered=null; closeSortMenu(); hideSortToast();
     l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w.lapsed=false; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
     work=[]; for(let i=0;i<l.words.length && work.length<SET_SIZE;i++) work.push(i);
     lastIdx=null; trial=0; S.view="study"; S.activeListId=l.id; save();
@@ -926,6 +960,8 @@
   function restoreRevisitHome(){ let any=false; [S.lists, S.sLists||[]].forEach(L=>L.forEach(l=>l.words.forEach(w=>{ if(w._home){ w.mastered=!!w._home.m; w.streak=w._home.s||0; w.misses=w._home.x||0; w.lapsed=!!w._home.l; delete w._home; any=true; } }))); return any; }
   // v24.3: also notes the day a word was mastered: w.rv in a Revisit round, w.md anywhere else (today's tally on the home screen)
   function revisitCredit(l,w){ if(!l || !w.mastered) return; const d=today(); if(l._revisit){ if(!w.days.includes(d)) w.days.push(d); w.rv=d; } else w.md=d; }
+  // v24.4: every answer stamps the time on the list the card belongs to (Sort → Last practised); a Revisit or Rivals card stamps its home list
+  function notePractice(l,w){ const home=(l && !l._virtual) ? l : curLists().find(x=>x.words.includes(w)); if(home) home.practisedAt=Date.now(); }
   function tallyHtml(){ const d=today(); let a=0, r=0; curLists().forEach(l=>l.words.forEach(w=>{ if(w.md===d) a++; if(w.rv===d) r++; }));
     return (a||r) ? `<p class="tally-line" id="tallyLine">Today: <b>${a}</b> learned · <b>${r}</b> revisited</p>` : ""; }
   function revisitCardHtml(noAnim){
@@ -1080,7 +1116,7 @@
   function folderHtml(fk,label,n,withAdd){
     const shut=!!(S.collapsed && S.collapsed[folderKey(fk)]);
     const empty = fk==="learn" ? "No lists here." : "Nothing here yet — lists you master or already know land here.";
-    return `<div class="folder"><h3 class="fhead${shut?' collapsed':''}" data-fk="${fk}" role="button" tabindex="0" aria-expanded="${!shut}"><span class="chev">▾</span>${label} <span class="n">${n}</span></h3>
+    return `<div class="folder"><h3 class="fhead${shut?' collapsed':''}" data-fk="${fk}" role="button" tabindex="0" aria-expanded="${!shut}"><span class="chev">▾</span>${label} <span class="n">${n}</span>${folderSortIcon(fk,label)}</h3>
       <div class="fold${shut?' shut':''}"${shut?' inert':''}><div class="foldin">
         ${withAdd?`<div class="addrow"><button class="btn ghost sm" id="addBtn">+ New list</button><button class="btn ghost sm" id="gwBtn">${isSent()?"Get sentences":"Get words"}</button></div>`:''}
         <div id="${fk}Wrap">${n?"":'<div class="empty">'+empty+'</div>'}</div>
@@ -1098,6 +1134,7 @@
     head.addEventListener("keydown",e=>{ if(e.target!==head) return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
   }
   function renderLibrary(quiet){
+    closeSortMenu(); hideSortToast();   // v24.4: a sort's Undo lasts until the library changes again
     if((S.activeListId!=="__revisit__" || S.view==="library") && restoreRevisitHome()) save();
     const keepY = quiet ? window.scrollY : 0;
     const L=curLists(), sent=isSent();
@@ -1115,6 +1152,7 @@
       ${folderHtml("learned","Master",learned.length,false)}`;
     fillFolder("learnWrap", "learn"); fillFolder("learnedWrap", "learned");
     stage.querySelectorAll(".fhead").forEach(h=>wireFold(h, h.nextElementSibling, folderKey(h.dataset.fk)));
+    stage.querySelectorAll(".fsort").forEach(b=>wireSort(b, ()=>folderScope(b.dataset.sf)));
     document.getElementById("addBtn").onclick=()=>openList(null);
     document.getElementById("gwBtn").onclick=openGetWords;
     wireNotice();
@@ -1158,6 +1196,124 @@
     ["learn","learned"].forEach(f=>{ const ord=GO[f]; const idx=ord.indexOf(g); if(idx>=0){ if(ord.includes(nn)) ord.splice(idx,1); else ord[idx]=nn; } });
     save(); renderLibrary(true);
   }
+
+  // ---- v24.4: sorting. The button next to a group's name sorts its lists; the one next to Student or Master sorts
+  // their groups (a folder without groups: its lists). It rearranges once and is saved like a ▲▼ move, so the arrows
+  // keep working; Undo is offered until the library changes again. ----
+  const SORTS=[
+    {t:"Name", opts:[["az","A → Z"],["za","Z → A"]]},
+    {t:"Date made", opts:[["new","Newest first"],["old","Oldest first"]]},
+    {t:"Last practised", opts:[["stale","Longest ago first"],["fresh","Most recent first"]]}
+  ];
+  const SORT_SAID={az:"name (A → Z)", za:"name (Z → A)", new:"date made (newest first)", old:"date made (oldest first)", stale:"last practised (longest ago first)", fresh:"last practised (most recent first)"};
+  const nameOrder=new Intl.Collator(undefined,{numeric:true, sensitivity:"base"});   // "2" before "10": 1-500, 501-1000, 1001-1500
+  function isFlat(fk){ const gs=groupsInFolder(fk); return gs.length===0 || (gs.length===1 && gs[0]==="Ungrouped"); }
+  function dayStart(k){ return k ? new Date(Math.floor(k/10000), Math.floor(k/100)%100-1, k%100).getTime() : 0; }
+  // the last time you practised any of a list's cards (ms; 0 = never): the time stamped since V24.4, else the latest day
+  // the list was finished or one of its words was mastered (in the list, in Revisit or with your rivals)
+  function listLast(l){
+    let k=0; const up=d=>{ if(d){ const x=dayKey(d); if(x>k) k=x; } };
+    (l.completions||[]).forEach(up); l.words.forEach(w=>{ (w.days||[]).forEach(up); up(w.md); up(w.rv); });
+    return Math.max(+l.practisedAt||0, dayStart(k));
+  }
+  // a stable sort: equal items keep their order; undated lists count as oldest; never-practised ones go last both ways
+  function sortedBy(items, how, nameOf, madeOf, lastOf){
+    const by = how==="az"||how==="za" ? nameOf : how==="new"||how==="old" ? madeOf : lastOf;
+    const cmp = how==="az" ? (a,b)=>nameOrder.compare(a.k,b.k) : how==="za" ? (a,b)=>nameOrder.compare(b.k,a.k)
+      : how==="new" ? (a,b)=>b.k-a.k : how==="old" ? (a,b)=>a.k-b.k
+      : how==="stale" ? (a,b)=>(!a.k-!b.k) || a.k-b.k : (a,b)=>(!a.k-!b.k) || b.k-a.k;
+    return items.map((x,i)=>({x, i, k:by(x)})).sort((a,b)=>cmp(a,b) || a.i-b.i).map(o=>o.x);
+  }
+  function sortLists(fk, g, how){   // fills the same places in the dojo's list array, so nothing else moves
+    const A=curLists(), at=[], ls=[];
+    A.forEach((l,i)=>{ if(l.folder===fk && groupOf(l)===g){ at.push(i); ls.push(l); } });
+    sortedBy(ls, how, l=>String(l.name||"").trim(), l=>+l.created||0, listLast).forEach((l,j)=>{ A[at[j]]=l; });
+  }
+  function sortGroups(fk, how){   // a group is as old as its oldest list and as fresh as its latest practice; Ungrouped stays last
+    const gs=groupsInFolder(fk), ls=g=>listsInFolderGroup(fk,g);
+    const ord=sortedBy(gs.filter(g=>g!=="Ungrouped"), how, g=>g, g=>Math.min(...ls(g).map(l=>+l.created||0)), g=>Math.max(0,...ls(g).map(listLast)));
+    if(gs.includes("Ungrouped")) ord.push("Ungrouped");
+    curGroupOrder()[fk]=ord;
+  }
+  function folderSortIcon(fk,label){
+    const flat=isFlat(fk), n=flat ? curLists().filter(l=>l.folder===fk).length : groupsInFolder(fk).filter(g=>g!=="Ungrouped").length;
+    if(n<2) return "";
+    const what=flat?"lists":"groups";
+    return `<span class="srt fsort" data-ga="sort" data-sf="${fk}" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" title="Sort the ${what} in ${label}" aria-label="Sort the ${what} in ${label}">${SORT_ICON}</span>`;
+  }
+  function folderScope(fk){ const label=fk==="learn"?"Student":"Master"; return isFlat(fk) ? {kind:"lists", fk, g:"Ungrouped", label, flat:true} : {kind:"groups", fk, label}; }
+  function wireSort(el, scopeOf){
+    if(!el) return;
+    el.addEventListener("click",e=>{ e.stopPropagation(); openSortMenu(el, scopeOf(), false); });
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); e.stopPropagation(); openSortMenu(el, scopeOf(), true); } });
+  }
+  const sortMenu=document.getElementById("sortMenu"), sortToast=document.getElementById("sortToast");
+  let sortFor=null, sortUndo=null, sortToastT=null;
+  function openSortMenu(btn, scope, byKey){
+    if(sortFor && sortFor.btn===btn){ closeSortMenu(); return; }   // a second tap closes it
+    closeSortMenu();
+    const groups=scope.kind==="groups";
+    const where=(groups||scope.flat) ? scope.label : "“"+esc(scope.g)+"”";
+    const note=groups ? "Sorts once: ▲ ▼ still move groups by hand. A group goes by its oldest list and its latest practice; Ungrouped stays last."
+                      : "Sorts once: ↑ ↓ still move lists by hand. Lists made before V24.4 count as oldest; lists you never practised go last.";
+    sortMenu.innerHTML=`<div class="st" id="sortTitle">Sort the ${groups?"groups":"lists"} in ${where}</div>`
+      + SORTS.map(r=>`<div class="sl">${r.t}</div><div class="sb">${r.opts.map(([k,t])=>`<button type="button" data-sort="${k}">${t}</button>`).join("")}</div>`).join("")
+      + `<p class="snote">${note}</p>`;
+    sortMenu.setAttribute("aria-labelledby","sortTitle");
+    sortMenu.hidden=false; sortFor={btn, scope};
+    btn.classList.add("on"); btn.setAttribute("aria-expanded","true");
+    sortMenu.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>applySort(scope, b.dataset.sort));
+    placeSortMenu();
+    if(byKey){ const f=sortMenu.querySelector("button"); if(f) f.focus(); }
+  }
+  function placeSortMenu(){   // under the button, right edges lined up, kept on screen; above it if there's no room below
+    if(!sortFor) return;
+    const r=sortFor.btn.getBoundingClientRect(), mw=sortMenu.offsetWidth, mh=sortMenu.offsetHeight, vw=document.documentElement.clientWidth, vh=window.innerHeight;
+    const left=Math.max(8, Math.min(r.right+6-mw, vw-mw-8));
+    let top=r.bottom+6; const fits=top+mh<=vh-8;
+    if(!fits && r.top-6-mh>=8) top=r.top-6-mh;
+    sortMenu.style.left=(left+window.scrollX)+"px"; sortMenu.style.top=(top+window.scrollY)+"px";
+    if(!fits && top===r.bottom+6) sortMenu.scrollIntoView({block:"nearest"});
+  }
+  function closeSortMenu(){
+    if(!sortFor) return;
+    const b=sortFor.btn; sortFor=null;
+    sortMenu.hidden=true; sortMenu.innerHTML="";
+    b.classList.remove("on"); b.setAttribute("aria-expanded","false");
+  }
+  function snapOrder(){ const GO=curGroupOrder(); return {dojo:S.dojo, ids:curLists().map(l=>l.id), go:{learn:GO.learn.slice(), learned:GO.learned.slice()}}; }
+  function restoreOrder(s){
+    if(!s || s.dojo!==S.dojo) return;
+    const pos=new Map(s.ids.map((id,i)=>[id,i])), at=l=>pos.has(l.id)?pos.get(l.id):1e9;
+    curLists().sort((a,b)=>at(a)-at(b));
+    const GO=curGroupOrder(); GO.learn=s.go.learn.slice(); GO.learned=s.go.learned.slice();
+  }
+  function applySort(scope, how){
+    const before=snapOrder();
+    if(scope.kind==="groups") sortGroups(scope.fk, how); else sortLists(scope.fk, scope.g, how);
+    const changed=JSON.stringify(snapOrder())!==JSON.stringify(before);
+    if(changed) save();
+    renderLibrary(true);
+    const what=scope.kind==="groups"?"Groups":"Lists";
+    showSortToast(changed ? `${what} sorted by ${SORT_SAID[how]}.` : `Already in that order: ${SORT_SAID[how]}.`, changed?before:null);
+  }
+  function showSortToast(msg, undo){
+    clearTimeout(sortToastT); sortUndo=undo;
+    sortToast.innerHTML=`<span>${esc(msg)}</span>${undo?'<button type="button" class="tbtn" id="sortUndo">Undo</button>':""}`;
+    sortToast.hidden=false; sortToast.classList.remove("show"); void sortToast.offsetWidth; sortToast.classList.add("show");
+    const u=document.getElementById("sortUndo");
+    if(u) u.onclick=()=>{ const s=sortUndo; if(!s) return; restoreOrder(s); save(); renderLibrary(true); showSortToast("Back to the order you had.", null); };
+    sortToastT=setTimeout(hideSortToast, undo?10000:3000);
+  }
+  function hideSortToast(){
+    clearTimeout(sortToastT); sortToastT=null; sortUndo=null;
+    sortToast.hidden=true; sortToast.classList.remove("show"); sortToast.innerHTML="";
+  }
+  document.addEventListener("pointerdown",e=>{ const t=e.target; if(sortFor && !(t instanceof Element && (sortMenu.contains(t) || t.closest('[data-ga="sort"]')))) closeSortMenu(); }, true);
+  sortMenu.addEventListener("focusout",e=>{ const t=e.relatedTarget; if(sortFor && t && !sortMenu.contains(t) && t!==sortFor.btn) closeSortMenu(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && sortFor){ const b=sortFor.btn; closeSortMenu(); b.focus(); } });
+  let sortVW=window.innerWidth;
+  window.addEventListener("resize",()=>{ if(window.innerWidth!==sortVW){ sortVW=window.innerWidth; closeSortMenu(); } });
   function listCard(l, sibs, idx){
     const c=counts(l), lvl=listRank(l);
     const card=document.createElement("div"); card.className="listcard"; card.dataset.id=l.id;
@@ -1187,7 +1343,7 @@
   function fillFolder(wrapId, fk){
     const wrap=document.getElementById(wrapId); if(!wrap) return;
     const groups=groupsInFolder(fk);
-    if(groups.length===0 || (groups.length===1 && groups[0]==="Ungrouped")){
+    if(isFlat(fk)){
       const lists=curLists().filter(l=>l.folder===fk);
       lists.forEach((l,idx)=>wrap.appendChild(listCard(l, lists, idx)));
       return;
@@ -1198,7 +1354,7 @@
       const sg=document.createElement("div"); sg.className="subgroup";
       sg.innerHTML=`<div class="subhead${collapsed?' collapsed':''}">
           <span class="chev">▾</span><span class="nm" translate="no">${esc(g)}</span><span class="cnt">${lists.length}</span>
-          <span class="subgrip">${g==="Ungrouped"?"":`<span data-ga="ren" title="Rename group" class="ren">✎</span>`}<span data-ga="up" title="Move group up" class="${gi===0?'off':''}">▲</span><span data-ga="down" title="Move group down" class="${gi===groups.length-1?'off':''}">▼</span></span>
+          <span class="subgrip">${lists.length>1?`<span data-ga="sort" class="srt" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" title="Sort this group's lists" aria-label="Sort the lists in ${esc(g)}">${SORT_ICON}</span>`:""}${g==="Ungrouped"?"":`<span data-ga="ren" title="Rename group" class="ren">✎</span>`}<span data-ga="up" title="Move group up" class="${gi===0?'off':''}">▲</span><span data-ga="down" title="Move group down" class="${gi===groups.length-1?'off':''}">▼</span></span>
         </div><div class="fold${collapsed?' shut':''}"${collapsed?' inert':''}><div class="foldin subbody"></div></div>`;
       const head=sg.querySelector('.subhead'), body=sg.querySelector('.subbody');
       head.setAttribute("role","button"); head.tabIndex=0; head.setAttribute("aria-expanded",String(!collapsed));
@@ -1207,6 +1363,7 @@
       up.onclick=(e)=>{ e.stopPropagation(); moveGroup(fk,g,-1); };
       dn.onclick=(e)=>{ e.stopPropagation(); moveGroup(fk,g,1); };
       const rn=head.querySelector('[data-ga="ren"]'); if(rn) rn.onclick=(e)=>{ e.stopPropagation(); renameGroup(g); };
+      wireSort(head.querySelector('[data-ga="sort"]'), ()=>({kind:"lists", fk, g}));
       lists.forEach((l,idx)=>body.appendChild(listCard(l, lists, idx)));
       wrap.appendChild(sg);
     });
@@ -1361,7 +1518,7 @@
       if(S.settings.slipResets) w.streak=0; else w.streak=Math.max(0,w.streak-1);
       w.misses++; w.mastered = w.streak>=targetFor(w);
     }
-    revisitCredit(l,w);
+    revisitCredit(l,w); notePractice(l,w);
     save();
     if(phase!=="guided" && S.settings.typeDutch!==false && speakAuto()) sayWord(w);   // v24: hear the word you just answered
     if(phase!=="guided") lastAnswered=w;   // v24.2: shown under the answer box on the next card
@@ -1538,7 +1695,7 @@
       editing.words=pairs.map((p,i)=>{ const w=out[i]; if(w){ w.nl=p[0]; w.de=p[1]; return w; } return {nl:p[0],de:p[1],everSeen:false,mastered:false,streak:0,misses:0,days:[]}; });
     } else {
       const lg=document.getElementById("listLang").value;
-      curLists().push(Object.assign({id:uid(),name:name,group:group,folder:"learn",completions:[],words:seedWords(pairs)}, isSent()?{kind:"sentence"}:{}, lg?{lang:lg}:{}));
+      curLists().push(Object.assign({id:uid(),name:name,group:group,folder:"learn",created:Date.now(),completions:[],words:seedWords(pairs)}, isSent()?{kind:"sentence"}:{}, lg?{lang:lg}:{}));   // v24.4: created = when it was made (Sort)
     }
     save(); listOverlay.classList.remove("open"); render();
   };
@@ -1719,7 +1876,7 @@
     if(SS.guided){ if(correct){ w.everSeen=true; w.streak=1; if(w.streak>=targetFor(w)) w.mastered=true; } }
     else if(correct){ w.streak++; if(w.streak>=targetFor(w)) w.mastered=true; }
     else { if(S.settings.sSlipResets!==false) w.streak=0; else w.streak=Math.max(0,w.streak-1); w.misses++; w.mastered=w.streak>=targetFor(w); }
-    revisitCredit(l,w);
+    revisitCredit(l,w); notePractice(l,w);
     save(); refreshDots(l); updateMastery(w);
   }
   function sentGo(){
@@ -2064,7 +2221,7 @@
     const made=chunks.map((ch,i)=>{
       const name=(prior||chunks.length>1) ? `${base} · ${prior+i+1}` : base;
       const glc=langCodeFromName(g.learn), exp=speakSet().lang;
-      const l=Object.assign({id:uid(), name, group, folder:"learn", completions:[], words:seedWords(ch)}, sent?{kind:"sentence"}:{}, (glc && !(exp && exp.split("-")[0]===glc.split("-")[0]))?{lang:glc}:{});
+      const l=Object.assign({id:uid(), name, group, folder:"learn", created:Date.now(), completions:[], words:seedWords(ch)}, sent?{kind:"sentence"}:{}, (glc && !(exp && exp.split("-")[0]===glc.split("-")[0]))?{lang:glc}:{});
       curLists().push(l); entry.listIds.push(l.id); return l;
     });
     S.collapsed=(S.collapsed&&typeof S.collapsed==="object")?S.collapsed:{};
@@ -2136,6 +2293,7 @@
       <li>Sentences: other correct word orders (same words) go after <code>/</code>.</li>
       <li><b>Groups</b> keep related lists under one heading — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
+      <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date made</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists made before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`},
     {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>

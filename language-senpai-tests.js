@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (489 at V24.3)
+ * Language Senpai — automated checks (545 at V24.4)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1360,7 +1360,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.3"')), 'version 24.3');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.4"')), 'version 24.4');
     await ctx.close();
   }
   {
@@ -2000,6 +2000,205 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await ctx.close();
   }
 
+  console.log('\n[32] V24.4: sorting lists and groups (name, date made, last practised), Undo, new lists keep their date');
+  const L32 = (name, group, folder, extra = {}) => Object.assign(list(name, [word('w' + name, 'm' + name)]), { group, folder }, extra);
+  const namesIn = (page, g) => page.$$eval('.subgroup', (gs, g) => { const s = gs.find(x => x.querySelector('.nm').textContent === g); return s ? [...s.querySelectorAll('.listcard .name')].map(n => n.textContent) : null; }, g);
+  const groupNames = (page, fk) => page.$$eval(`#${fk}Wrap .subgroup .nm`, e => e.map(x => x.textContent));
+  const sortBtn = g => `.subgroup:has(.nm:text-is("${g}")) [data-ga="sort"]`;
+  const toastTxt = async page => (await page.$eval('#sortToast', t => t.hidden ? '' : [...t.children].map(c => c.textContent).join(' '))).replace(/\s+/g, ' ').trim();
+  const menuOpen = page => page.$eval('#sortMenu', m => !m.hidden);
+  {
+    const st = state([L32('Word List (1001-1500)', 'Frequency', 'learn'), L32('Word List (1-500)', 'Frequency', 'learn'), L32('Emotions 2', 'Psychology', 'learn'), L32('Word List (501-1000)', 'Frequency', 'learn'), L32('Emotions 1', 'Psychology', 'learn'), L32('Loose', '', 'learn'), L32('Old B', 'Basics', 'learned'), L32('Old A', 'Basics', 'learned')]);
+    const { ctx, page } = await freshD(st);
+    ok(!!(await page.$(sortBtn('Frequency'))) && !!(await page.$(sortBtn('Psychology'))) && !!(await page.$(sortBtn('Basics'))) && !(await page.$(sortBtn('Ungrouped'))), 'a sort button next to every group with two or more lists (none for a single list)');
+    ok(!!(await page.$('.fhead[data-fk="learn"] .fsort')) && !(await page.$('.fhead[data-fk="learned"] .fsort')), 'Student (two groups) has one; Master (one group) has none');
+    ok((await page.textContent('.fhead[data-fk="learn"]')) === '▾Student 6' && /^✎▲▼$/.test((await page.textContent('.subgroup:has(.nm:text-is("Frequency")) .subgrip')).trim()), 'the button adds no text to the headings (an icon only)');
+    const before = await getS(page);
+    await page.click(sortBtn('Frequency')); await page.waitForTimeout(150);
+    ok(await menuOpen(page) && (await page.textContent('#sortTitle')) === 'Sort the lists in “Frequency”', 'the menu opens: "Sort the lists in “Frequency”"');
+    const btns = await page.$$eval('#sortMenu [data-sort]', b => b.map(x => x.textContent));
+    ok(JSON.stringify(btns) === JSON.stringify(['A → Z', 'Z → A', 'Newest first', 'Oldest first', 'Longest ago first', 'Most recent first']) && /Name.*Date made.*Last practised/.test(await page.textContent('#sortMenu')), 'three ways to sort, each both ways');
+    ok(!(await page.$eval('.subgroup:has(.nm:text-is("Frequency")) .subhead', h => h.classList.contains('collapsed'))) && JSON.stringify((await getS(page)).collapsed) === JSON.stringify(before.collapsed), 'opening it doesn\'t fold the group');
+    await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1-500)', 'Word List (501-1000)', 'Word List (1001-1500)']), 'A → Z puts numbers in order: 1-500, 501-1000, 1001-1500');
+    ok(!(await menuOpen(page)) && (await toastTxt(page)) === 'Lists sorted by name (A → Z). Undo', 'the menu closes; a note says "Lists sorted by name (A → Z)." with Undo');
+    ok(JSON.stringify(await namesIn(page, 'Psychology')) === JSON.stringify(['Emotions 2', 'Emotions 1']) && JSON.stringify((await getS(page)).lists.filter(l => l.group !== 'Frequency').map(l => l.name)) === JSON.stringify(before.lists.filter(l => l.group !== 'Frequency').map(l => l.name)), 'other groups and lists stay where they were');
+    ok(JSON.stringify((await getS(page)).lists.map(l => l.name)) === JSON.stringify(['Word List (1-500)', 'Word List (501-1000)', 'Emotions 2', 'Word List (1001-1500)', 'Emotions 1', 'Loose', 'Old B', 'Old A']), 'the new order is saved (the lists swap into the same places)');
+    await page.click('#sortUndo'); await page.waitForTimeout(200);
+    ok(JSON.stringify((await getS(page)).lists.map(l => l.name)) === JSON.stringify(before.lists.map(l => l.name)) && JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1001-1500)', 'Word List (1-500)', 'Word List (501-1000)']), 'Undo brings back the order you had, saved');
+    ok((await toastTxt(page)) === 'Back to the order you had.', '…and says "Back to the order you had."');
+    await page.click(sortBtn('Frequency')); await page.click('#sortMenu [data-sort="za"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1001-1500)', 'Word List (501-1000)', 'Word List (1-500)']), 'Z → A');
+    await page.click('.subgroup:has(.nm:text-is("Frequency")) .listcard:has-text("Word List (1-500)") [data-a="up"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1001-1500)', 'Word List (1-500)', 'Word List (501-1000)']), 'after sorting, ↑ still moves a list by hand');
+    ok((await toastTxt(page)) === '', 'moving something by hand ends the Undo');
+    await page.click(sortBtn('Frequency')); await page.click('#sortMenu [data-sort="za"]'); await page.waitForTimeout(150);
+    await page.click(sortBtn('Frequency')); await page.click('#sortMenu [data-sort="za"]'); await page.waitForTimeout(150);
+    ok((await toastTxt(page)) === 'Already in that order: name (Z → A).', 'sorting an already sorted group says so, without Undo');
+    await page.reload(); await page.waitForTimeout(400);
+    ok(JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1001-1500)', 'Word List (501-1000)', 'Word List (1-500)']), 'the sorted order is still there after reloading');
+    // the menu closes: Escape (focus back on the button), a tap outside, a second tap, or another sort button
+    await page.click(sortBtn('Psychology')); await page.waitForTimeout(100);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(80);
+    ok(!(await menuOpen(page)) && await page.evaluate(() => document.activeElement && document.activeElement.dataset.ga === 'sort'), 'Escape closes the menu and puts focus back on the button');
+    await page.click(sortBtn('Psychology')); await page.waitForTimeout(100);
+    await page.mouse.click(30, 300); await page.waitForTimeout(100);
+    ok(!(await menuOpen(page)) && JSON.stringify(await namesIn(page, 'Psychology')) === JSON.stringify(['Emotions 2', 'Emotions 1']) && (await toastTxt(page)) === '', 'a tap outside closes it without sorting');
+    await page.click(sortBtn('Psychology')); await page.waitForTimeout(80); await page.click(sortBtn('Psychology')); await page.waitForTimeout(80);
+    ok(!(await menuOpen(page)), 'a second tap on the button closes it');
+    await page.click(sortBtn('Psychology')); await page.waitForTimeout(80); await page.click('.fhead[data-fk="learn"] .fsort'); await page.waitForTimeout(100);
+    ok(await menuOpen(page) && (await page.textContent('#sortTitle')) === 'Sort the groups in Student' && await page.$$eval('.srt.on', e => e.length) === 1, 'another sort button switches the menu over');
+    ok(!(await page.$eval('.fhead[data-fk="learn"]', h => h.classList.contains('collapsed'))), '…and opening it doesn\'t fold Student');
+    await page.keyboard.press('Escape');
+    await page.focus(sortBtn('Psychology')); await page.keyboard.press('Enter'); await page.waitForTimeout(100);
+    ok(await menuOpen(page) && await page.evaluate(() => document.activeElement && document.activeElement.dataset.sort === 'az'), 'with the keyboard: Enter opens the menu, focus on the first choice');
+    await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'Psychology')) === JSON.stringify(['Emotions 1', 'Emotions 2']), '…and Enter sorts');
+    await page.click('[data-a="study"]'); await page.waitForTimeout(250);
+    ok((await toastTxt(page)) === '', 'starting a session ends the Undo');
+    await ctx.close();
+  }
+  {
+    const t0 = new Date(2026, 0, 10).getTime();
+    const st = state([L32('B made 2nd', 'G', 'learn', { created: t0 + 2e6 }), L32('A undated', 'G', 'learn'), L32('C made 3rd', 'G', 'learn', { created: t0 + 3e6 }), L32('D made 1st', 'G', 'learn', { created: t0 + 1e6 }), L32('E undated', 'G', 'learn')]);
+    const { ctx, page } = await freshD(st);
+    await page.click(sortBtn('G')); await page.waitForTimeout(100);
+    ok(/Lists made before V24\.4 count as oldest; lists you never practised go last\./.test(await page.textContent('#sortMenu .snote')), 'the menu says lists made before V24.4 count as oldest, never-practised ones go last');
+    await page.click('#sortMenu [data-sort="new"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'G')) === JSON.stringify(['C made 3rd', 'B made 2nd', 'D made 1st', 'A undated', 'E undated']), 'Newest first; lists without a date count as oldest (and keep their order)');
+    await page.click(sortBtn('G')); await page.click('#sortMenu [data-sort="old"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'G')) === JSON.stringify(['A undated', 'E undated', 'D made 1st', 'B made 2nd', 'C made 3rd']), 'Oldest first');
+    ok((await toastTxt(page)) === 'Lists sorted by date made (oldest first). Undo', 'the note names the sort: "date made (oldest first)"');
+    await ctx.close();
+  }
+  {
+    const hourAgo = Date.now() - 3600e3;
+    const st = state([L32('Never 1', 'P', 'learn'), Object.assign(list('Fresh', [word('f', 'F')]), { group: 'P', practisedAt: hourAgo }), Object.assign(list('Stale', [word('s', 'S', { days: ['2026-1-5'] })]), { group: 'P' }), L32('Never 2', 'P', 'learn'), Object.assign(list('Mid', [word('m', 'M')]), { group: 'P', completions: ['2026-6-1'] }), Object.assign(list('Revisited', [word('r', 'R', { days: ['2026-2-1'], rv: '2026-8-9' })]), { group: 'P' })]);
+    const { ctx, page } = await freshD(st);
+    await page.click(sortBtn('P')); await page.click('#sortMenu [data-sort="stale"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'P')) === JSON.stringify(['Stale', 'Mid', 'Revisited', 'Fresh', 'Never 1', 'Never 2']), 'Longest ago first: from mastered days, finished days and Revisit; never-practised lists go last');
+    await page.click(sortBtn('P')); await page.click('#sortMenu [data-sort="fresh"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await namesIn(page, 'P')) === JSON.stringify(['Fresh', 'Revisited', 'Mid', 'Stale', 'Never 1', 'Never 2']), 'Most recent first; never-practised lists still go last');
+    await ctx.close();
+  }
+  {
+    const now = Date.now();
+    const st = state([L32('z1', 'Zeta', 'learn', { created: 5000 }), L32('u1', '', 'learn', { created: 9000, practisedAt: now }), L32('a1', 'alpha', 'learn', { created: 1000, practisedAt: now - 600e3 }), L32('b1', 'Beta', 'learn', { created: 3000 }), Object.assign(list('b2', [word('q', 'Q', { days: ['2026-3-3'] })]), { group: 'Beta', created: 8000 })]);
+    st.groupOrder = { learn: ['Zeta', 'Ungrouped', 'alpha', 'Beta'], learned: [] };
+    const { ctx, page } = await freshD(st);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['Zeta', 'Ungrouped', 'alpha', 'Beta']), '(groups start as Zeta, Ungrouped, alpha, Beta)');
+    await page.click('.fhead[data-fk="learn"] .fsort'); await page.waitForTimeout(100);
+    ok(/Ungrouped stays last/.test(await page.textContent('#sortMenu')), 'the groups menu says Ungrouped stays last');
+    await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['alpha', 'Beta', 'Zeta', 'Ungrouped']) && JSON.stringify((await getS(page)).groupOrder.learn) === JSON.stringify(['alpha', 'Beta', 'Zeta', 'Ungrouped']), 'Student\'s button sorts its groups A → Z (capitals don\'t matter), Ungrouped last; saved');
+    ok((await toastTxt(page)) === 'Groups sorted by name (A → Z). Undo', 'the note says "Groups sorted…"');
+    await page.click('.fhead[data-fk="learn"] .fsort'); await page.click('#sortMenu [data-sort="new"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['Zeta', 'Beta', 'alpha', 'Ungrouped']), 'Newest first: a group is as old as its oldest list');
+    await page.click('.fhead[data-fk="learn"] .fsort'); await page.click('#sortMenu [data-sort="fresh"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['alpha', 'Beta', 'Zeta', 'Ungrouped']), 'Most recent first: a group goes by its latest practice; never practised last');
+    await page.click('#sortUndo'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['Zeta', 'Beta', 'alpha', 'Ungrouped']), 'Undo works for groups too');
+    await page.click('.subgroup:has(.nm:text-is("Zeta")) [data-ga="down"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await groupNames(page, 'learn')) === JSON.stringify(['Beta', 'Zeta', 'alpha', 'Ungrouped']), 'after sorting, ▼ still moves a group by hand');
+    await ctx.close();
+  }
+  {
+    const st = state([L32('b10', '', 'learn'), L32('a1', '', 'learn'), L32('b2', '', 'learn'), L32('m1', '', 'learned')]);
+    const { ctx, page } = await freshD(st);
+    ok(!(await page.$('.subgroup')) && !!(await page.$('.fhead[data-fk="learn"] .fsort')) && !(await page.$('.fhead[data-fk="learned"] .fsort')), 'a folder without groups: the button sorts its lists (not shown for a single list)');
+    await page.click('.fhead[data-fk="learn"] .fsort'); await page.waitForTimeout(100);
+    ok((await page.textContent('#sortTitle')) === 'Sort the lists in Student', '"Sort the lists in Student"');
+    await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(200);
+    ok(JSON.stringify(await page.$$eval('#learnWrap .listcard .name', e => e.map(x => x.textContent))) === JSON.stringify(['a1', 'b2', 'b10']), 'its lists sorted A → Z: a1, b2, b10');
+    await ctx.close();
+  }
+  {
+    const ss = sstate([slist('S c', [word('Ik ben thuis.', 'Ich bin zu Hause.')], { group: 'Zinnen' }), slist('S a', [word('Ik ben hier.', 'Ich bin hier.')], { group: 'Zinnen' })]);
+    ss.lists = [L32('W2', 'Woorden', 'learn'), L32('W1', 'Woorden', 'learn')];
+    const { ctx, page } = await freshD(ss);
+    await page.click(sortBtn('Zinnen')); await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(200);
+    const S2 = await getS(page);
+    ok(JSON.stringify(await namesIn(page, 'Zinnen')) === JSON.stringify(['S a', 'S c']) && JSON.stringify(S2.sLists.map(l => l.name)) === JSON.stringify(['S a', 'S c']) && JSON.stringify(S2.lists.map(l => l.name)) === JSON.stringify(['W2', 'W1']), 'the Sentence Dojo sorts its own lists; the Word Dojo\'s stay put');
+    await page.click('[data-dojo="word"]'); await page.waitForTimeout(250);
+    ok((await toastTxt(page)) === '', 'switching dojos ends the Undo');
+    await ctx.close();
+  }
+  {
+    // new lists keep the time they were made; every answer stamps the time on its list (also from Rivals)
+    const st = state([list('Practise me', [word('huis', 'Haus'), word('kaas', 'Käse')]), Object.assign(list('Rival home', [word('boom', 'Baum', { hard: true })]), { group: 'R' })]);
+    const { ctx, page } = await freshD(st);
+    const t1 = Date.now();
+    await page.click('#addBtn'); await page.waitForTimeout(150);
+    await page.fill('#listName', 'Made today'); await page.fill('#listArea', 'fiets = Fahrrad'); await page.click('#listSave'); await page.waitForTimeout(250);
+    let s = await getS(page); const made = s.lists.find(l => l.name === 'Made today');
+    ok(made && typeof made.created === 'number' && made.created >= t1 - 5 && made.created <= Date.now() + 5, '+ New list: the list keeps the time it was made');
+    ok(!s.lists.find(l => l.name === 'Practise me').created, 'older lists get no made-up date');
+    await page.click('#gwBtn'); await page.waitForTimeout(150);
+    await page.fill('#gwPaste', 'de tafel = der Tisch\nde stoel = der Stuhl'); await page.fill('#gwName', 'From Get words'); await page.waitForTimeout(120);
+    await page.click('#gwCreate'); await page.waitForTimeout(300);
+    s = await getS(page);
+    ok(typeof (s.lists.find(l => l.name === 'From Get words') || {}).created === 'number', 'Get words: the new list keeps its date too');
+    await page.click('.listcard:has-text("Practise me") [data-a="study"]'); await page.waitForTimeout(250);
+    const t2 = Date.now();
+    await typeEnter(page, 'xyz'); await page.waitForTimeout(150);
+    s = await getS(page);
+    ok((s.lists.find(l => l.name === 'Practise me').practisedAt || 0) >= t2 - 5, 'one answer (even a wrong one) stamps "last practised" on the list');
+    await page.click('#backBtn'); await page.waitForTimeout(300);
+    await page.click('#hardGo'); await page.waitForTimeout(250);
+    const t3 = Date.now();
+    await typeEnter(page, 'boom'); await page.waitForTimeout(150);
+    s = await getS(page);
+    ok((s.lists.find(l => l.name === 'Rival home').practisedAt || 0) >= t3 - 5, 'a Rivals answer stamps the list the word comes from');
+    await ctx.close();
+  }
+  {
+    const ss = sstate([slist('Zin', [word('Ik ben hier.', 'Ich bin hier.')])]);
+    const { ctx, page } = await freshD(ss);
+    await page.click('[data-a="study"]'); await page.waitForTimeout(350);
+    const t = Date.now();
+    await build(page, ['ik', 'ben', 'hier']); await page.click('#go'); await page.waitForTimeout(200);
+    const s = await getS(page);
+    ok(/^Correct/.test(await fbT(page)) && (s.sLists[0].practisedAt || 0) >= t - 5, 'Sentence Dojo: building a sentence stamps "last practised" too');
+    await ctx.close();
+  }
+  {
+    const ctx = await browser.newContext(); const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+    await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+    await page.click('#wlSkip'); await page.waitForTimeout(150);
+    const s = await getS(page);
+    ok(!!s && typeof s.lists[0].created === 'number' && typeof s.sLists[0].created === 'number', 'a new user\'s sample lists have a date made');
+    await ctx.close();
+  }
+  {
+    const { ctx, page } = await freshD(state([list('H', [word('huis', 'Haus')])]));
+    await page.click('#helpBtnHdr'); await page.waitForTimeout(80);
+    await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(60);
+    const h = await page.textContent('#helpBody');
+    ok(!!(await page.$('#hSort .help-ico.srtico svg')) && /next to a group's name it sorts that group's lists/.test(h) && /next to Student or Master it sorts their groups/.test(h), 'Help → Your lists shows the sort button and what it sorts');
+    ok(/1-500 comes before 501-1000/.test(h) && /date made/.test(h) && /last practised/.test(h) && /either way round/.test(h) && /Undo/.test(h) && /Lists made before V24\.4 count as oldest/.test(h) && /never practised go last/.test(h) && !/lopen|nahe|wassen/.test(h), 'Help explains the three sorts, Undo, undated and never-practised lists');
+    await ctx.close();
+  }
+  {
+    // phone: the menu stays on screen next to Student's button, and a menu low on the page stays reachable
+    const st = state([L32('A', 'G1', 'learn'), L32('B', 'G1', 'learn'), L32('C', 'G2', 'learn'), L32('D', 'G2', 'learn'), L32('E', 'G3', 'learned'), L32('F', 'G3', 'learned'), L32('G', 'G4', 'learned'), L32('H', 'G4', 'learned')]);
+    const { ctx, page } = await freshD(st, { width: 390, height: 844 });
+    await page.click('.fhead[data-fk="learn"] .fsort'); await page.waitForTimeout(120);
+    let r = await page.$eval('#sortMenu', m => { const b = m.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, vw: document.documentElement.clientWidth, vh: innerHeight }; });
+    ok(r.l >= 7 && r.r <= r.vw - 7 && r.t >= 0 && r.b <= r.vh, 'phone: the menu fits on the screen (' + Math.round(r.l) + '–' + Math.round(r.r) + ' of ' + r.vw + ')');
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const lastBtn = sortBtn('G4');
+    await page.evaluate(sel => { const b = document.querySelector(sel); window.scrollBy(0, b.getBoundingClientRect().top - innerHeight + 40); }, '.subgroup:nth-last-child(1) [data-ga="sort"]');
+    await page.click(lastBtn); await page.waitForTimeout(150);
+    r = await page.$eval('#sortMenu', m => { const b = m.getBoundingClientRect(); return { t: b.top, b: b.bottom, vh: innerHeight }; });
+    ok(r.t >= 0 && r.b <= r.vh + 1, 'a menu opened at the bottom of the screen is fully visible');
+    await page.click('#sortMenu [data-sort="za"]'); await page.waitForTimeout(200);
+    r = await page.$eval('#sortToast', t => { const b = t.getBoundingClientRect(); return { l: b.left, r: b.right, vw: document.documentElement.clientWidth, b: b.bottom, vh: innerHeight }; });
+    ok(r.l >= 0 && r.r <= r.vw && r.b <= r.vh, 'phone: the Undo note fits on the screen');
+    await ctx.close();
+  }
+
   // ---------------- screenshots ----------------
   {
     const st = state([list('Shots', [word('dichtbij [nabij] [vlakbij]', 'nahe (bij het station)', { hard: true }), word('huis', 'Haus')])]);
@@ -2064,6 +2263,28 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.screenshot({ path: 'shot_v243_accent.png' });
       await page.click('#setClose'); await page.click('#addBtn'); await page.waitForTimeout(250);
       await page.screenshot({ path: 'shot_v243_editor.png' });
+      await ctx.close();
+    }
+    {
+      const now = Date.now();
+      const L = (name, group, folder, extra = {}) => Object.assign(list(name, [word('w' + name, 'm' + name)]), { group, folder }, extra);
+      const st = state([L('Word List (1001-1500)', 'Frequency', 'learn', { practisedAt: now - 864e5 }), L('Word List (1-500)', 'Frequency', 'learn', { practisedAt: now - 9 * 864e5 }), L('Word List (501-1000)', 'Frequency', 'learn', { practisedAt: now - 3 * 864e5 }), L('Emotions 1', 'Psychology', 'learn'), L('Emotions 2', 'Psychology', 'learn'), L('Travel basics', 'Travel', 'learned'), L('At the station', 'Travel', 'learned')]);
+      ({ ctx, page } = await fresh(browser, st, { width: 900, height: 900 }));
+      await page.waitForTimeout(800);
+      await page.click('.subgroup:has(.nm:text-is("Frequency")) [data-ga="sort"]'); await page.waitForTimeout(300);
+      await page.screenshot({ path: 'shot_v244_menu.png' });
+      await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(400);
+      await page.screenshot({ path: 'shot_v244_toast.png' });
+      await ctx.close();
+      ({ ctx, page } = await fresh(browser, st, { width: 390, height: 844 }));
+      await page.waitForTimeout(800);
+      await page.click('.fhead[data-fk="learn"] .fsort'); await page.waitForTimeout(300);
+      await page.screenshot({ path: 'shot_v244_phone.png' });
+      await ctx.close();
+      ({ ctx, page } = await fresh(browser, st, { width: 900, height: 900 }));
+      await page.click('#helpBtnHdr'); await page.waitForTimeout(100); await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(80);
+      await page.evaluate(() => document.getElementById('hSort').scrollIntoView({ block: 'center' })); await page.waitForTimeout(150);
+      await page.screenshot({ path: 'shot_v244_help.png' });
       await ctx.close();
     }
   }
