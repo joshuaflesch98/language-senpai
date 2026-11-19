@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (584 at V24.5)
+ * Language Senpai — automated checks (619 at V24.6)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1360,7 +1360,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.5"')), 'version 24.5');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="24.6"')), 'version 24.6');
     await ctx.close();
   }
   {
@@ -2000,7 +2000,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await ctx.close();
   }
 
-  console.log('\n[32] V24.4: sorting lists and groups (name, date made, last practised), Undo, new lists keep their date');
+  console.log('\n[32] V24.4: sorting lists and groups (name, date created, last practised), Undo, new lists keep their date');
   const L32 = (name, group, folder, extra = {}) => Object.assign(list(name, [word('w' + name, 'm' + name)]), { group, folder }, extra);
   const namesIn = (page, g) => page.$$eval('.subgroup', (gs, g) => { const s = gs.find(x => x.querySelector('.nm').textContent === g); return s ? [...s.querySelectorAll('.listcard .name')].map(n => n.textContent) : null; }, g);
   const groupNames = (page, fk) => page.$$eval(`#${fk}Wrap .subgroup .nm`, e => e.map(x => x.textContent));
@@ -2017,7 +2017,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await page.click(sortBtn('Frequency')); await page.waitForTimeout(150);
     ok(await menuOpen(page) && (await page.textContent('#sortTitle')) === 'Sort the lists in “Frequency”', 'the menu opens: "Sort the lists in “Frequency”"');
     const btns = await page.$$eval('#sortMenu [data-sort]', b => b.map(x => x.textContent));
-    ok(JSON.stringify(btns) === JSON.stringify(['A → Z', 'Z → A', 'Newest first', 'Oldest first', 'Longest ago first', 'Most recent first']) && /Name.*Date made.*Last practised/.test(await page.textContent('#sortMenu')), 'three ways to sort, each both ways');
+    ok(JSON.stringify(btns) === JSON.stringify(['A → Z', 'Z → A', 'Newest first', 'Oldest first', 'Longest ago first', 'Most recent first']) && /Name.*Date created.*Last practised/.test(await page.textContent('#sortMenu')), 'three ways to sort, each both ways');
     ok(!(await page.$eval('.subgroup:has(.nm:text-is("Frequency")) .subhead', h => h.classList.contains('collapsed'))) && JSON.stringify((await getS(page)).collapsed) === JSON.stringify(before.collapsed), 'opening it doesn\'t fold the group');
     await page.click('#sortMenu [data-sort="az"]'); await page.waitForTimeout(200);
     ok(JSON.stringify(await namesIn(page, 'Frequency')) === JSON.stringify(['Word List (1-500)', 'Word List (501-1000)', 'Word List (1001-1500)']), 'A → Z puts numbers in order: 1-500, 501-1000, 1001-1500');
@@ -2063,12 +2063,12 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const st = state([L32('B made 2nd', 'G', 'learn', { created: t0 + 2e6 }), L32('A undated', 'G', 'learn'), L32('C made 3rd', 'G', 'learn', { created: t0 + 3e6 }), L32('D made 1st', 'G', 'learn', { created: t0 + 1e6 }), L32('E undated', 'G', 'learn')]);
     const { ctx, page } = await freshD(st);
     await page.click(sortBtn('G')); await page.waitForTimeout(100);
-    ok(/Lists made before V24\.4 count as oldest; lists you never practised go last\./.test(await page.textContent('#sortMenu .snote')), 'the menu says lists made before V24.4 count as oldest, never-practised ones go last');
+    ok(/Lists created before V24\.4 count as oldest; lists you never practised go last\./.test(await page.textContent('#sortMenu .snote')), 'the menu says lists created before V24.4 count as oldest, never-practised ones go last');
     await page.click('#sortMenu [data-sort="new"]'); await page.waitForTimeout(200);
     ok(JSON.stringify(await namesIn(page, 'G')) === JSON.stringify(['C made 3rd', 'B made 2nd', 'D made 1st', 'A undated', 'E undated']), 'Newest first; lists without a date count as oldest (and keep their order)');
     await page.click(sortBtn('G')); await page.click('#sortMenu [data-sort="old"]'); await page.waitForTimeout(200);
     ok(JSON.stringify(await namesIn(page, 'G')) === JSON.stringify(['A undated', 'E undated', 'D made 1st', 'B made 2nd', 'C made 3rd']), 'Oldest first');
-    ok((await toastTxt(page)) === 'Lists sorted by date made (oldest first). Undo', 'the note names the sort: "date made (oldest first)"');
+    ok((await toastTxt(page)) === 'Lists sorted by date created (oldest first). Undo', 'the note names the sort: "date created (oldest first)"');
     await ctx.close();
   }
   {
@@ -2167,7 +2167,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
     await page.click('#wlSkip'); await page.waitForTimeout(150);
     const s = await getS(page);
-    ok(!!s && typeof s.lists[0].created === 'number' && typeof s.sLists[0].created === 'number', 'a new user\'s sample lists have a date made');
+    ok(!!s && typeof s.lists[0].created === 'number' && typeof s.sLists[0].created === 'number', 'a new user\'s sample lists have a date created');
     await ctx.close();
   }
   {
@@ -2176,7 +2176,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(60);
     const h = await page.textContent('#helpBody');
     ok(!!(await page.$('#hSort .help-ico.srtico svg')) && /next to a group's name it sorts that group's lists/.test(h) && /next to Student or Master it sorts their groups/.test(h), 'Help → Your lists shows the sort button and what it sorts');
-    ok(/1-500 comes before 501-1000/.test(h) && /date made/.test(h) && /last practised/.test(h) && /either way round/.test(h) && /Undo/.test(h) && /Lists made before V24\.4 count as oldest/.test(h) && /never practised go last/.test(h) && !/lopen|nahe|wassen/.test(h), 'Help explains the three sorts, Undo, undated and never-practised lists');
+    ok(/1-500 comes before 501-1000/.test(h) && /date created/.test(h) && /last practised/.test(h) && /either way round/.test(h) && /Undo/.test(h) && /Lists created before V24\.4 count as oldest/.test(h) && /never practised go last/.test(h) && !/lopen|nahe|wassen/.test(h), 'Help explains the three sorts, Undo, undated and never-practised lists');
     await ctx.close();
   }
   {
@@ -2351,6 +2351,106 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await page.fill('#listName', 'Wide'); await page.fill('#listArea', '你好 ＝ hello\nle gâteau = der Kuchen​'); await page.click('#listSave'); await page.waitForTimeout(250);
     const wl = (await getS(page)).lists.find(l => l.name === 'Wide');
     ok(!!wl && JSON.stringify(wl.words.map(w => w.nl + ' = ' + w.de)) === JSON.stringify(['你好 = hello', 'le gâteau = der Kuchen']), '+ New list: the wide ＝ works, invisible characters go, accents in one form');
+    await ctx.close();
+  }
+
+  console.log('\n[34] V24.6: phones (iPhone and Android sizes): no zoom, the page behind stays put, full-screen windows with ×; "Date created"; ( ) as hint and optional');
+  const { devices: DEV } = require('playwright');
+  async function phone34(kind, st) {
+    const o = Object.assign({}, DEV[kind === 'android' ? 'Pixel 7' : 'iPhone 14']); delete o.defaultBrowserType;
+    const ctx = await browser.newContext(o); const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+    page.on('dialog', d => { lastDialog = d.message(); d.accept(); });
+    await page.goto(FILE); await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, st]); await page.reload(); await page.waitForTimeout(350);
+    return { ctx, page };
+  }
+  const smallFields = page => page.evaluate(() => [...document.querySelectorAll('input,select,textarea')].filter(e => !['file', 'checkbox', 'hidden'].includes(e.type) && parseFloat(getComputedStyle(e).fontSize) < 16).map(e => (e.id || e.className) + ' ' + getComputedStyle(e).fontSize));
+  const box = (page, sel) => page.$eval(sel, e => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height, vw: innerWidth, vh: innerHeight }; });
+  const locked = page => page.evaluate(() => document.documentElement.classList.contains('modal-open') && getComputedStyle(document.documentElement).overflow === 'hidden');
+  for (const kind of ['iphone', 'android']) {
+    const tag = kind === 'iphone' ? 'iPhone size' : 'Android (Pixel 7)';
+    const st = state([Object.assign(list('Frequency 1', [word('huis', 'Haus'), word('kaas', 'Käse')]), { group: 'Frequency' }), Object.assign(list('Frequency 2', [word('boom', 'Baum')]), { group: 'Frequency' }), Object.assign(list('Done', [word('zon', 'Sonne', { days: ['2026-1-2'] })]), { folder: 'learned' })]);
+    const { ctx, page } = await phone34(kind, st);
+    await page.click('#rvPick'); await page.waitForTimeout(150);
+    let small = await smallFields(page);
+    ok(small.length === 0, tag + ': no text box or menu under 16 px, so iPhone Safari never zooms in' + (small.length ? ' — ' + small.join(', ') : ''));
+    await page.evaluate(() => window.scrollTo(0, 220)); await page.waitForTimeout(100);
+    const y0 = await page.evaluate(() => window.scrollY);
+    await page.evaluate(() => document.getElementById('addBtn').click()); await page.waitForTimeout(250);
+    ok(Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 2, tag + ': opening a window keeps the library where it was');
+    let m = await box(page, '#listOverlay .modal');
+    ok(Math.abs(m.l) < 1 && Math.abs(m.t) < 1 && Math.abs(m.w - m.vw) < 1 && Math.abs(m.h - m.vh) < 1, tag + ': + New list fills the screen');
+    ok(await locked(page), tag + ': the page behind it is locked');
+    let x = await box(page, '#listOverlay .xclose');
+    ok(x.r > x.vw - 20 && x.t < 40 && x.w >= 32, tag + ': a × sits in the top-right corner');
+    await page.evaluate(() => { const md = document.querySelector('#listOverlay .modal'); md.scrollTop = md.scrollHeight; }); await page.waitForTimeout(150);
+    const x2 = await box(page, '#listOverlay .xclose'), sv = await box(page, '#listSave');
+    ok(Math.abs(x2.t - x.t) < 2 && sv.b <= sv.vh, tag + ': scrolled to the bottom, the × is still there and Save is reachable');
+    await page.fill('#listName', 'Never saved'); await page.fill('#listArea', 'zee = Meer');
+    await page.tap('#listOverlay .xclose'); await page.waitForTimeout(200);
+    ok(!(await page.$eval('#listOverlay', o => o.classList.contains('open'))) && !(await getS(page)).lists.some(l => l.name === 'Never saved'), tag + ': tapping × closes it like Cancel (nothing saved)');
+    ok(!(await page.evaluate(() => document.documentElement.classList.contains('modal-open'))) && Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 2, tag + ': the page is unlocked again, at the same spot');
+    await page.evaluate(() => document.getElementById('setBtnHdr').click()); await page.waitForTimeout(250);
+    await page.mouse.move(150, 400); for (let i = 0; i < 8; i++) { await page.mouse.wheel(0, 400); await page.waitForTimeout(100); }
+    const sc = await page.$eval('#setOverlay .modal', md => [Math.round(md.scrollTop), md.scrollHeight - md.clientHeight]);
+    ok(sc[0] > 0 && Math.abs(sc[0] - sc[1]) < 2 && Math.abs((await page.evaluate(() => window.scrollY)) - y0) < 2, tag + ': scrolling past the end of a window doesn\'t move the page behind it');
+    await page.tap('#setOverlay .xclose'); await page.waitForTimeout(150);
+    // every window: × closes it
+    const closes = [];
+    await page.click('#gwBtn'); await page.waitForTimeout(150); await page.tap('#gwOverlay .xclose'); await page.waitForTimeout(150); closes.push(await page.$eval('#gwOverlay', o => !o.classList.contains('open')));
+    await page.click('#setBtnHdr'); await page.waitForTimeout(150); await page.tap('#setOverlay .xclose'); await page.waitForTimeout(150); closes.push(await page.$eval('#setOverlay', o => !o.classList.contains('open')));
+    await page.click('#helpBtnHdr'); await page.waitForTimeout(150); await page.tap('#helpOverlay .xclose'); await page.waitForTimeout(150); closes.push(await page.$eval('#helpOverlay', o => !o.classList.contains('open')));
+    await page.click('#setBtnHdr'); await page.waitForTimeout(150); await page.click('#wnBtn'); await page.waitForTimeout(150); await page.tap('#wnOverlay .xclose'); await page.waitForTimeout(150);
+    closes.push(await page.$eval('#wnOverlay', o => !o.classList.contains('open')) && await page.$eval('#setOverlay', o => o.classList.contains('open')));
+    await page.tap('#setOverlay .xclose'); await page.waitForTimeout(150);
+    ok(closes.every(Boolean), tag + ': × closes Get words, Settings, Help and What\'s new (What\'s new back to Settings)');
+    await page.click('#addBtn'); await page.waitForTimeout(150); await page.click('#listOverlay .qmark'); await page.waitForTimeout(200);
+    await page.tap('#helpOverlay .xclose'); await page.waitForTimeout(150);
+    ok(await page.$eval('#listOverlay', o => o.classList.contains('open')) && await locked(page), tag + ': Help opened from the list editor\'s "?" closes back to the editor');
+    await page.tap('#listOverlay .xclose'); await page.waitForTimeout(150);
+    // a study card with touch: answer, then the pencil's window and its ×
+    await page.tap('.listcard:has-text("Frequency 1") [data-a="study"]'); await page.waitForTimeout(350);
+    const map = { 'Haus': 'huis', 'Käse': 'kaas' };
+    await page.fill('#ans', map[await term(page)]); await page.tap('#go'); await page.waitForTimeout(250);
+    ok(/Correct/.test(await fb(page)), tag + ': a study card answered with taps');
+    await page.waitForTimeout(800);
+    await page.tap('#editBtn'); await page.waitForTimeout(200);
+    m = await box(page, '#cardOverlay .modal');
+    await page.tap('#cardOverlay .xclose'); await page.waitForTimeout(150);
+    ok(Math.abs(m.w - m.vw) < 1 && !(await page.$eval('#cardOverlay', o => o.classList.contains('open'))) && !!(await page.$('#ans')), tag + ': the card editor fills the screen too, and × takes you back to the card');
+    if (kind === 'iphone') { await page.click('#backBtn'); await page.waitForTimeout(300); await page.click('#addBtn'); await page.waitForTimeout(300); await page.screenshot({ path: 'shot_v246_phone_editor.png' }); }
+    await ctx.close();
+  }
+  {
+    // the computer: windows look as before (plus ×), fields keep their sizes, the page isn't locked
+    const { ctx, page } = await freshD(state([list('Desk', [word('huis', 'Haus')])]));
+    await page.click('#addBtn'); await page.waitForTimeout(200);
+    const m = await box(page, '#listOverlay .modal'), x = await box(page, '#listOverlay .xclose'), q = await box(page, '#listOverlay .qmark'), t = await box(page, '#listTitle');
+    ok(Math.round(m.w) === 520 && m.t > 10 && x.r <= m.r && x.r > m.r - 20 && x.t < m.t + 30, 'computer: the list editor stays a 520 px window, with the × in its corner');
+    ok(q.l - t.r >= 0 && q.l - t.r <= 16, 'the "?" now sits right after the title (the corner is the ×\'s)');
+    ok(await page.$eval('#listArea', e => getComputedStyle(e).fontSize) === '13.5px' && !(await page.evaluate(() => getComputedStyle(document.documentElement).overflow === 'hidden')), 'computer: the list box keeps its size and the page isn\'t locked');
+    // ( ) explained as two jobs
+    const lh = (await page.textContent('#listHelp')).replace(/\s+/g, ' ');
+    ok(/\( \) on the side you're asked — a hint, shown under the question: karai = hot \(spicy\) asks “hot” with the hint “spicy”/.test(lh) && /\( \) on the side you type — optional, accepted but never needed: arigatō \(gozaimasu\) = thank you/.test(lh) && !/never required/.test(lh), 'list editor: ( ) on the side you\'re asked = a hint (karai = hot (spicy)), on the side you type = optional, each with its example');
+    await page.click('#listOverlay .qmark'); await page.waitForTimeout(200);
+    const bx = await page.$eval('#hShorthand', e => ({ title: e.querySelector('h5').textContent, dts: [...e.querySelectorAll('dt')].map(d => d.textContent.replace(/\s+/g, ' ').trim()), txt: e.textContent }));
+    ok(bx.title === 'Card shorthand' && bx.dts.length === 4 && /a hint, on the side you're asked/.test(bx.dts[2]) && /optional, on the side you type/.test(bx.dts[3]) && /karai = hot \(spicy\): you're asked “hot” with the hint “spicy”/.test(bx.txt), 'Help\'s box: four entries — the hint has its own line and example ("Card shorthand" kept)');
+    await page.click('#helpOverlay .xclose'); await page.waitForTimeout(150);
+    ok(await page.$eval('#listOverlay', o => o.classList.contains('open')), 'computer: × on Help returns to the list editor');
+    await page.click('#listOverlay .xclose'); await page.waitForTimeout(150);
+    await page.click('[data-a="study"]'); await page.waitForTimeout(300);
+    await page.click('#editBtn'); await page.waitForTimeout(150);
+    ok(/\( \) a hint on the side you're asked, optional on the side you type/.test((await page.textContent('#cardHelp')).replace(/\s+/g, ' ')), 'the card editor\'s line says the same');
+    await page.click('#cardOverlay .xclose'); await page.waitForTimeout(150);
+    await ctx.close();
+  }
+  {
+    // the example in Help works as described: asked "hot", hint "spicy", answer karai
+    const { ctx, page } = await freshD(state([list('Hint', [word('karai', 'hot (spicy)')])]));
+    await page.click('[data-a="study"]'); await page.waitForTimeout(300);
+    ok(await term(page) === 'hot' && /Hint:\s*spicy/.test(await page.textContent('.prompt-hint')), 'Help\'s example is true: "karai = hot (spicy)" asks "hot" with the hint "spicy"');
+    await typeEnter(page, 'karai');
+    ok(/Correct/.test(await fb(page)), '…and "karai" is the answer');
     await ctx.close();
   }
 
