@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (721 at V25)
+ * Language Senpai — automated checks (720 at V25.1)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25"')), 'version 25');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.1"')), 'version 25.1');
     await ctx.close();
   }
   {
@@ -2472,7 +2472,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const ready = page => page.waitForFunction(() => !document.getElementById('gFrame') || !!document.querySelector('#gPills[data-ready]'), null, { timeout: 6000 });
     async function pill(page, i) { await page.waitForSelector('#gPills[data-ready]', { timeout: 6000 }); await page.click(`#gPills .pill[data-i="${i}"]`, { force: true }); }
     const fbG = async page => ((await page.textContent('#gFb')) || '').replace(/\s+/g, ' ').trim();
-    async function startRound(page) { await page.click('#gdGo'); await page.waitForTimeout(30); await ready(page); }
+    async function startRound(page, slot = 'art') { await page.click(`#gdCard [data-go="${slot}"]`); await page.waitForTimeout(30); await ready(page); }
     async function playAll(page, arts, set, wrong = () => false) {   // answers every card; returns what was shown
       const seen = []; let guard = 0;
       while (await page.$('#gFrame') && guard++ < 120) {
@@ -2534,7 +2534,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('[data-dojo="gram"]'); await page.waitForTimeout(250);
       ok(/Which articles does Spanish \(Spain\) have\?/.test(await page.textContent('#gdCard')) && !!(await page.$('#gdSetup')), 'the card asks which articles Spanish has');
       await page.click('#gdSetup'); await page.waitForTimeout(250);
-      ok(await page.$eval('#setGramPane', e => !e.hidden) && await page.evaluate(() => document.activeElement && document.activeElement.id === 'gArts') && await page.$eval('#gSlotsBox', e => e.hidden), '"Set the articles" opens Settings → Grammar Dojo with the field ready (no Dutch gaps there)');
+      ok(await page.$eval('#setGramPane', e => !e.hidden) && await page.evaluate(() => document.activeElement && document.activeElement.id === 'gArts'), '"Set the articles" opens Settings → Grammar Dojo with the field ready');
       await page.fill('#gArts', 'el la'); await page.waitForTimeout(100);
       await page.click('#setClose'); await page.waitForTimeout(300);
       ok(/3 nouns/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')) && /el · la/.test(await page.textContent('#gdCard .gd-sub')), 'typed "el la": three nouns found, buttons el · la');
@@ -2568,46 +2568,53 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok(S2.lists[0].words.find(w => w.nl === 'het blik / de blik').gr === undefined && S2.lists[0].words.find(w => w.nl === 'huis').gr === undefined, 'cards that aren\'t asked get nothing');
       await ctx.close();
     }
-    // --- rounds: blocks by gap, misses first, right and fast waits until tomorrow
+    // --- rounds: you pick the gap on the card; misses first; right and fast waits until tomorrow; the labelled grid
     {
       const ARTS = { appel: 'de', huis: 'het', tafel: 'de' };
-      const st = state([list('B', [word('de appel', 'der Apfel', { days: ['2026-9-1'] }), word('het huis', 'das Haus', { days: ['2026-9-1'] }), word('de tafel', 'der Tisch', { days: ['2026-9-1'] })])], NL);
-      const { ctx, page } = await freshD(st); st.dojo = 'gram';
-      await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, st]); await page.reload(); await page.waitForTimeout(300);
-      await page.click('#gdGo'); await page.waitForTimeout(40);
+      const st = state([list('B', [word('de appel', 'der Apfel', { days: ['2026-9-1'] }), word('het huis', 'das Haus', { days: ['2026-9-1'] }), word('de tafel', 'der Tisch', { days: ['2026-9-1'] })])], NL); st.dojo = 'gram';
+      const { ctx, page } = await freshD(st);
+      ok((await page.$$eval('#gdCard button.gd-row', e => e.map(x => x.dataset.go))).join() === 'art,dem,rel' && !(await page.$('#gdGo')), 'each row on the card starts its own round: Article, This / that, Relative (no mixed rounds)');
+      await page.click('#gdCard [data-go="art"]'); await page.waitForTimeout(40);
       const anim = await page.evaluate(() => document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#gPills')).length);
       const early = await page.$('#gPills[data-ready]');
       await page.click('#gPills .pill[data-i="0"]', { force: true }); await page.waitForTimeout(60);
       ok(anim >= 2 && !early && (await fbG(page)) === '', 'the buttons pop out of the middle at the start; taps wait until they\'re in place');
       await ready(page);
-      let seen = await playAll(page, ARTS, undefined, it => it.f === 'huis');
-      ok(seen.length === 3 && seen.every(s => s.slot === 'Article'), 'round 1: the three nouns, article gap');
+      const seen = await playAll(page, ARTS, undefined, it => it.f === 'huis');
+      ok(seen.length === 3 && seen.every(s => s.slot === 'Article' && s.n === 2), 'an Article round: article gaps only, the same two buttons all round');
       ok(/3 nouns done/.test(await page.textContent('.screen h2')) && /2 right · 2 of them fast/.test(await page.textContent('#gdSum')), 'end: "2 right · 2 of them fast"');
       ok(/Coming back first next round/.test(await page.textContent('#gMiss')) && (await page.$$eval('.gchip', e => e.map(x => x.textContent))).join() === 'het huis', 'the miss is listed: "het huis", coming back first');
       await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
-      const r2 = [];
-      while (await page.$('#gFrame')) { const it = await gItem(page); r2.push(it); await pill(page, rightIdx(it, ARTS)); await page.waitForTimeout(30); await ready(page); }
-      ok(r2.length === 3 && r2[0].slot === 'Article' && r2[0].f === 'huis' && r2.slice(1).every(s => s.slot === 'This / that' && s.n === 4), 'round 2: the miss first (huis, article), then this/that for the others, in a block with four buttons');
-      ok(!r2.some(s => s.slot === 'Article' && s.f !== 'huis'), 'right and fast today waits until tomorrow (no article gap for appel or tafel)');
-      await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
-      const it3 = await gItem(page);
-      ok(it3.slot === 'This / that' && /^huis (hier|daar)$/.test(it3.f), 'round 3: huis gets its this/that gap');
-      const box = await page.$$eval('#gPills .pill', e => e.map(x => { const r = x.getBoundingClientRect(); return { t: x.textContent.replace(/\d/g, ''), x: Math.round(r.left), y: Math.round(r.top) }; }));
-      ok(box.map(b => b.t).join() === 'deze,dit,die,dat' && box[0].x < box[1].x && box[0].y === box[1].y && box[2].y > box[0].y && box[2].x === box[0].x && box[3].x === box[1].x, 'four buttons in two rows: deze dit (here) over die dat (there), de-forms on the left');
-      await page.waitForSelector('#gPills[data-ready]'); await page.keyboard.press(String(rightIdx(it3, ARTS) + 1)); await page.waitForTimeout(80);
-      ok(/Fast/.test(await fbG(page)) && /^(dit huis hier|dat huis daar)$/.test((await page.textContent('#gFrame')).trim()), 'keys 1–4 answer; the gap fills: "dit huis hier" / "dat huis daar"');
-      await ready(page);
+      const r2 = await playAll(page, ARTS);
+      ok(r2.length === 1 && r2[0].f === 'huis' && r2[0].slot === 'Article', 'Keep going: the same gap again — the miss (huis); right and fast today waits until tomorrow');
+      ok(/That's everything you picked, for today/.test(await page.textContent('.screen')) && !(await page.$('#gdMore')), 'when the gap is done for today: "That\'s everything you picked, for today", no Keep going');
+      await page.click('#gdLib'); await page.waitForTimeout(250);
+      ok(!(await page.$('#gdCard button[data-go="art"]')) && /All caught up for today/.test(await page.textContent('#gdCard .gd-row[data-slot="art"]')) && !!(await page.$('#gdCard button[data-go="dem"]')), 'the Article row says "All caught up for today"; the other rows still start rounds');
+      await startRound(page, 'dem');
+      const g = await page.evaluate(() => { const R = e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2), right: Math.round(r.right), b: Math.round(r.bottom) }; };
+        return { p: [...document.querySelectorAll('#gPills .pill')].map(e => Object.assign(R(e), { t: e.textContent.replace(/\d/g, '') })), h: [...document.querySelectorAll('#gPills .pl-h')].map(e => Object.assign(R(e), { t: e.textContent })), r: [...document.querySelectorAll('#gPills .pl-r')].map(e => Object.assign(R(e), { t: e.textContent })) }; });
+      const P = g.p;
+      ok(P.map(b => b.t).join() === 'deze,dit,die,dat' && P[0].x < P[1].x && P[0].y === P[1].y && P[2].y > P[0].y && P[2].x === P[0].x && P[3].x === P[1].x, 'four buttons in two rows: deze dit (here) over die dat (there), de-forms on the left');
+      ok(g.h.map(x => x.t).join() === 'de,het' && g.r.map(x => x.t).join() === 'hier,daar' && Math.abs(g.h[0].cx - P[0].cx) <= 3 && Math.abs(g.h[1].cx - P[1].cx) <= 3 && g.h[0].b <= P[0].y && g.r[0].right <= P[0].x && Math.abs(g.r[0].cy - P[0].cy) <= 3 && Math.abs(g.r[1].cy - P[2].cy) <= 3, 'labelled: de and het above the columns, hier and daar beside the rows');
+      const DEM = { de: ['deze', 'die'], het: ['dit', 'dat'] }; let good = 0, n = 0;
+      while (await page.$('#gFrame')) {
+        await page.waitForSelector('#gPills[data-ready]'); const it = await gItem(page);
+        await page.keyboard.press(String(rightIdx(it, ARTS) + 1)); await page.waitForTimeout(80);
+        const m = it.f.match(/^(.*) (hier|daar)$/), want = DEM[ARTS[m[1]]][m[2] === 'hier' ? 0 : 1] + ' ' + m[1] + ' ' + m[2];
+        if ((await page.textContent('#gFrame')).trim() === want && (await fbG(page)) === 'Fast' && it.slot === 'This / that' && it.n === 4) good++;
+        n++; await ready(page);
+      }
+      ok(n === 3 && good === 3, 'a This / that round: this/that only, keys 1–4 answer, the gap fills ("dit huis hier", "die appel daar")');
+      await page.click('#gdLib'); await page.waitForTimeout(250);
+      await startRound(page, 'rel');
       const it3b = await gItem(page);
-      ok(it3b.slot === 'Relative' && /^mijn (appel|tafel), (je al kent|ik je liet zien|je gisteren zag)$/.test(it3b.f) && it3b.n === 2 && (await page.$$eval('#gPills .pill', e => e.map(x => x.textContent.replace(/\d/g, '')))).join() === 'die,dat', 'relative gap: "mijn appel, __ je al kent" — the article hidden — with die | dat');
+      ok(it3b.slot === 'Relative' && /^mijn (appel|huis|tafel), (je al kent|ik je liet zien|je gisteren zag)$/.test(it3b.f) && it3b.n === 2 && (await page.$$eval('#gPills .pill', e => e.map(x => x.textContent.replace(/\d/g, '')))).join() === 'die,dat' && (await page.$$eval('#gPills .pl-h', e => e.map(x => x.textContent))).join() === 'de,het', 'relative: "mijn appel, __ je al kent" — the article hidden — with die | dat under de | het');
       await page.keyboard.press(rightIdx(it3b, ARTS) === 0 ? 'ArrowLeft' : 'ArrowRight'); await page.waitForTimeout(80);
-      ok(/Fast/.test(await fbG(page)) && /, die /.test(await page.textContent('#gFrame')), '← / → answer two buttons: "mijn appel, die je al kent"');
+      ok(/Fast/.test(await fbG(page)) && new RegExp(', ' + (ARTS[it3b.f.match(/^mijn (.*?),/)[1]] === 'de' ? 'die' : 'dat') + ' ').test(await page.textContent('#gFrame')), '← / → answer two buttons ("mijn appel, die je al kent")');
       await ready(page);
       while (await page.$('#gFrame')) { const it = await gItem(page); await pill(page, rightIdx(it, ARTS)); await page.waitForTimeout(30); await ready(page); }
-      await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
-      while (await page.$('#gFrame')) { const it = await gItem(page); await pill(page, rightIdx(it, ARTS)); await page.waitForTimeout(30); await ready(page); }
-      ok(/That's everything you picked, for today/.test(await page.textContent('.screen')) && !(await page.$('#gdMore')), 'when every gap is done for today: "That\'s everything you picked, for today", no Keep going');
       await page.click('#gdLib'); await page.waitForTimeout(300);
-      ok(/All caught up for today/.test(await page.textContent('#gdCard')) && !(await page.$('#gdGo')), 'the card: "All caught up for today"');
+      ok((await page.$$('#gdCard button.gd-row')).length === 0 && (await page.$$('#gdCard .gd-row.done')).length === 3, 'all three gaps done for today: every row says so');
       ok(/Today: 10 answered · 0 now automatic/.test(await page.textContent('#tallyLine')), 'today\'s line under the tiles: "Today: 10 answered · 0 now automatic"');
       await ctx.close();
     }
@@ -2617,7 +2624,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const st = state([list('C', [word('de appel', 'der Apfel', { gr: { art: (td - 1) + 'f20' } }), word('het huis', 'das Haus'), word('de tafel', 'der Tisch'), word('het boek', 'das Buch', { gr: { art: (td - 3) + 'f31' } })])], Object.assign({ gram: { slots: { art: true, dem: false, rel: false } } }, NL));
       st.dojo = 'gram';
       const { ctx, page } = await freshD(st);
-      ok(/1 of 4 automatic/.test(await page.textContent('#gdCard .gd-row')) && (await page.$$('#gdCard .gd-row')).length === 1, 'only the article gap switched on: one bar, "1 of 4 automatic" (het boek)');
+      ok(/1 of 4 automatic/.test(await page.textContent('#gdCard .gd-row[data-slot="art"]')), 'the Article row: "1 of 4 automatic" (het boek)');
       await startRound(page);
       await playAll(page, { appel: 'de', huis: 'het', tafel: 'de', boek: 'het' }, undefined, it => it.f === 'huis' || it.f === 'tafel' || it.f === 'boek');
       ok(/1 newly automatic/.test(await page.textContent('#gdSum')), 'appel right and fast on a third day: "1 newly automatic"');
@@ -2661,13 +2668,14 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     {
       const st = state([list('Ph', [word('het risico lopen', 'Gefahr laufen', { days: ['2026-9-1'] }), word('de appel', 'der Apfel', { days: ['2026-9-1'] })])], NL); st.dojo = 'gram';
       const { ctx, page } = await freshD(st);
-      const totals = await page.$$eval('#gdCard .gd-row .gd-rl span:last-child', e => e.map(x => x.textContent));
+      const totals = await page.$$eval('#gdCard .gd-row .gd-rl > span:last-child', e => e.map(x => x.textContent));
       ok(totals.join('|') === '0 of 2 automatic|0 of 1 automatic|0 of 1 automatic', 'the bars count a phrase for the article only (2 · 1 · 1)');
       await startRound(page);
       const r1 = await playAll(page, { 'risico lopen': 'het', appel: 'de' });
-      await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
+      await page.click('#gdLib'); await page.waitForTimeout(250);
+      await startRound(page, 'dem');
       const r2 = await playAll(page, { 'risico lopen': 'het', appel: 'de' });
-      ok(r1.length === 2 && r1.every(x => x.slot === 'Article') && r2.length === 1 && r2[0].f.startsWith('appel') && r2[0].slot === 'This / that', 'round 1: both, article gap; round 2: only appel (this/that) — no "__ risico lopen hier"');
+      ok(r1.length === 2 && r1.every(x => x.slot === 'Article') && r2.length === 1 && r2[0].f.startsWith('appel') && r2[0].slot === 'This / that', 'Article: both; This / that: only appel — no "__ risico lopen hier"');
       await ctx.close();
     }
     // --- a miss on the card
@@ -2758,13 +2766,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok((await gItem(page)).f === 'therapie' && (await gItem(page)).count === '1 / 1', 'a round takes only that group');
       await page.click('#backBtn'); await page.waitForTimeout(250);
       await page.click('#setBtnHdr'); await page.waitForTimeout(200);
-      ok(await page.$eval('#gSlotsBox', e => !e.hidden) && (await page.$$eval('#gSlotsBox .toggle.on', e => e.length)) === 3 && await page.$eval('#gLangSel', e => e.value) === 'nl-NL' && await page.$eval('#gArtsBox', e => e.hidden), 'Settings → Grammar Dojo: the language (shared with the Word Dojo) and three gaps, all on');
-      await page.click('#gDemToggle'); await page.click('#gArtToggle'); await page.waitForTimeout(80);
-      await page.click('#gRelToggle'); await page.waitForTimeout(80);
-      ok(/Keep at least one/.test(await page.textContent('#gSlotNote')) && await page.$eval('#gRelToggle', e => e.classList.contains('on')), 'the last gap can\'t be switched off ("Keep at least one.")');
-      await page.click('#setClose'); await page.waitForTimeout(250);
-      ok((await page.$$eval('#gdCard .gd-row', e => e.map(x => x.dataset.slot))).join() === 'rel' && await page.textContent('#gdCard .gd-sub') === 'die · dat', 'only the relative gap: one bar, die · dat');
-      await page.click('#setBtnHdr'); await page.waitForTimeout(150);
+      ok(await page.$eval('#gLangSel', e => e.value) === 'nl-NL' && await page.$eval('#gArtsBox', e => e.hidden) && !(await page.$('#gArtToggle')), 'Settings → Grammar Dojo: the language (shared with the Word Dojo); no gap switches — you pick the gap on the card');
       await page.selectOption('#gLangSel', 'zh-TW'); await page.waitForTimeout(150);
       ok(await page.$eval('#gNoArts', e => !e.hidden) && (await getS(page)).settings.speak.word.lang === 'zh-TW', 'choosing Chinese there sets the Word Dojo\'s language and says the Grammar Dojo has nothing to drill');
       await page.click('#setClose'); await page.waitForTimeout(250);
@@ -2778,7 +2780,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       page.on('pageerror', e => errors.push('pageerror: ' + e.message));
       await page.goto(FILE); await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, st]); await page.reload(); await page.waitForTimeout(300);
       ok(await page.textContent('#gdCard .gd-sub') === 'der · die · das' && (await page.$$('#gdCard .gd-row')).length === 1, 'German: der · die · das, the article gap');
-      await page.click('#gdGo'); await page.waitForTimeout(60);
+      await page.click('#gdCard [data-go="art"]'); await page.waitForTimeout(60);
       ok(await page.evaluate(() => document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#gPills')).length) === 0, '"Reduce motion": the buttons don\'t fly in');
       const b = await page.$$eval('#gPills .pill', e => e.map(x => { const r = x.getBoundingClientRect(); return { t: x.textContent.replace(/\d/g, ''), cx: Math.round(r.left + r.width / 2), y: Math.round(r.top) }; }));
       ok(b.map(x => x.t).join() === 'der,die,das' && b[0].y < b[1].y && b[1].y === b[2].y && Math.abs(b[0].cx - (b[1].cx + b[2].cx) / 2) <= 2, 'three buttons as a triangle: der on top, die · das below');
@@ -2792,7 +2794,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const st2 = state([list('V', [word('het verzoek', 'Anfrage', { gr: { art: (td - 1) + 'f20' } })])], NL); st2.dojo = 'gram';
       const r = await freshD(st2);
       ok(/0 of 1 automatic/.test(await r.page.textContent('#gdCard .gd-row')), 'progress made for "de verzoek" doesn\'t count once the card says "het verzoek"');
-      await r.page.click('#gdGo'); await r.page.waitForTimeout(30); await ready(r.page);
+      await r.page.click('#gdCard [data-go="art"]'); await r.page.waitForTimeout(30); await ready(r.page);
       await pill(r.page, 1); await r.page.waitForTimeout(100);
       ok((await getS(r.page)).lists[0].words[0].gr.art === td + 'f11', 'it starts again from its first fast day');
       await r.ctx.close();
@@ -2810,7 +2812,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const tops = await page.$$eval('.dojo', e => e.map(x => Math.round(x.getBoundingClientRect().top)));
       ok(tops.length === 3 && tops[0] === tops[1] && tops[1] === tops[2], 'phone: the three tiles share one row');
       await page.tap('#gdPick'); await page.waitForTimeout(100);
-      await page.tap('#gdGo'); await page.waitForTimeout(30); await ready(page);
+      await page.tap('#gdCard [data-go="art"]'); await page.waitForTimeout(30); await ready(page);
       const ph = await page.$$eval('#gPills .pill', e => e.map(x => x.getBoundingClientRect().height));
       ok(ph.length === 2 && ph.every(h => h >= 56), 'phone: big buttons (≥ 56 px tall)');
       const it = await gItem(page);
@@ -2824,7 +2826,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const [dl] = await Promise.all([page.waitForEvent('download'), page.tap('#exportBtn')]);
       const fp = path.join(require('os').tmpdir(), 'v25_backup.json'); await dl.saveAs(fp);
       const bk = JSON.parse(require('fs').readFileSync(fp, 'utf8'));
-      ok(bk.lists[0].words.some(w => w.gr && /^\d+f1\d$/.test(w.gr.art)) && bk.gram && bk.gram.day && bk.gram.day.n === 1 && bk.settings.gram && bk.settings.gram.slots, 'the backup carries Grammar Dojo progress and settings');
+      ok(bk.lists[0].words.some(w => w.gr && /^\d+f1\d$/.test(w.gr.art)) && bk.gram && bk.gram.day && bk.gram.day.n === 1 && bk.settings.gram && bk.settings.gram.size === 25, 'the backup carries Grammar Dojo progress and settings');
       await ctx.close();
       // an older backup (no Grammar Dojo at all) imports fine
       const old = state([list('Old', [word('de appel', 'A')])], NL); delete old.settings.gram;
@@ -2936,7 +2938,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     }
   }
 
-  // V25 screenshots: the Grammar Dojo on a phone (home, a card, an answer, the end of a round)
+  // V25 screenshots: the Grammar Dojo on a phone (home, a this/that card, an answer, the end of a round)
   {
     const o = Object.assign({}, require('playwright').devices['iPhone 14']); delete o.defaultBrowserType;
     const ctx = await browser.newContext(o); const page = await ctx.newPage();
@@ -2944,7 +2946,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     st.dojo = 'gram';
     await page.goto(FILE); await page.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, st]); await page.reload(); await page.waitForTimeout(800);
     await page.screenshot({ path: SHOT('shot_v25_home.png') });
-    await page.tap('#gdGo'); await page.waitForSelector('#gPills[data-ready]'); await page.waitForTimeout(100);
+    await page.tap('#gdCard [data-go="dem"]'); await page.waitForSelector('#gPills[data-ready]'); await page.waitForTimeout(100);
     await page.screenshot({ path: SHOT('shot_v25_card.png') });
     await page.tap('#gPills .pill[data-i="0"]', { force: true }); await page.waitForTimeout(150);
     await page.screenshot({ path: SHOT('shot_v25_answer.png') });
