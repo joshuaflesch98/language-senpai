@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (720 at V25.1)
+ * Language Senpai — automated checks (731 at V25.2)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.1"')), 'version 25.1');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.2"')), 'version 25.2');
     await ctx.close();
   }
   {
@@ -2464,8 +2464,8 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     // the right button for what's on the card: arts maps a noun (or "noun|meaning") to its article
     function rightIdx(it, arts, set = ['de', 'het']) {
       const a = n => arts[n + '|' + it.meaning] || arts[n];
-      if (it.slot === 'Article') return set.indexOf(a(it.f));
-      if (it.slot === 'This / that') { const m = it.f.match(/^(.*) (hier|daar)$/); return (m[2] === 'daar' ? 2 : 0) + set.indexOf(a(m[1])); }
+      if (/^Article/.test(it.slot)) return set.indexOf(a(it.f));
+      if (/^This \/ that/.test(it.slot)) { const m = it.f.match(/^(.*) (hier|daar)$/); return (m[2] === 'daar' ? 2 : 0) + set.indexOf(a(m[1])); }
       const m = it.f.match(/^mijn (.*?),/); return set.indexOf(a(m[1]));
     }
     const DEV35 = require('playwright').devices;
@@ -2534,7 +2534,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('[data-dojo="gram"]'); await page.waitForTimeout(250);
       ok(/Which articles does Spanish \(Spain\) have\?/.test(await page.textContent('#gdCard')) && !!(await page.$('#gdSetup')), 'the card asks which articles Spanish has');
       await page.click('#gdSetup'); await page.waitForTimeout(250);
-      ok(await page.$eval('#setGramPane', e => !e.hidden) && await page.evaluate(() => document.activeElement && document.activeElement.id === 'gArts'), '"Set the articles" opens Settings → Grammar Dojo with the field ready');
+      ok(await page.$eval('#setGramPane', e => !e.hidden) && await page.evaluate(() => document.activeElement && document.activeElement.id === 'gArts') && await page.$eval('#gLabBox', e => e.hidden), '"Set the articles" opens Settings → Grammar Dojo with the field ready (no label switch: only Dutch has labels)');
       await page.fill('#gArts', 'el la'); await page.waitForTimeout(100);
       await page.click('#setClose'); await page.waitForTimeout(300);
       ok(/3 nouns/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')) && /el · la/.test(await page.textContent('#gdCard .gd-sub')), 'typed "el la": three nouns found, buttons el · la');
@@ -2581,7 +2581,8 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok(anim >= 2 && !early && (await fbG(page)) === '', 'the buttons pop out of the middle at the start; taps wait until they\'re in place');
       await ready(page);
       const seen = await playAll(page, ARTS, undefined, it => it.f === 'huis');
-      ok(seen.length === 3 && seen.every(s => s.slot === 'Article' && s.n === 2), 'an Article round: article gaps only, the same two buttons all round');
+      ok(seen.length === 4 && seen.every(s => /^Article/.test(s.slot) && s.n === 2), 'an Article round: article gaps only, the same two buttons all round');
+      ok(seen[3].f === 'huis' && seen[3].slot === 'Article · again' && seen.filter(s => s.f === 'huis').length === 2, 'the miss (huis) comes back once more in the same round, marked "again"');
       ok(/3 nouns done/.test(await page.textContent('.screen h2')) && /2 right · 2 of them fast/.test(await page.textContent('#gdSum')), 'end: "2 right · 2 of them fast"');
       ok(/Coming back first next round/.test(await page.textContent('#gMiss')) && (await page.$$eval('.gchip', e => e.map(x => x.textContent))).join() === 'het huis', 'the miss is listed: "het huis", coming back first');
       await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
@@ -2615,8 +2616,38 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       while (await page.$('#gFrame')) { const it = await gItem(page); await pill(page, rightIdx(it, ARTS)); await page.waitForTimeout(30); await ready(page); }
       await page.click('#gdLib'); await page.waitForTimeout(300);
       ok((await page.$$('#gdCard button.gd-row')).length === 0 && (await page.$$('#gdCard .gd-row.done')).length === 3, 'all three gaps done for today: every row says so');
-      ok(/Today: 10 answered · 0 now automatic/.test(await page.textContent('#tallyLine')), 'today\'s line under the tiles: "Today: 10 answered · 0 now automatic"');
+      ok(/Today: 11 answered · 0 now automatic/.test(await page.textContent('#tallyLine')), 'today\'s line under the tiles counts every answer, second chances too: "Today: 11 answered"');
       await ctx.close();
+    }
+    // --- v25.2: the second chance comes after five other cards; a miss earns nothing that day
+    {
+      const ns = ['huis', 'boek', 'raam', 'bed', 'dak', 'kind', 'jaar', 'land'];
+      const td = dayNo();
+      const st = state([list('R', ns.map(n => word('het ' + n, n.toUpperCase())))], NL); st.dojo = 'gram';
+      st.lists[0].words[0].gr = { art: (td - 1) + 'f21' };   // huis: right and fast on two earlier days
+      const { ctx, page } = await freshD(st);
+      await startRound(page);
+      const order = []; let missed = null, k = 0;
+      while (await page.$('#gFrame')) {
+        const it = await gItem(page); order.push(it.f + (/again/.test(it.slot) ? '*' : ''));
+        if (k === 0) { missed = it.f; await pill(page, 0); } else await pill(page, 1);
+        k++; await page.waitForTimeout(30); await ready(page);
+      }
+      ok(order.length === 9 && order[6] === missed + '*' && order.slice(1, 6).every(f => f !== missed), 'a miss on the first card comes back as card 7: after five other cards (' + order.join(' ') + ')');
+      await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
+      const r2 = await playAll(page, Object.fromEntries(ns.map(n => [n, 'het'])));
+      const w = (await getS(page)).lists[0].words.find(x => x.nl === 'het ' + missed);
+      const before = missed === 'huis' ? 1 : 0;
+      ok(r2.length === 1 && r2[0].f === missed && w.gr.art === td + 'f' + before + '1!', 'next round it comes first; right and fast now only takes it out — no fast day today (stays at ' + before + ')');
+      ok(/That's everything you picked, for today/.test(await page.textContent('.screen')), 'and it waits until tomorrow, like the others');
+      await ctx.close();
+      // the next day it earns again
+      const st2 = state([list('R2', [word('het huis', 'HUIS', { gr: { art: (td - 1) + 'f11!' } })])], NL); st2.dojo = 'gram';
+      const r = await freshD(st2);
+      await r.page.click('#gdCard [data-go="art"]'); await r.page.waitForTimeout(30); await ready(r.page);
+      await pill(r.page, 1); await r.page.waitForTimeout(100);
+      ok((await getS(r.page)).lists[0].words[0].gr.art === td + 'f21', 'a day later the "missed" mark is gone and a fast answer earns its day again');
+      await r.ctx.close();
     }
     // --- a slip, a slow answer, automatic after three separate days
     {
@@ -2629,7 +2660,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await playAll(page, { appel: 'de', huis: 'het', tafel: 'de', boek: 'het' }, undefined, it => it.f === 'huis' || it.f === 'tafel' || it.f === 'boek');
       ok(/1 newly automatic/.test(await page.textContent('#gdSum')), 'appel right and fast on a third day: "1 newly automatic"');
       let S2 = await getS(page);
-      ok(gr(S2, 'de appel').art === td + 'f30' && gr(S2, 'het boek').art === td + 'm21', 'appel → 3 fast days; a miss on an automatic noun costs one (boek 3 → 2)');
+      ok(gr(S2, 'de appel').art === td + 'f30' && gr(S2, 'het boek').art === td + 'm21!', 'appel → 3 fast days; a miss on an automatic noun costs one (boek 3 → 2), once, though its second chance was missed too');
       ok((await page.$$('.gchip')).length === 3, 'three misses listed');
       const chip = await page.$('.gchip:text-is("de tafel")'); await chip.click(); await page.waitForTimeout(100);
       S2 = await getS(page);
@@ -2637,12 +2668,14 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const bk = await page.$('.gchip:text-is("het boek")'); await bk.click(); await page.waitForTimeout(100);
       ok(gr((await getS(page)), 'het boek').art === td + 'x31', '…and gives back the step a slip took (boek back to 3)');
       await bk.click(); await page.waitForTimeout(100);
-      ok(gr((await getS(page)), 'het boek').art === td + 'm21', 'tap again: a miss after all');
+      ok(gr((await getS(page)), 'het boek').art === td + 'm21!', 'tap again: a miss after all');
       await page.click('#gdMore'); await page.waitForTimeout(30); await ready(page);
       const r2 = []; while (await page.$('#gFrame')) { const it = await gItem(page); r2.push(it.f); await pill(page, rightIdx(it, { huis: 'het', boek: 'het' })); await page.waitForTimeout(30); await ready(page); }
       ok(r2.sort().join() === 'boek,huis', 'next round: the misses come back (huis, boek), the slip (tafel) doesn\'t');
+      const S3 = await getS(page);
+      ok(gr(S3, 'het boek').art === td + 'f21!' && gr(S3, 'het huis').art === td + 'f01!', 'a miss earns nothing that day: right and fast later only takes it out of "comes back first" (boek stays at 2, huis at 0)');
       await page.click('#gdLib'); await page.waitForTimeout(250);
-      ok(/Today: 6 answered · 2 now automatic/.test(await page.textContent('#tallyLine')), 'the line counts answers and forms that became automatic (appel, and boek again)');
+      ok(/Today: 9 answered · 1 now automatic/.test(await page.textContent('#tallyLine')), 'the line: 9 answers (second chances included), 1 now automatic — boek doesn\'t win its step back today');
       await ctx.close();
     }
     {
@@ -2688,7 +2721,12 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok(/no/.test(cls[0]) && /right/.test(cls[1]) && (await page.getAttribute('#gFrame', 'class')).includes('no') && (await page.textContent('#gFrame')).trim() === 'het verzoek', 'a miss: your button red, the right one ringed green, the phrase "het verzoek" in red');
       ok((await fbG(page)) === 'het, not de' && /flash-bad/.test(await page.getAttribute('#card', 'class')), '"het, not de"');
       await ready(page);
-      ok(/1 noun done/.test(await page.textContent('.screen h2')), 'a miss waits longer (to read it), then moves on by itself');
+      const again = await gItem(page);
+      ok(again.slot === 'Article · again' && again.f === 'verzoek' && again.count === '2 / 2', 'a miss waits longer (to read it), then moves on by itself — here straight to its second chance');
+      await pill(page, 1); await page.waitForTimeout(100);
+      ok((await fbG(page)) === 'Fast' && (await getS(page)).lists[0].words[0].gr.art === dayNo() + 'm01!', 'right on the second chance: still a miss for today (practice only)');
+      await ready(page);
+      ok(/1 noun done/.test(await page.textContent('.screen h2')) && /0 right · 0 of them fast/.test(await page.textContent('#gdSum')) && (await page.$$eval('.gchip', e => e.map(x => x.textContent))).join() === 'het verzoek', 'the end counts nouns, not second chances: "1 noun done", "0 right", het verzoek coming back first');
       await ctx.close();
     }
     // --- not a noun
@@ -2767,6 +2805,15 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('#backBtn'); await page.waitForTimeout(250);
       await page.click('#setBtnHdr'); await page.waitForTimeout(200);
       ok(await page.$eval('#gLangSel', e => e.value) === 'nl-NL' && await page.$eval('#gArtsBox', e => e.hidden) && !(await page.$('#gArtToggle')), 'Settings → Grammar Dojo: the language (shared with the Word Dojo); no gap switches — you pick the gap on the card');
+      ok(await page.$eval('#gLabBox', e => !e.hidden) && await page.$eval('#gLabToggle', e => e.classList.contains('on')), 'Settings → Grammar Dojo: "Show the labels", on');
+      await page.click('#gLabToggle'); await page.waitForTimeout(80);
+      ok((await getS(page)).settings.gram.labels === false, 'switched off: remembered');
+      await page.click('#setClose'); await page.waitForTimeout(250);
+      await startRound(page, 'dem');
+      const nl = await page.evaluate(() => { const P = [...document.querySelectorAll('#gPills .pill')].map(e => e.getBoundingClientRect()); return { lab: document.querySelectorAll('#gPills .pl-h, #gPills .pl-r').length, cls: document.getElementById('gPills').className, n: P.length, grid: P.length === 4 && Math.round(P[0].top) === Math.round(P[1].top) && Math.round(P[2].left) === Math.round(P[0].left) && P[2].top > P[0].top }; });
+      ok(nl.lab === 0 && !/lab/.test(nl.cls) && nl.n === 4 && nl.grid, 'labels off: the same 2 × 2, without hier/daar and de/het');
+      await page.click('#backBtn'); await page.waitForTimeout(250);
+      await page.click('#setBtnHdr'); await page.waitForTimeout(150);
       await page.selectOption('#gLangSel', 'zh-TW'); await page.waitForTimeout(150);
       ok(await page.$eval('#gNoArts', e => !e.hidden) && (await getS(page)).settings.speak.word.lang === 'zh-TW', 'choosing Chinese there sets the Word Dojo\'s language and says the Grammar Dojo has nothing to drill');
       await page.click('#setClose'); await page.waitForTimeout(250);
