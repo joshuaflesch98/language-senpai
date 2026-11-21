@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (767 at V25.5)
+ * Language Senpai — automated checks (768 at V25.6)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.5"')), 'version 25.5');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.6"')), 'version 25.6');
     await ctx.close();
   }
   {
@@ -3071,6 +3071,13 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ({ ctx, r } = await wl({ userAgent: MAC_CHROME })); const macChrome = !r.vis && r.kind === ''; await ctx.close();
       ({ ctx, r } = await wl({}));
       ok(macChrome && !r.vis, 'Chrome on a Mac and other desktop browsers: no note');
+      await ctx.close();
+    }
+
+    console.log('\n[38] V25.6: the Home Screen opens it as an app on older iPhones too');
+    {
+      const { ctx, page } = await freshD(state([list('N', [word('de appel', 'A')])], NL));
+      ok(await page.evaluate(() => { const m = document.querySelector('meta[name="apple-mobile-web-app-capable"]'); return !!m && m.content === 'yes' && m.parentElement === document.head; }), 'the page asks iPhones to open it from the Home Screen as an app');
       await ctx.close();
     }
   }
