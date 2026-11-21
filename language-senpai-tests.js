@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (755 at V25.4)
+ * Language Senpai — automated checks (767 at V25.5)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.4"')), 'version 25.4');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.5"')), 'version 25.5');
     await ctx.close();
   }
   {
@@ -3007,21 +3007,71 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     }
 
     // ---------------- V25.4 ----------------
-    console.log('\n[36] V25.4: Send feedback');
+    console.log('\n[36] V25.4–25.5: Feedback in the header');
     {
       const { ctx, page } = await freshD(state([list('N', [word('de appel', 'A')])], NL));
       const want = 'https://tally.so/r/OQ7Q4K?version=' + await page.evaluate(() => document.documentElement.innerHTML.match(/APP_VERSION="([^"]+)"/)[1]);
+      const a = await page.$eval('#fbHdr', e => ({ href: e.getAttribute('href'), t: e.target, rel: e.rel, txt: e.textContent.trim(), vis: !!e.offsetParent, inHdr: !!e.closest('header .hdr-right') }));
+      ok(a.href === want && a.t === '_blank' && /noopener/.test(a.rel) && a.txt === 'Feedback' && a.vis && a.inHdr, 'Feedback sits in the header and opens the form in a new tab, the version filled in');
+      ok(await page.$$eval('header .hdr-right > *', els => els.filter(e => e.offsetParent).map(e => e.id).join(',')) === 'helpBtnHdr,fbHdr,setBtnHdr', 'header: Help, Feedback, Settings & backup');
+      ok(!(await page.$('#fbSet')) && !(await page.$('#fbHelp')), 'no longer next to the version number or at the bottom of Help');
       await page.click('#setBtnHdr'); await page.waitForTimeout(200);
-      const a = await page.$eval('#fbSet', e => ({ href: e.getAttribute('href'), t: e.target, rel: e.rel, txt: e.textContent.trim(), vis: !!e.offsetParent }));
-      ok(a.href === want && a.t === '_blank' && /noopener/.test(a.rel) && a.txt === 'Send feedback' && a.vis, 'Settings: "Send feedback" next to the version number opens the form in a new tab, the version filled in');
+      const vl = await page.textContent('#verLine');
+      ok(/What's new/.test(vl) && !/feedback/i.test(vl), 'Settings: the version line keeps What\'s new');
       await page.click('#setClose'); await page.waitForTimeout(150);
       await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
-      const b = await page.$eval('#fbHelp', e => ({ href: e.getAttribute('href'), t: e.target, vis: !!e.offsetParent }));
-      ok(b.href === want && b.t === '_blank' && b.vis, 'Help: the same link at the bottom, in every section');
+      const foot = await page.$eval('#helpClose', e => e.parentElement.children.length);
+      const st = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
       await page.click('#helpNav [data-help="settings"]'); await page.waitForTimeout(80);
       const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
-      ok(/Send feedback/.test(h) && /Mix up the buttons/.test(h) && !/other than Dutch and German/.test(h), 'Help → Settings: Send feedback, and the Grammar Dojo\'s settings as they are now');
-      await page.click('#helpClose'); await ctx.close();
+      ok(foot === 1 && /Feedback at the top opens a short form/.test(st) && !/Send feedback/.test(h) && /Mix up the buttons/.test(h), 'Help: Close alone at the bottom; Getting started says where Feedback is, Settings no longer mentions it');
+      await page.click('#helpClose'); await page.click('[data-a="study"]'); await page.waitForTimeout(300);
+      ok(await page.$eval('#fbHdr', e => e.style.display === 'none') && !(await page.$eval('header', e => e.classList.contains('hnav'))), 'during study Feedback gives way to the card bar too');
+      await ctx.close();
+      for (const w of [320, 375]) {
+        const r = await freshD(state([list('N', [word('de appel', 'A')])], NL), { width: w, height: 700 });
+        const g = await r.page.evaluate(() => { const q = id => document.getElementById(id).getBoundingClientRect(); const h = q('helpBtnHdr'), f = q('fbHdr'), s = q('setBtnHdr'), b = q('brand');
+          return { row: [h, f, s].every(x => Math.abs((x.top + x.bottom) / 2 - (h.top + h.bottom) / 2) < 2), below: h.top >= b.bottom - 2, fit: s.right <= innerWidth && document.documentElement.scrollWidth <= innerWidth, oneLine: s.height < 34 && b.height < 56, nav: document.querySelector('header').classList.contains('hnav') }; });
+        ok(g.row && g.below && g.fit && g.oneLine && g.nav, `phone ${w}px: the name on one line, Help, Feedback and Settings on one row under it`);
+        await r.ctx.close();
+      }
+    }
+
+    console.log('\n[37] V25.5: the welcome says how progress stays safe');
+    {
+      const { devices } = require('playwright');
+      const MAC_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
+      const MAC_CHROME = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+      const iphone = { viewport: { width: 375, height: 667 }, userAgent: devices['iPhone 13'].userAgent, isMobile: true, hasTouch: true };
+      async function wl(opts, init) {
+        const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
+        const page = await ctx.newPage(); page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        const r = await page.$eval('#wlPhone', e => ({ vis: !e.hidden && getComputedStyle(e).display !== 'none', kind: e.dataset.kind || '', t: e.textContent.replace(/\s+/g, ' ') }));
+        return { ctx, page, r };
+      }
+      let { ctx, page, r } = await wl(iphone);
+      ok(r.vis && r.kind === 'ios' && /Add this page to your Home Screen first/.test(r.t) && /about a week without a visit/.test(r.t) && /keeps its own progress, separate from Safari/.test(r.t), 'iPhone: add it to the Home Screen first — Safari\'s week, and the app\'s own progress');
+      await page.click('#wlPhoneMore'); await page.waitForTimeout(200);
+      const hb = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && /Saving your progress/.test(hb) && /on an iPhone, an iPad and a Mac/.test(hb) && /On Android, the Home Screen icon opens your browser/.test(hb), '"More" opens Help → Saving your progress, which says which devices it concerns');
+      await ctx.close();
+      ({ ctx, r } = await wl({ viewport: { width: 820, height: 1180 }, userAgent: MAC_SAFARI }, () => Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get() { return 5; }, configurable: true })));
+      ok(r.vis && r.kind === 'ios', 'an iPad that introduces itself as a Mac gets the iPhone/iPad note');
+      await ctx.close();
+      ({ ctx, page, r } = await wl(iphone, () => Object.defineProperty(Navigator.prototype, 'standalone', { get() { return true; }, configurable: true })));
+      ok(!r.vis && await page.$eval('#wlHome', e => !e.hidden), 'opened from the Home Screen: no tip, the own-storage note instead');
+      await ctx.close();
+      ({ ctx, r } = await wl({ viewport: { width: 412, height: 915 }, userAgent: devices['Pixel 7'].userAgent, isMobile: true, hasTouch: true }));
+      ok(r.vis && r.kind === 'android' && /Home Screen/.test(r.t) && /same progress as your browser/.test(r.t) && !/week/.test(r.t), 'Android: a Home Screen tip, without Safari\'s week');
+      await ctx.close();
+      ({ ctx, r } = await wl({ userAgent: MAC_SAFARI }));
+      ok(r.vis && r.kind === 'macsafari' && /about a week without a visit/.test(r.t) && /Export backup/.test(r.t) && !/Home Screen/.test(r.t), 'Safari on a Mac: the week, and a reminder to back up');
+      await ctx.close();
+      ({ ctx, r } = await wl({ userAgent: MAC_CHROME })); const macChrome = !r.vis && r.kind === ''; await ctx.close();
+      ({ ctx, r } = await wl({}));
+      ok(macChrome && !r.vis, 'Chrome on a Mac and other desktop browsers: no note');
+      await ctx.close();
     }
   }
 

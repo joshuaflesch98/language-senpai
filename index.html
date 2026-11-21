@@ -53,12 +53,16 @@
   #helpBody li{margin:5px 0}
   #helpBody p{margin:6px 0}
   .backbar .bbr{display:flex;gap:16px;align-items:center}
-  .hdr-right #helpBtnHdr{margin-right:12px}
   /* v24.3: Help links, the card shorthand box, the list editor's "?", accent rows, Revisit round size, today's tally */
   #helpBody a.hl{color:var(--indigo);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
   #helpBody a.hl:hover{color:var(--indigo-dk)}
-.fb-help{font-size:14px;color:var(--indigo);text-decoration:underline;text-underline-offset:2px}
-.fb-help:hover{color:var(--indigo-dk)}
+  /* v25.5: Feedback sits in the header next to Help and Settings; on phones the three get their own row under the name */
+  a.link{text-decoration:none;line-height:normal}   /* same box as the buttons beside it */
+  .tally:empty{display:none}
+  @media (max-width:540px){ header.hnav{flex-wrap:wrap;row-gap:2px} header.hnav .hdr-right{flex-basis:100%;gap:20px} }
+  /* v25.5: the welcome's note for iPhone, iPad, Android and Safari on a Mac */
+  .wl-phone{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0 12px}
+  .wl-phone[hidden]{display:none}
   .shorthand{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:8px 0 12px}
   .shorthand h5{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 2px}
   .shorthand dt{margin-top:9px;color:var(--ink)} .shorthand dt code{margin-right:6px}
@@ -410,7 +414,7 @@
   .screen p + .actions{margin-top:24px}   /* v20: real-height buttons need real breathing room */
   .screen .acedhint{color:var(--faint);font-size:12.5px;max-width:340px;line-height:1.4}
   /* v14: header settings link */
-  .hdr-right{display:flex;align-items:center;gap:14px}
+  .hdr-right{display:flex;align-items:center;gap:22px}
   /* v14: group rename pencil */
   .subgrip .ren{font-size:12px}
   /* v15: configurable accent bar */
@@ -574,7 +578,7 @@
 <div class="wrap">
   <header>
     <div class="brand" id="brand"><h1><svg class="seal" viewBox="0 0 24 24" aria-hidden="true"><rect x="0.8" y="0.8" width="22.4" height="22.4" rx="3" fill="#CF4A2E"/><path fill-rule="evenodd" fill="#FFFCF7" transform="translate(12 12) scale(0.74) translate(-12 -12)" d="M12 1.2Q16.2 4.8 15 9L22.8 12Q19.2 16.2 15 15L12 22.8Q7.8 19.2 9 15L1.2 12Q4.8 7.8 9 9Z M13.8 12A1.8 1.8 0 1 0 10.2 12A1.8 1.8 0 1 0 13.8 12Z"/></svg>Language <span class="accent">Senpai</span></h1><span class="crumb" id="crumb"></span></div>
-    <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="helpBtnHdr">Help</button><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
+    <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="helpBtnHdr">Help</button><a class="link quiet" id="fbHdr" href="https://tally.so/r/OQ7Q4K" target="_blank" rel="noopener">Feedback</a><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
   </header>
   <div id="stage"></div>
 </div>
@@ -719,6 +723,7 @@
     <h3 id="wlTitle">Welcome to Language Senpai</h3>
     <p class="wl-sub">Your language journey begins here.</p>
     <p class="hint">Train words, sentences and grammar in the dojos, with practice that keeps bringing back what's hard until it sticks. Your progress stays in this browser — nothing leaves your device.</p>
+    <p class="hint wl-phone" id="wlPhone" hidden></p>
     <label class="setsel wl-lang">Which language are you learning? <select class="field" id="wlLang"></select><small>Optional — for the speaker's voice and how characters are drawn. You can change it any time in Settings.</small></label>
     <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" id="wlSkip">I know my way</button><button class="btn" id="wlTour">Show me around</button></div></div>
     <p class="hint wl-home" id="wlHome" hidden>Opened as an app from your Home Screen or Dock? It keeps its own storage, separate from your browser. If you've already practised in the browser, export a backup there and import it here (Settings &amp; backup → Import backup).</p>
@@ -730,7 +735,7 @@
     <h3 id="helpTitle">Help</h3>
     <div class="helpnav" id="helpNav"></div>
     <div id="helpBody"></div>
-    <div class="modal-row"><a class="fb-help" id="fbHelp" target="_blank" rel="noopener">Send feedback</a><button class="btn" id="helpClose">Close</button></div>
+    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="helpClose">Close</button></div>
   </div>
 </div>
 
@@ -752,10 +757,11 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.4";
+  const APP_VERSION="25.5";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
-    {v:"25.4", items:["Send feedback: a link next to the version number in Settings, and at the bottom of Help, opens a short form in a new tab. Only what you type is sent, plus the app's version.","Help \u2192 Settings describes the Grammar Dojo's settings as they are now."]},
+    {v:"25.5", items:["Feedback now sits at the top of the page, next to Help and Settings. On a phone the three get their own row under the name, so nothing is squeezed.","The welcome screen now says up front how your progress stays safe. On an iPhone or iPad: add the app to your Home Screen before you start, because Safari can delete a website's progress after a week without a visit. On Android it suggests the Home Screen for one-tap practice, and in Safari on a Mac it reminds you to back up.","Help \u2192 Saving your progress says which devices this applies to."]},
+{v:"25.4", items:["Send feedback: a link next to the version number in Settings, and at the bottom of Help, opens a short form in a new tab. Only what you type is sent, plus the app's version.","Help \u2192 Settings describes the Grammar Dojo's settings as they are now."]},
     {v:"25.3", items:["Grammar Dojo: articles built in for Swedish, Danish, Norwegian, French, Spanish, Italian, Portuguese and Romanian \u2014 nothing to type in Settings.","New in Settings \u2192 Grammar Dojo: Mix up the buttons. They change places on every card, so you read the word instead of following where it sits.","Automatic forms now come back after a pause \u2014 two weeks, then a month, then longer \u2014 a few per round, so they stay automatic. A miss sends one back to practice.","Help for the Grammar Dojo shows examples in the language you're learning."]},
     {v:"25.2", items:["Grammar Dojo: misses stick better. A card you miss comes back once more later in the same round (marked \u201cagain\u201d), and first in your next round.","A miss earns nothing that day: getting it right minutes later no longer counts toward automatic. It has to be right and fast again on another day.","Settings \u2192 Grammar Dojo: hide the labels (hier, daar, de, het) for a harder round."]},
     {v:"25.1", items:["Grammar Dojo: you pick what you practise. Each row on the Articles card (Article, This / that, Relative) starts a round of just that gap, so the buttons stay the same all round.","This / that: the buttons are labelled \u2014 hier and daar beside the rows, de and het above the columns. The sentence says hier or daar, so you only decide de or het. Relative has de and het above its two buttons too."]},
@@ -1618,10 +1624,11 @@
     paintHeader();
   }
   function paintHeader(){
-    const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr"), helpH=document.getElementById("helpBtnHdr");
-    if(S.view==="gram" && GR){ crumb.textContent="· Articles"; tally.innerHTML=""; if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; }
-    else if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; }
-    else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; if(helpH) helpH.style.display=""; }
+    const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr"), helpH=document.getElementById("helpBtnHdr"), fbH=document.getElementById("fbHdr");
+    if(S.view==="gram" && GR){ crumb.textContent="· Articles"; tally.innerHTML=""; if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
+    else if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
+    else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; if(helpH) helpH.style.display=""; if(fbH) fbH.style.display=""; }
+    document.querySelector("header").classList.toggle("hnav", !helpH || helpH.style.display!=="none");   // v25.5: phones put the links on their own row
   }
   function shuriRow(lvl,n){ let h=""; for(let i=0;i<3;i++){ const k = lvl==="gold" ? "gold" : (i<n ? "silver" : "ghost"); h+='<span class="shuri '+k+'">'+SHURI+'</span>'; } return h; }
 
@@ -2895,7 +2902,8 @@
       <li>Words you've mastered come back in <b>Revisit</b>, above Master — the ones you haven't seen for longest first.</li>
       <li>Once you've practised, a line under the dojos shows what you learned and revisited today.</li>
       <li>Choose the <b>language you're learning</b> once in Settings — it picks the voice and draws characters the right way. Then tap the <b>speaker</b> next to a word to hear it.</li>
-      <li><b>Back up</b> now and then (${hl("settings:backup","Settings &amp; backup → Export backup")}).</li></ol>`},
+      <li><b>Back up</b> now and then (${hl("settings:backup","Settings &amp; backup → Export backup")}).</li>
+      <li>Stuck, or missing something? <b>Feedback</b> at the top opens a short form in a new tab. Only what you type is sent, plus the app's version.</li></ol>`},
     {id:"word", t:"Word Dojo", h:`<ul>
       <li>You see the prompt and type the answer. A brand-new word is shown once so you can copy it.</li>
       <li>Each word needs a few correct answers; words you already mastered come back now and then to space out the hard ones.</li>
@@ -2942,15 +2950,14 @@
       <li>Under ${hl("settings:more-word","<b>More options</b>")} you can hide the previous word under the answer box.</li>
       <li>The <b>accent bar</b> adds one-tap special letters — try <b>From my lists</b>, or keep your own set under <b>My own</b>.</li>
       <li>The <b>Grammar Dojo</b> has its own: <b>Mix up the buttons</b> (and, for Dutch, the labels), the articles of a language that doesn't have them built in, and the cards you marked <b>Not a noun</b>.</li>
-      <li><b>Send feedback</b>, next to the version number (and at the bottom of Help), opens a short form in a new tab. Only what you type is sent, plus the app's version.</li>
       <li><b>Backups</b> are shared by all dojos: ${hl("settings:backup","<b>Export backup</b>")} saves everything to a file, and <b>Import backup</b> brings it back. The backup area also shows how much room your saved data takes.</li></ul>`},
     {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
       <li><b>Back up regularly</b> — once a week is a good habit (${hl("settings:backup","Settings &amp; backup → Export backup")}). <b>Import backup</b> brings everything back, in any browser.</li>
       <li><b>Use a normal window.</b> Private or incognito windows forget everything when they close.</li>
       <li><b>Always open the same address</b> — bookmark it. A different address, or a newly downloaded copy of the file, starts empty.</li>
       <li><b>If your progress disappears when you close the browser</b>, a privacy setting or extension is deleting what websites save. Allow this site to keep its data — in many browsers through the small icon to the left of the address — or switch that setting off.</li>
-      <li><b>Safari can delete a website's data</b> after about a week without a visit. On an iPhone or iPad, add the page to your Home Screen (Share → Add to Home Screen) — and keep backing up.</li>
-      <li><b>The Home Screen app keeps its own storage</b>, separate from the browser. Add it before you start — or, if you've already practised in the browser, export a backup there and import it in the Home Screen app.</li></ul>
+      <li><b>Safari can delete a website's data</b> after about a week without a visit — on an iPhone, an iPad and a Mac. On an iPhone or iPad, add the page to your Home Screen (Share → Add to Home Screen) and practise from there; on a Mac, practise at least once a week. Either way, keep backing up.</li>
+      <li><b>On an iPhone or iPad, the Home Screen app keeps its own storage</b>, separate from Safari. Add it before you start — or, if you've already practised in Safari, export a backup there and import it in the Home Screen app. On Android, the Home Screen icon opens your browser, with the same progress.</li></ul>
       <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
       <p class="hint">If saving is blocked completely, Language Senpai tells you straight away. Settings &amp; backup shows how much room your progress takes: browsers keep about 5 MB per website — room for well over 10,000 words — and the app warns you long before it's full.</p>`}
   ];
@@ -3094,8 +3101,8 @@
   }
   function doExport(){ download(JSON.stringify(S,null,2),"language-senpai-backup.json"); S.lastExport=Date.now(); save(); updateLastExport(); }
   document.getElementById("exportBtn").onclick=doExport;
-  document.getElementById("verLine").innerHTML="<b>Language Senpai V"+APP_VERSION+"</b> · <button type=\"button\" class=\"linkish\" id=\"wnBtn\">What's new</button> · <a class=\"linkish\" id=\"fbSet\" href=\""+FEEDBACK_HREF+"\" target=\"_blank\" rel=\"noopener\">Send feedback</a>";
-  document.getElementById("fbHelp").href=FEEDBACK_HREF;
+  document.getElementById("verLine").innerHTML="<b>Language Senpai V"+APP_VERSION+"</b> · <button type=\"button\" class=\"linkish\" id=\"wnBtn\">What's new</button>";
+  document.getElementById("fbHdr").href=FEEDBACK_HREF;   // v25.5: Feedback lives in the header
   // v22.2: "What's new" opens over Settings and closes back to exactly where you were
   const wnOverlay=document.getElementById("wnOverlay");
   function openWhatsNew(){ document.getElementById("wnList").innerHTML=CHANGELOG.map(c=>`<div class="wnv">Version ${c.v}</div><ul>${c.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`).join(""); wnOverlay.classList.add("open"); }
@@ -3132,6 +3139,20 @@
   // v22.5: an app opened from the Home Screen (or the Dock) has its own storage — say so on its first visit
   function isStandaloneApp(){ try{ return window.navigator.standalone===true || (!!window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); }catch(e){ return false; } }
   { const wh=document.getElementById("wlHome"); if(wh) wh.hidden=!isStandaloneApp(); }
+  // v25.5: on an iPhone or iPad, on Android and in Safari on a Mac, the welcome says up front how progress stays safe
+  function deviceKind(){ try{ const ua=navigator.userAgent||"", tp=navigator.maxTouchPoints||0;
+    if(/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && tp>1)) return "ios";   // an iPad can introduce itself as a Mac
+    if(/Android/.test(ua)) return "android";
+    if(/Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Firefox|Edg|OPR/.test(ua)) return "macsafari";
+  }catch(e){} return ""; }
+  const WL_PHONE={
+    ios:"<b>On an iPhone or iPad?</b> Add this page to your Home Screen first (Share \u2192 Add to Home Screen) and practise from there. Safari can delete a website's progress after about a week without a visit; the Home Screen app is safe from that and keeps its own progress, separate from Safari.",
+    android:"<b>On Android?</b> Add this page to your Home Screen (your browser's menu \u2192 Add to Home screen), so practice is one tap away. It keeps the same progress as your browser.",
+    macsafari:"<b>Using Safari?</b> It can delete a website's progress after about a week without a visit, so practise at least once a week and export a backup now and then (Settings &amp; backup \u2192 Export backup)."
+  };
+  { const wp=document.getElementById("wlPhone"), k=isStandaloneApp()?"":deviceKind();
+    if(wp && k){ wp.innerHTML=WL_PHONE[k]+' <button type="button" class="linkish" id="wlPhoneMore">More</button>'; wp.dataset.kind=k; wp.hidden=false;
+      document.getElementById("wlPhoneMore").onclick=()=>{ closeWelcome(); openHelp("save"); }; } }
   if(showWelcome) requestAnimationFrame(()=>wlOverlay.classList.add("open"));
 })();
 </script>
