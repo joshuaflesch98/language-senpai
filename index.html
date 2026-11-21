@@ -64,6 +64,18 @@
   /* v25.5: the welcome's note for iPhone, iPad, Android and Safari on a Mac */
   .wl-phone{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0 12px}
   .wl-phone[hidden]{display:none}
+  /* v25.8: the welcome says what it is, in three steps, with two ways to start */
+  .wl-what{font-size:16px;font-weight:600;color:var(--ink);margin:2px 0 4px}
+  .wl-steps{margin:4px 0 8px;padding-left:22px;color:var(--ink);font-size:14.5px;line-height:1.5}
+  .wl-steps li{margin:3px 0}
+  .wl-go{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+  .wl-go .btn{flex:1 1 200px}
+  .wl-go[hidden]{display:none}
+  .wl-q{flex-basis:100%;margin:0;font-size:14.5px;font-weight:600;color:var(--ink)}
+  .wl-go .linkish{margin:0 auto}
+  .wl-more{margin:12px 0 0;text-align:center;font-size:13px;color:var(--faint)}
+  .wl-more .linkish{margin:0 4px}
+  .demo-note{font-size:12.5px;color:var(--faint);margin-top:2px}
   .shorthand{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:8px 0 12px}
   .shorthand h5{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 2px}
   .shorthand dt{margin-top:9px;color:var(--ink)} .shorthand dt code{margin-right:6px}
@@ -723,10 +735,14 @@
   <div class="modal welcome" role="dialog" aria-labelledby="wlTitle">
     <h3 id="wlTitle">Welcome to Language Senpai</h3>
     <p class="wl-sub">Your language journey begins here.</p>
-    <p class="hint">Train words, sentences and grammar in the dojos, with practice that keeps bringing back what's hard until it sticks. Your progress stays in this browser — nothing leaves your device.</p>
+    <p class="wl-what">Learn the words you choose, in any language.</p>
+    <ol class="wl-steps"><li><b>Add your words:</b> type or paste a list, or let your AI make one for you.</li><li><b>Practise:</b> you see the meaning and type the word.</li><li><b>The ones you miss come back</b> until you know them.</li></ol>
+    <p class="hint">No account needed: your progress stays in this browser, and nothing leaves your device.</p>
     <p class="hint wl-phone" id="wlPhone" hidden></p>
+    <div class="wl-go" id="wlGo"><button class="btn" id="wlDemo">Try 8 sample words</button><button class="btn ghost" id="wlOwn">Add my own words</button></div>
+    <div class="wl-go" id="wlOwnBox" hidden><p class="wl-q">How do you want to add them?</p><button class="btn" id="wlType">Type or paste a list</button><button class="btn" id="wlAi">Let my AI make one</button><button type="button" class="linkish" id="wlBack">Back</button></div>
+    <p class="wl-more"><button type="button" class="linkish" id="wlTour">Show me around</button> · <button type="button" class="linkish" id="wlSkip">I know my way</button></p>
     <label class="setsel wl-lang">Which language are you learning? <select class="field" id="wlLang"></select><small>Optional — for the speaker's voice and how characters are drawn. You can change it any time in Settings.</small></label>
-    <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" id="wlSkip">I know my way</button><button class="btn" id="wlTour">Show me around</button></div></div>
     <p class="hint wl-home" id="wlHome" hidden>Opened as an app from your Home Screen or Dock? It keeps its own storage, separate from your browser. If you've already practised in the browser, export a backup there and import it here (Settings &amp; backup → Import backup).</p>
     <p class="hint wl-fix">Seeing this every time you open the app? Then your browser is deleting what this page saves. <button type="button" class="linkish" id="wlFix">Here's how to fix it</button></p>
   </div>
@@ -758,10 +774,11 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.7";
+  const APP_VERSION="25.8";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
-    {v:"25.7", items:["Clearer steps for adding Language Senpai to your Home Screen, on the welcome screen and in Help: what to tap, and where Share is on newer iPhones."]},
+    {v:"25.8", items:["The welcome screen now says what Language Senpai is and how it works, in three steps, with two ways to start: try 8 sample words, or add your own.","After the sample, a short note shows the next step: add your own words, or take a quick tour.","The sample lists say they're a demo in Japanese: your own lists can be in any language."]},
+{v:"25.7", items:["Clearer steps for adding Language Senpai to your Home Screen, on the welcome screen and in Help: what to tap, and where Share is on newer iPhones."]},
 {v:"25.6", items:["Older iPhones and iPads (before iOS 26) now also open Language Senpai from the Home Screen as its own app, like newer ones do: safe from Safari's one-week rule, with its own progress."]},
 {v:"25.5", items:["Feedback now sits at the top of the page, next to Help and Settings. On a phone the three get their own row under the name, so nothing is squeezed.","The welcome screen now says up front how your progress stays safe. On an iPhone or iPad: add the app to your Home Screen before you start, because Safari can delete a website's progress after a week without a visit. On Android it suggests the Home Screen for one-tap practice, and in Safari on a Mac it reminds you to back up.","Help \u2192 Saving your progress says which devices this applies to."]},
 {v:"25.4", items:["Send feedback: a link next to the version number in Settings, and at the bottom of Help, opens a short form in a new tab. Only what you type is sent, plus the app's version.","Help \u2192 Settings describes the Grammar Dojo's settings as they are now."]},
@@ -1072,6 +1089,7 @@
   // ---- session ----
   let work=[], lastIdx=null, trial=0, cur=null, phase="answer", shownAt=0, firstKey=0, timer=null;
   function startSession(l){ lastAnswered=null; closeSortMenu(); hideSortToast();
+    if(l.demo && !S.tipNext && ![...S.lists, ...(S.sLists||[])].some(x=>!x.demo)) S.tipNext="pending";   // v25.8: newcomers get a next-step note after the sample
     l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w.lapsed=false; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
     work=[]; for(let i=0;i<l.words.length && work.length<SET_SIZE;i++) work.push(i);
     lastIdx=null; trial=0; S.view="study"; S.activeListId=l.id; save();
@@ -1623,7 +1641,7 @@
   function render(){
     if(S.view==="gram" && GR){ paintGram(); lastView="gram"; paintHeader(); return; }   // v25: a Grammar Dojo round
     if(S.view==="study" && activeList() && cur!=null && activeList().words[cur]){ renderStudy(); lastView="study"; autoSpeakAfterRender(); }
-    else { const fromStudy=lastView==="study"; S.view="library"; renderLibrary(); lastView="library"; if(fromStudy) returnToList(); }
+    else { const fromStudy=lastView==="study"; S.view="library"; renderLibrary(); lastView="library"; if(fromStudy){ if(S.tipNext==="pending") window.scrollTo(0,0); else returnToList(); } }
     paintHeader();
   }
   function paintHeader(){
@@ -1658,6 +1676,7 @@
   function noticeHtml(){
     if(rescued) return `<div class="notice warn" id="rescueNote"><div><b>This version couldn't read your saved progress.</b> ${rescued.key?"It has been set aside safely — nothing was overwritten — and you're seeing a fresh start.":"It couldn't be set aside (storage is full), so nothing will be saved until you export it."} Export the saved copy to keep it.</div><div class="nbtns"><button class="btn sm" id="rescueExport">Export saved copy</button>${(rescued.key||rescued.exported)?'<button class="btn ghost sm" id="rescueDismiss">Dismiss</button>':''}</div></div>`;
     if(backupDue()) return `<div class="notice" id="backupNote"><div><b>Last backup: ${relTime(S.lastExport)}.</b> Your progress lives only in this browser.</div><div class="nbtns"><button class="btn sm" id="nExport">Export backup</button><button class="btn ghost sm" id="nLater">Later</button></div></div>`;
+    if(S.tipNext==="pending") return `<div class="notice" id="nextNote"><div><b>That's how it works.</b> Now add your own words, in any language: type or paste a list, or let your AI make one.</div><div class="nbtns"><button class="btn sm" id="tipNew">+ New list</button><button class="btn ghost sm" id="tipGet">Get words</button><button class="btn ghost sm" id="tipTour">Show me around</button><button class="btn ghost sm" id="tipDone">Not now</button></div></div>`;
     return "";
   }
   function wireNotice(){
@@ -1665,6 +1684,8 @@
     const rd=document.getElementById("rescueDismiss"); if(rd) rd.onclick=()=>{ rescued=null; renderLibrary(true); };
     const ne=document.getElementById("nExport"); if(ne) ne.onclick=()=>{ doExport(); renderLibrary(true); };
     const nl=document.getElementById("nLater"); if(nl) nl.onclick=()=>{ S.backupSnooze=Date.now(); save(); renderLibrary(true); };
+    const tip=(id,then)=>{ const b=document.getElementById(id); if(b) b.onclick=()=>{ S.tipNext="done"; save(); renderLibrary(true); if(then) then(); }; };
+    tip("tipNew",()=>openList(null)); tip("tipGet",openGetWords); tip("tipTour",()=>openHelp("start")); tip("tipDone");
   }
   function dojoTiles(){
     const t=(id,k,name,sub)=>`<button class="dojo${S.dojo===id?' on':''}" data-dojo="${id}" aria-pressed="${S.dojo===id}"><span class="dk" lang="ja" aria-hidden="true">${k}</span><span class="dt"><span class="dn">${name}</span><span class="ds">${sub}</span></span></button>`;
@@ -1880,7 +1901,7 @@
     const c=counts(l), lvl=listRank(l);
     const card=document.createElement("div"); card.className="listcard"; card.dataset.id=l.id;
     card.innerHTML=`<div class="top"><div><div class="name" translate="no">${esc(l.name)}</div>
-        <div class="meta">${c.total} ${unitOf(l)}${c.total===1?"":"s"} · <span class="m">${c.m} mastered</span></div></div>
+        <div class="meta">${c.total} ${unitOf(l)}${c.total===1?"":"s"} · <span class="m">${c.m} mastered</span></div>${l.demo?'<div class="demo-note">A sample in Japanese: your own lists can be in any language.</div>':''}</div>
         <div class="shuris">${shuriRow(lvl,(l.completions||[]).length)}</div></div>
       <div class="acts">
         <div class="mainacts">
@@ -2900,7 +2921,7 @@
   const HELP=[
     {id:"start", t:"Getting started", h:`<p>Language Senpai trains vocabulary and sentences with spaced practice. Everything happens in this browser; nothing leaves your device.</p><ol>
       <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on the articles of your nouns).</li>
-      <li><b>Try the sample list</b>, or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
+      <li><b>Try the sample list</b> (a short demo in Japanese), or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
       <li id="hGold">Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
       <li>Words you've mastered come back in <b>Revisit</b>, above Master — the ones you haven't seen for longest first.</li>
       <li>Once you've practised, a line under the dojos shows what you learned and revisited today.</li>
@@ -3005,6 +3026,13 @@
   { const wl=document.getElementById("wlLang"); wl.innerHTML=langOptions("Choose later"); wl.value=speakSet("word").lang||"";
     wl.onchange=()=>{ S.settings.speak=fixSpeak(S.settings.speak); S.settings.speak.word.lang=wl.value; S.settings.speak.sentence.lang=wl.value; save(); }; }
   document.getElementById("wlTour").onclick=()=>{ closeWelcome(); openHelp("start"); };
+  // v25.8: two ways to start; after the sample a note in the library shows the next step (and the tour)
+  { const go=document.getElementById("wlGo"), own=document.getElementById("wlOwnBox");
+    document.getElementById("wlDemo").onclick=()=>{ closeWelcome(); if(S.dojo!=="word"){ S.dojo="word"; save(); } const l=S.lists.find(x=>x.demo); if(l) startSession(l); else render(); };
+    document.getElementById("wlOwn").onclick=()=>{ go.hidden=true; own.hidden=false; };
+    document.getElementById("wlBack").onclick=()=>{ own.hidden=true; go.hidden=false; };
+    document.getElementById("wlType").onclick=()=>{ closeWelcome(); openList(null); };
+    document.getElementById("wlAi").onclick=()=>{ closeWelcome(); openGetWords(); }; }
   document.getElementById("wlFix").onclick=()=>{ closeWelcome(); openHelp("save"); };
 
   // ---- settings ----

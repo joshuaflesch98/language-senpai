@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (768 at V25.7)
+ * Language Senpai — automated checks (779 at V25.8)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.7"')), 'version 25.7');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.8"')), 'version 25.8');
     await ctx.close();
   }
   {
@@ -3078,6 +3078,56 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     {
       const { ctx, page } = await freshD(state([list('N', [word('de appel', 'A')])], NL));
       ok(await page.evaluate(() => { const m = document.querySelector('meta[name="apple-mobile-web-app-capable"]'); return !!m && m.content === 'yes' && m.parentElement === document.head; }), 'the page asks iPhones to open it from the Home Screen as an app');
+      await ctx.close();
+    }
+
+    console.log('\n[39] V25.8: the welcome says what it is, two ways to start');
+    {
+      async function fresh0() {
+        const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } }); const page = await ctx.newPage();
+        page.on('pageerror', e => errors.push('pageerror: ' + e.message)); page.on('dialog', d => d.accept());
+        await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        return { ctx, page };
+      }
+      let { ctx, page } = await fresh0();
+      const w = (await page.textContent('#wlOverlay')).replace(/\s+/g, ' ');
+      ok(/Learn the words you choose, in any language/.test(w) && await page.$$eval('#wlOverlay .wl-steps li', l => l.length) === 3 && /Add your words: type or paste a list/.test(w) && /you see the meaning and type the word/.test(w) && /The ones you miss come back until you know them/.test(w) && /Your language journey begins here/.test(w), 'the welcome says what it is and how it works, in three steps');
+      ok(await page.isVisible('#wlDemo') && await page.isVisible('#wlOwn') && await page.isVisible('#wlTour') && await page.isVisible('#wlSkip') && !(await page.isVisible('#wlOwnBox')), 'two ways to start; "Show me around" and "I know my way" stay');
+      await page.click('#wlDemo'); await page.waitForTimeout(300);
+      let S1 = await getS(page); const demo = S1.lists.find(l => l.demo);
+      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && S1.welcomed === true && S1.view === 'study' && S1.activeListId === demo.id && S1.tipNext === 'pending', '"Try 8 sample words" starts the sample right away');
+      await page.click('#backBtn'); await page.waitForTimeout(300);
+      const nt = (await page.textContent('#nextNote')).replace(/\s+/g, ' ');
+      ok(/That's how it works/.test(nt) && await page.isVisible('#tipNew') && await page.isVisible('#tipGet') && await page.isVisible('#tipTour') && await page.isVisible('#tipDone') && await page.evaluate(() => window.scrollY) === 0, 'back in the library: a note at the top shows the next step, with the tour');
+      await page.click('#tipGet'); await page.waitForTimeout(200);
+      const gwOpen = await page.$eval('#gwOverlay', e => e.classList.contains('open'));
+      await page.click('#gwClose'); await page.waitForTimeout(150);
+      const gone = !(await page.$('#nextNote')) && (await getS(page)).tipNext === 'done';
+      await page.reload(); await page.waitForTimeout(300);
+      ok(gwOpen && gone && !(await page.$('#nextNote')), 'its buttons open the next step, and the note is gone for good');
+      ok(/A sample in Japanese: your own lists can be in any language/.test(await page.textContent('.listcard')), 'the sample list says it is a demo');
+      await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
+      ok(/a short demo in Japanese/.test(await page.textContent('#helpBody')), 'Help → Getting started calls the sample a demo');
+      await ctx.close();
+      ({ ctx, page } = await fresh0());
+      await page.click('#wlOwn'); await page.waitForTimeout(80);
+      const two = await page.isVisible('#wlOwnBox') && !(await page.isVisible('#wlGo')) && /How do you want to add them/.test(await page.textContent('#wlOwnBox'));
+      await page.click('#wlBack'); await page.waitForTimeout(80);
+      ok(two && await page.isVisible('#wlGo') && !(await page.isVisible('#wlOwnBox')), '"Add my own words" asks how, and Back returns');
+      await page.click('#wlOwn'); await page.click('#wlType'); await page.waitForTimeout(200);
+      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && await page.$eval('#listOverlay', e => e.classList.contains('open')), '"Type or paste a list" opens + New list');
+      await ctx.close();
+      ({ ctx, page } = await fresh0());
+      await page.click('#wlOwn'); await page.click('#wlAi'); await page.waitForTimeout(200);
+      ok(await page.$eval('#gwOverlay', e => e.classList.contains('open')), '"Let my AI make one" opens Get words');
+      await ctx.close();
+    }
+    {
+      const st = state([list('Mine', [word('de appel', 'A')]), Object.assign(list('Dojo words (sample)', [word('senpai', 'senior')]), { demo: true, group: 'Samples' })]);
+      const { ctx, page } = await freshD(st);
+      await page.click('.listcard:has-text("Dojo words (sample)") [data-a="study"]'); await page.waitForTimeout(250);
+      await page.click('#backBtn'); await page.waitForTimeout(250);
+      ok(!(await page.$('#nextNote')) && !(await getS(page)).tipNext, 'people with their own lists get no next-step note');
       await ctx.close();
     }
   }
