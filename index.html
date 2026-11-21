@@ -57,6 +57,8 @@
   /* v24.3: Help links, the card shorthand box, the list editor's "?", accent rows, Revisit round size, today's tally */
   #helpBody a.hl{color:var(--indigo);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
   #helpBody a.hl:hover{color:var(--indigo-dk)}
+.fb-help{font-size:14px;color:var(--indigo);text-decoration:underline;text-underline-offset:2px}
+.fb-help:hover{color:var(--indigo-dk)}
   .shorthand{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:8px 0 12px}
   .shorthand h5{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 2px}
   .shorthand dt{margin-top:9px;color:var(--ink)} .shorthand dt code{margin-right:6px}
@@ -728,7 +730,7 @@
     <h3 id="helpTitle">Help</h3>
     <div class="helpnav" id="helpNav"></div>
     <div id="helpBody"></div>
-    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="helpClose">Close</button></div>
+    <div class="modal-row"><a class="fb-help" id="fbHelp" target="_blank" rel="noopener">Send feedback</a><button class="btn" id="helpClose">Close</button></div>
   </div>
 </div>
 
@@ -750,8 +752,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.3";
+  const APP_VERSION="25.4";
+  const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.4", items:["Send feedback: a link next to the version number in Settings, and at the bottom of Help, opens a short form in a new tab. Only what you type is sent, plus the app's version.","Help \u2192 Settings describes the Grammar Dojo's settings as they are now."]},
     {v:"25.3", items:["Grammar Dojo: articles built in for Swedish, Danish, Norwegian, French, Spanish, Italian, Portuguese and Romanian \u2014 nothing to type in Settings.","New in Settings \u2192 Grammar Dojo: Mix up the buttons. They change places on every card, so you read the word instead of following where it sits.","Automatic forms now come back after a pause \u2014 two weeks, then a month, then longer \u2014 a few per round, so they stay automatic. A miss sends one back to practice.","Help for the Grammar Dojo shows examples in the language you're learning."]},
     {v:"25.2", items:["Grammar Dojo: misses stick better. A card you miss comes back once more later in the same round (marked \u201cagain\u201d), and first in your next round.","A miss earns nothing that day: getting it right minutes later no longer counts toward automatic. It has to be right and fast again on another day.","Settings \u2192 Grammar Dojo: hide the labels (hier, daar, de, het) for a harder round."]},
     {v:"25.1", items:["Grammar Dojo: you pick what you practise. Each row on the Articles card (Article, This / that, Relative) starts a round of just that gap, so the buttons stay the same all round.","This / that: the buttons are labelled \u2014 hier and daar beside the rows, de and het above the columns. The sentence says hier or daar, so you only decide de or het. Relative has de and het above its two buttons too."]},
@@ -2937,7 +2941,8 @@
       <li><b>Reading aloud:</b> have each word read aloud automatically, if you like.</li>
       <li>Under ${hl("settings:more-word","<b>More options</b>")} you can hide the previous word under the answer box.</li>
       <li>The <b>accent bar</b> adds one-tap special letters — try <b>From my lists</b>, or keep your own set under <b>My own</b>.</li>
-      <li>The <b>Grammar Dojo</b> has its own: the articles of a language other than Dutch and German, and the cards you marked <b>Not a noun</b>.</li>
+      <li>The <b>Grammar Dojo</b> has its own: <b>Mix up the buttons</b> (and, for Dutch, the labels), the articles of a language that doesn't have them built in, and the cards you marked <b>Not a noun</b>.</li>
+      <li><b>Send feedback</b>, next to the version number (and at the bottom of Help), opens a short form in a new tab. Only what you type is sent, plus the app's version.</li>
       <li><b>Backups</b> are shared by all dojos: ${hl("settings:backup","<b>Export backup</b>")} saves everything to a file, and <b>Import backup</b> brings it back. The backup area also shows how much room your saved data takes.</li></ul>`},
     {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
       <li><b>Back up regularly</b> — once a week is a good habit (${hl("settings:backup","Settings &amp; backup → Export backup")}). <b>Import backup</b> brings everything back, in any browser.</li>
@@ -3089,7 +3094,8 @@
   }
   function doExport(){ download(JSON.stringify(S,null,2),"language-senpai-backup.json"); S.lastExport=Date.now(); save(); updateLastExport(); }
   document.getElementById("exportBtn").onclick=doExport;
-  document.getElementById("verLine").innerHTML="<b>Language Senpai V"+APP_VERSION+"</b> · <button type=\"button\" class=\"linkish\" id=\"wnBtn\">What's new</button>";
+  document.getElementById("verLine").innerHTML="<b>Language Senpai V"+APP_VERSION+"</b> · <button type=\"button\" class=\"linkish\" id=\"wnBtn\">What's new</button> · <a class=\"linkish\" id=\"fbSet\" href=\""+FEEDBACK_HREF+"\" target=\"_blank\" rel=\"noopener\">Send feedback</a>";
+  document.getElementById("fbHelp").href=FEEDBACK_HREF;
   // v22.2: "What's new" opens over Settings and closes back to exactly where you were
   const wnOverlay=document.getElementById("wnOverlay");
   function openWhatsNew(){ document.getElementById("wnList").innerHTML=CHANGELOG.map(c=>`<div class="wnv">Version ${c.v}</div><ul>${c.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`).join(""); wnOverlay.classList.add("open"); }

@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (752 at V25.3)
+ * Language Senpai — automated checks (755 at V25.4)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.3"')), 'version 25.3');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.4"')), 'version 25.4');
     await ctx.close();
   }
   {
@@ -3004,6 +3004,24 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok(firsts.length === 10 && firsts.filter(x => /^oud/.test(x.f)).length === 2, 'five automatic forms due, a round of 10: two of them, eight new ones');
       ok(!!missed && gr(await getS(page), 'de ' + missed).art === td + 'm20!', 'a miss sends an automatic form back to practice (3 → 2)');
       await ctx.close();
+    }
+
+    // ---------------- V25.4 ----------------
+    console.log('\n[36] V25.4: Send feedback');
+    {
+      const { ctx, page } = await freshD(state([list('N', [word('de appel', 'A')])], NL));
+      const want = 'https://tally.so/r/OQ7Q4K?version=' + await page.evaluate(() => document.documentElement.innerHTML.match(/APP_VERSION="([^"]+)"/)[1]);
+      await page.click('#setBtnHdr'); await page.waitForTimeout(200);
+      const a = await page.$eval('#fbSet', e => ({ href: e.getAttribute('href'), t: e.target, rel: e.rel, txt: e.textContent.trim(), vis: !!e.offsetParent }));
+      ok(a.href === want && a.t === '_blank' && /noopener/.test(a.rel) && a.txt === 'Send feedback' && a.vis, 'Settings: "Send feedback" next to the version number opens the form in a new tab, the version filled in');
+      await page.click('#setClose'); await page.waitForTimeout(150);
+      await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
+      const b = await page.$eval('#fbHelp', e => ({ href: e.getAttribute('href'), t: e.target, vis: !!e.offsetParent }));
+      ok(b.href === want && b.t === '_blank' && b.vis, 'Help: the same link at the bottom, in every section');
+      await page.click('#helpNav [data-help="settings"]'); await page.waitForTimeout(80);
+      const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/Send feedback/.test(h) && /Mix up the buttons/.test(h) && !/other than Dutch and German/.test(h), 'Help → Settings: Send feedback, and the Grammar Dojo\'s settings as they are now');
+      await page.click('#helpClose'); await ctx.close();
     }
   }
 
