@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (731 at V25.2)
+ * Language Senpai — automated checks (752 at V25.3)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.2"')), 'version 25.2');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.3"')), 'version 25.3');
     await ctx.close();
   }
   {
@@ -2529,19 +2529,19 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     }
     // --- another language: type its articles in Settings
     {
-      const { ctx, page } = await freshD(state([list('ES', [word('el perro', 'dog'), word('la casa', 'house'), word('la mesa', 'table'), word('comer', 'eat')])], lang('es-ES')));
-      ok(/Set up/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')), 'Spanish (no built-in articles): the tile says "Set up"');
+      const { ctx, page } = await freshD(state([list('EL', [word('ο σκύλος', 'dog'), word('η πόρτα', 'door'), word('το σπίτι', 'house'), word('τρώω', 'eat')])], lang('el-GR')));
+      ok(/Set up/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')), 'Greek (no built-in articles): the tile says "Set up"');
       await page.click('[data-dojo="gram"]'); await page.waitForTimeout(250);
-      ok(/Which articles does Spanish \(Spain\) have\?/.test(await page.textContent('#gdCard')) && !!(await page.$('#gdSetup')), 'the card asks which articles Spanish has');
+      ok(/Which articles does Greek have\?/.test(await page.textContent('#gdCard')) && !!(await page.$('#gdSetup')), 'the card asks which articles Greek has');
       await page.click('#gdSetup'); await page.waitForTimeout(250);
       ok(await page.$eval('#setGramPane', e => !e.hidden) && await page.evaluate(() => document.activeElement && document.activeElement.id === 'gArts') && await page.$eval('#gLabBox', e => e.hidden), '"Set the articles" opens Settings → Grammar Dojo with the field ready (no label switch: only Dutch has labels)');
-      await page.fill('#gArts', 'el la'); await page.waitForTimeout(100);
+      await page.fill('#gArts', 'ο η το'); await page.waitForTimeout(100);
       await page.click('#setClose'); await page.waitForTimeout(300);
-      ok(/3 nouns/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')) && /el · la/.test(await page.textContent('#gdCard .gd-sub')), 'typed "el la": three nouns found, buttons el · la');
+      ok(/3 nouns/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')) && /ο · η · το/.test(await page.textContent('#gdCard .gd-sub')), 'typed "ο η το": three nouns found, buttons ο · η · το');
       ok((await page.$$('#gdCard .gd-row')).length === 1 && /Article/.test(await page.textContent('#gdCard .gd-row')), 'own articles: the article gap only');
       await startRound(page);
-      const seen = await playAll(page, { perro: 'el', casa: 'la', mesa: 'la' }, ['el', 'la']);
-      ok(seen.length === 3 && seen.every(s => s.n === 2 && s.slot === 'Article') && /3 nouns done/.test(await page.textContent('.screen h2')), 'a round with el / la works like de / het');
+      const seen = await playAll(page, { 'σκύλος': 'ο', 'πόρτα': 'η', 'σπίτι': 'το' }, ['ο', 'η', 'το']);
+      ok(seen.length === 3 && seen.every(s => s.n === 3 && s.slot === 'Article') && /3 nouns done/.test(await page.textContent('.screen h2')), 'a round with ο / η / το works like de / het');
       await ctx.close();
     }
     // --- which cards count: one entry per noun, ambiguous ones out, the meaning only for het blik / de blik
@@ -2785,9 +2785,9 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('#helpBtnHdr'); await page.waitForTimeout(200);
       ok(await page.$eval('#helpNav .chip.on', e => e.dataset.help) === 'grammar', 'Help in the Grammar Dojo opens its section');
       const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
-      ok(/__ verzoek → het/.test(h) && /__ antwoord hier → dit/.test(h) && /mijn nummer, __ je al kent → dat/.test(h) && /Not a noun/.test(h) && /three separate days/.test(h) && /el la/.test(h), 'Help explains the three gaps, speed, Not a noun and other languages');
+      ok(/__ verzoek → het/.test(h) && /__ antwoord hier → dit/.test(h) && /mijn nummer, __ je al kent → dat/.test(h) && /Not a noun/.test(h) && /three separate days/.test(h) && /ο η το/.test(h), 'Help explains the three gaps, speed, Not a noun and other languages');
       await page.click('#helpNav [data-help="start"]'); await page.waitForTimeout(80);
-      ok(/Grammar Dojo \(rapid fire on de and het\)/.test(await page.textContent('#helpBody')), 'Getting started names the Grammar Dojo');
+      ok(/Grammar Dojo \(rapid fire on the articles of your nouns\)/.test(await page.textContent('#helpBody')), 'Getting started names the Grammar Dojo');
       await page.click('#helpClose'); await ctx.close();
     }
     // --- From: one group; settings: switching gaps
@@ -2884,6 +2884,126 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const S3 = await getS(r.page);
       ok(S3.gram && Array.isArray(S3.gram.rt.art) && S3.settings.gram.size === 25 && /1 noun\b/.test(await r.page.textContent('.dojo[data-dojo="gram"] .ds')), 'a backup from before V25 imports fine (Grammar Dojo defaults added)');
       await r.ctx.close();
+    }
+
+    // ---------------- V25.3 ----------------
+    console.log('\n[35b] V25.3: more languages built in, Help in your language, mixed-up buttons, automatic forms come back');
+    // --- eight more languages, nothing to type
+    {
+      const cases = [['sv-SE', 'en · ett', 2, [word('en bil', 'car'), word('ett hus', 'house')]], ['da-DK', 'en · et', 2, [word('en bil', 'car'), word('et hus', 'house')]],
+        ['nb-NO', 'en · ei · et', 3, [word('en bil', 'car'), word('ei jente', 'girl'), word('et hus', 'house')]],
+        ['fr-FR', 'le · la', 2, [word('le livre', 'book'), word('la maison', 'house'), word("l'homme", 'man'), word('les gens', 'people')]],
+        ['es-MX', 'el · la', 2, [word('el libro', 'book'), word('la casa', 'house'), word('los niños', 'children')]],
+        ['it-IT', 'il · lo · la', 3, [word('il libro', 'book'), word('lo zaino', 'backpack'), word('la casa', 'house')]],
+        ['pt-BR', 'o · a', 2, [word('o livro', 'book'), word('a casa', 'house')]], ['ro-RO', 'un · o', 2, [word('un scaun', 'chair'), word('o carte', 'book')]]];
+      const bad = [];
+      for (const [l, forms, n, ws] of cases) {
+        const st = state([list('L', ws)], lang(l)); st.dojo = 'gram';
+        const { ctx, page } = await freshD(st);
+        const sub = await page.textContent('#gdCard .gd-sub').catch(() => ''), cnt = await page.textContent('.dojo[data-dojo="gram"] .ds').catch(() => '');
+        if (!(sub === forms && cnt === n + ' nouns' && !(await page.$('#gdSetup')))) bad.push(l + ': ' + sub + ' / ' + cnt);
+        await ctx.close();
+      }
+      ok(!bad.length, "built in, nothing to type: Swedish en · ett, Danish en · et, Norwegian en · ei · et, French le · la (not l' or les), Spanish el · la (not los), Italian il · lo · la, Portuguese o · a, Romanian un · o" + (bad.length ? ' — ' + bad.join('; ') : ''));
+    }
+    {
+      const st = state([list('SV', [word('en bil', 'car'), word('ett hus', 'house'), word('ett äpple', 'apple')])], lang('sv-SE')); st.dojo = 'gram';
+      const { ctx, page } = await freshD(st);
+      await startRound(page);
+      const it = await gItem(page);
+      ok(it.n === 2 && (await page.$$eval('#gPills .pill', e => e.map(x => x.textContent.replace(/\d/g, '')))).join() === 'en,ett', 'Swedish: a round with en | ett');
+      await pill(page, rightIdx(it, { bil: 'en', hus: 'ett', 'äpple': 'ett' }, ['en', 'ett'])); await page.waitForTimeout(60);
+      ok((await fbG(page)) === 'Fast', '…and the right one counts');
+      await page.click('#backBtn'); await page.waitForTimeout(250);
+      await page.click('#setBtnHdr'); await page.waitForTimeout(200);
+      ok(await page.$eval('#gArtsBox', e => e.hidden) && await page.$eval('#gBtnBox', e => !e.hidden) && await page.$eval('#gLabBox', e => e.hidden) && await page.$eval('#gMixToggle', e => !e.classList.contains('on')), 'Settings → Grammar Dojo for Swedish: no articles to type, no labels switch, "Mix up the buttons" (off)');
+      await page.click('#setClose'); await page.waitForTimeout(200);
+      await page.click('#helpBtnHdr'); await page.waitForTimeout(200);
+      const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/ett hus = a house/.test(h) && /__ hus → ett/.test(h) && /en, ett/.test(h) && !/verzoek|antwoord|spijt|Antrag/.test(h), 'Help speaks Swedish: ett hus = a house, __ hus → ett, nothing Dutch');
+      await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(80);
+      ok(/like ett hus = a house/.test((await page.textContent('#helpBody')).replace(/\s+/g, ' ')), 'Your lists: the article example in Swedish too');
+      await page.click('#helpClose'); await ctx.close();
+    }
+    // --- Help follows the language you're learning
+    {
+      const hOf = async st => { const { ctx, page } = await freshD(st); await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
+        await page.click('#helpNav [data-help="grammar"]'); await page.waitForTimeout(80); const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+        await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(80); const l = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+        await ctx.close(); return { h, l }; };
+      const de = await hOf(state([list('D', [word('das Haus', 'house'), word('der Tisch', 'table')])], lang('de-DE')));
+      ok(/das Haus = the house/.test(de.h) && /__ Haus → das/.test(de.h) && /der, die, das/.test(de.h) && !/verzoek|daar/.test(de.h), 'German: German examples, der, die, das');
+      const ja = await hOf(state([list('J', [word('sensei', 'teacher')])], lang('ja-JP')));
+      ok(/languages whose nouns carry an article/.test(ja.h) && !/verzoek|Antrag|das Haus/.test(ja.h + ja.l) && /In a language with articles, write nouns with their article/.test(ja.l), 'Japanese (no articles): a short neutral note, no Dutch or German example anywhere in Help');
+      const gk = await hOf(state([list('G', [word('το σπίτι', 'house'), word('η πόρτα', 'door')])], Object.assign({ gram: { arts: 'ο η το' } }, lang('el-GR'))));
+      ok(/το σπίτι = house/.test(gk.h) && /__ σπίτι → το/.test(gk.h) && /like το σπίτι = house/.test(gk.l), 'typed articles (Greek ο η το): the example comes from your own cards');
+      const nl = await hOf(state([list('N', [word('de appel', 'der Apfel')])], NL));
+      ok(/het verzoek = the request/.test(nl.h) && /__ antwoord hier → dit/.test(nl.h) && /mix up the buttons/.test(nl.h) && !/der Antrag/.test(nl.h + nl.l), 'Dutch: the three gaps as before; the example in English now (no "der Antrag")');
+    }
+    // --- mixed-up buttons: new places on every card, the same buttons, their own speed record
+    {
+      const nouns = ['appel:de', 'huis:het', 'tafel:de', 'boek:het', 'raam:het', 'stoel:de', 'deur:de', 'bed:het', 'kast:de', 'dak:het'];
+      const arts = Object.fromEntries(nouns.map(x => x.split(':')));
+      const st = state([list('M', nouns.map(x => { const [n, a] = x.split(':'); return word(a + ' ' + n, n.toUpperCase()); }))], NL); st.dojo = 'gram';
+      const { ctx, page } = await freshD(st);
+      await page.click('#setBtnHdr'); await page.waitForTimeout(200);
+      await page.click('#gMixToggle'); await page.waitForTimeout(80);
+      ok((await getS(page)).settings.gram.mix === true && await page.$eval('#gMixToggle', e => e.classList.contains('on')), 'Settings → Grammar Dojo: "Mix up the buttons" switched on, remembered');
+      await page.click('#setClose'); await page.waitForTimeout(200);
+      await startRound(page, 'dem');
+      await page.evaluate(() => document.querySelectorAll('#gPills .pill').forEach(p => { p.__keep = 1; }));
+      const orders = new Set(); let allRight = true, kept = true, labs = 0, cards = 0;
+      while (cards < 10) {
+        const it = await gItem(page); if (!/^This/.test(it.slot)) break; cards++;
+        orders.add((await page.$$eval('#gPills .pill', e => e.map(x => x.textContent.replace(/\d/g, '')))).join());
+        labs += await page.$$eval('#gPills .pl-h, #gPills .pl-r', e => e.length);
+        kept = kept && await page.evaluate(() => [...document.querySelectorAll('#gPills .pill')].every(p => p.__keep === 1));
+        const r = rightIdx(it, arts);
+        if (cards % 2) { const pos = await page.$eval(`#gPills .pill[data-i="${r}"]`, e => +e.dataset.pos); await page.waitForSelector('#gPills[data-ready]'); await page.keyboard.press(String(pos + 1)); }
+        else await pill(page, r);
+        await page.waitForTimeout(40);
+        if (!/Fast|Right/.test(await fbG(page))) allRight = false;
+        await page.waitForTimeout(500); await ready(page);
+      }
+      ok(cards === 10 && orders.size >= 3, 'mixed up: dit, dat, deze and die change places from card to card (' + orders.size + ' different orders in ' + cards + ' cards)');
+      ok(labs === 0, '…without the hier / daar and de / het labels');
+      ok(kept, '…on the same buttons, so nothing pops in again between cards');
+      ok(allRight, '…and tapping the right word, or pressing the number of the place where it sits, counts as right');
+      const S1 = await getS(page);
+      ok(Array.isArray(S1.gram.rt['dem~m']) && S1.gram.rt['dem~m'].length === 10 && !(S1.gram.rt.dem || []).length, 'mixed-up answers keep their own speed record, apart from the fixed grid\'s');
+      await ctx.close();
+    }
+    // --- automatic forms come back after a growing pause, a few per round
+    {
+      const td = dayNo();
+      const mk = (a, n, g) => word(a + ' ' + n, n.toUpperCase(), g ? { gr: { art: g } } : {});
+      const ws = [mk('de', 'appel', (td - 15) + 'f30'), mk('het', 'huis', (td - 5) + 'f31'), mk('de', 'tafel', (td - 31) + 'f40'), mk('het', 'boek', (td - 20) + 'f41')];
+      for (let k = 0; k < 12; k++) ws.push(mk(k % 2 ? 'het' : 'de', 'nieuw' + k));
+      const arts = Object.fromEntries(ws.map(w => [w.nl.split(' ')[1], w.nl.split(' ')[0]]));
+      const st = state([list('A', ws)], Object.assign({ gram: { size: 10 } }, NL)); st.dojo = 'gram';
+      const { ctx, page } = await freshD(st);
+      ok(/4 of 16 automatic/.test(await page.textContent('#gdCard .gd-row')), 'checked forms still count as automatic (4 of 16)');
+      await startRound(page);
+      const names = (await playAll(page, arts)).map(x => x.f);
+      ok(names.length === 10 && names.includes('appel') && names.includes('tafel') && !names.includes('huis') && !names.includes('boek'), 'automatic forms come back when their pause is over (appel after two weeks, tafel after a month), between the new ones; huis (5 days) and boek (20 of 30 days) rest');
+      const S2 = await getS(page);
+      ok(gr(S2, 'de appel').art === td + 'f40' && gr(S2, 'de tafel').art === td + 'f50', 'right and fast again: the pause grows (appel 3 → 4, tafel 4 → 5)');
+      await ctx.close();
+    }
+    {
+      const td = dayNo(), ws = [];
+      for (let k = 0; k < 5; k++) ws.push(word('de oud' + k, 'O', { gr: { art: (td - 40) + 'f30' } }));
+      for (let k = 0; k < 10; k++) ws.push(word('het nieuw' + k, 'N'));
+      const arts = Object.fromEntries(ws.map(w => [w.nl.split(' ')[1], w.nl.split(' ')[0]]));
+      const st = state([list('C', ws)], Object.assign({ gram: { size: 10 } }, NL)); st.dojo = 'gram';
+      const { ctx, page } = await freshD(st);
+      await startRound(page);
+      let missed = null;
+      const seen = await playAll(page, arts, undefined, it => { if (!missed && /^oud/.test(it.f) && !/again/.test(it.slot)) { missed = it.f; return true; } return false; });
+      const firsts = seen.filter(x => !/again/.test(x.slot));
+      ok(firsts.length === 10 && firsts.filter(x => /^oud/.test(x.f)).length === 2, 'five automatic forms due, a round of 10: two of them, eight new ones');
+      ok(!!missed && gr(await getS(page), 'de ' + missed).art === td + 'm20!', 'a miss sends an automatic form back to practice (3 → 2)');
+      await ctx.close();
     }
   }
 

@@ -690,9 +690,10 @@
     <h4>Your language</h4>
     <label class="setsel">Language you're learning <select class="field" id="gLangSel"></select><small>The same as the Word Dojo's: the Grammar Dojo drills the nouns in your Word Dojo lists.</small></label>
     <p class="hint" id="gNoArts" hidden>This language has no articles to drill, so the Grammar Dojo stays hidden for it.</p>
-    <div id="gLabBox"><h4>Buttons</h4>
-    <div class="toggle" id="gLabToggle"><div class="switch"></div><div>Show the labels<small>hier and daar beside the rows, de and het above the columns. Off makes it harder.</small></div></div></div>
-    <div id="gArtsBox"><label class="setsel">Articles <input type="text" class="field" id="gArts" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. el la"><small>For a language other than Dutch and German: type its articles with a space between them. Every Word Dojo card that starts with one of them becomes a noun here.</small></label></div>
+    <div id="gBtnBox"><h4>Buttons</h4>
+    <div id="gLabBox"><div class="toggle" id="gLabToggle"><div class="switch"></div><div>Show the labels<small>hier and daar beside the rows, de and het above the columns. Off makes it harder.</small></div></div></div>
+    <div class="toggle" id="gMixToggle"><div class="switch"></div><div>Mix up the buttons<small>They change places on every card, so you read the word instead of following where it sits. Harder, and slower at first.</small></div></div></div>
+    <div id="gArtsBox"><label class="setsel">Articles <input type="text" class="field" id="gArts" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. ο η το"><small>For a language whose articles aren't built in, like Greek: type them with a space between them. Every Word Dojo card that starts with one of them becomes a noun here.</small></label></div>
     <div id="gNotBox" hidden><h4>Not a noun</h4><p class="hint"><span id="gNotCount"></span></p><button type="button" class="btn ghost sm" id="gNotBack">Bring them back</button></div>
     </div>
     <div class="divider"></div>
@@ -749,11 +750,12 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.2";
+  const APP_VERSION="25.3";
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.3", items:["Grammar Dojo: articles built in for Swedish, Danish, Norwegian, French, Spanish, Italian, Portuguese and Romanian \u2014 nothing to type in Settings.","New in Settings \u2192 Grammar Dojo: Mix up the buttons. They change places on every card, so you read the word instead of following where it sits.","Automatic forms now come back after a pause \u2014 two weeks, then a month, then longer \u2014 a few per round, so they stay automatic. A miss sends one back to practice.","Help for the Grammar Dojo shows examples in the language you're learning."]},
     {v:"25.2", items:["Grammar Dojo: misses stick better. A card you miss comes back once more later in the same round (marked \u201cagain\u201d), and first in your next round.","A miss earns nothing that day: getting it right minutes later no longer counts toward automatic. It has to be right and fast again on another day.","Settings \u2192 Grammar Dojo: hide the labels (hier, daar, de, het) for a harder round."]},
     {v:"25.1", items:["Grammar Dojo: you pick what you practise. Each row on the Articles card (Article, This / that, Relative) starts a round of just that gap, so the buttons stay the same all round.","This / that: the buttons are labelled \u2014 hier and daar beside the rows, de and het above the columns. The sentence says hier or daar, so you only decide de or het. Relative has de and het above its two buttons too."]},
-    {v:"25", items:["New: the Grammar Dojo (beta), the third tile at the top. Its first mode, Articles, is rapid fire: a noun with a gap, and you tap the right form as fast as you can \u2014 de or het, and in Dutch also this or that (deze, dit, die, dat) and die or dat. German: der, die or das.","It uses the nouns already in your Word Dojo lists (cards like het verzoek = der Antrag), so there's nothing new to type. \u201cFrom\u201d picks the groups.","Speed counts: right and fast on three separate days makes a form automatic, and slow answers come back sooner. After a round, your misses come back first \u2014 tap one if it was just a slip."]},
+    {v:"25", items:["New: the Grammar Dojo (beta), the third tile at the top. Its first mode, Articles, is rapid fire: a noun with a gap, and you tap the right form as fast as you can \u2014 de or het, and in Dutch also this or that (deze, dit, die, dat) and die or dat. German: der, die or das.","It uses the nouns already in your Word Dojo lists (cards whose word starts with an article), so there's nothing new to type. \u201cFrom\u201d picks the groups.","Speed counts: right and fast on three separate days makes a form automatic, and slow answers come back sooner. After a round, your misses come back first \u2014 tap one if it was just a slip."]},
     {v:"24.6", items:["Phones: tapping a box no longer zooms the page on an iPhone, the page behind a window stays put, and windows fill the screen.","Every window has a \u00d7 in its corner to close it, and it stays in view while you scroll.","Sort: \u201cDate made\u201d is now \u201cDate created\u201d.","( ) explained as the two things it does: a hint on the side you're asked, like karai = hot (spicy), and optional on the side you type, like arigat\u014d (gozaimasu)."]},
     {v:"24.5", items:["Fixed: on a phone, an AI's answer could arrive without its line breaks and become one giant card. Every kind of line break now counts, and a list that arrives as one long line is split at its numbers \u2014 or Language Senpai tells you what happened and creates nothing.","Get words and Get sentences now ask the AI for numbered lines in one code block: tap Copy on that box, then paste.","+ New list warns you before saving a line that holds several pairs.","Answers in other shapes become cards too: a table, bold or italic words, bullets and emoji, arrows instead of \u201c=\u201d, quotes around words. Invisible characters and accents stored in an unusual way are cleaned up, also in the cards you already have, so a card that looks right can always be answered right."]},
     {v:"24.4", items:["Sort your lists: the new sort button next to a group's name sorts its lists, and the one next to Student or Master sorts their groups (in a folder without groups, its lists).","Sort by name (1-500 comes before 501-1000), by the date a list was made, or by when you last practised it — either way round.","Sorting happens once, so the arrows still move things by hand afterwards. Changed your mind? Undo appears for a few seconds.","New lists now remember the day they were made. Lists made before this version count as oldest."]},
@@ -840,11 +842,13 @@
   function fixSettings(s){ s=s||{}; return { speak:fixSpeak(s.speak), showPrev:s.showPrev!==false, revisitGroups:fixRevSel(s.revisitGroups), revisitSize:fixRevSize(s.revisitSize), wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), gram:fixGramSet(s.gram), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
   // v25: Grammar Dojo settings (which gaps, round size, From, articles typed by hand) and state (your answer times, today's count)
   function fixGramSet(v){ v=(v&&typeof v==="object")?v:{};
-    return { labels:v.labels!==false, size:[10,25,50,100].includes(+v.size)?+v.size:25,
+    return { labels:v.labels!==false, mix:v.mix===true, size:[10,25,50,100].includes(+v.size)?+v.size:25,
       from:Array.isArray(v.from)&&v.from.length?v.from.filter(g=>typeof g==="string"):null, arts:typeof v.arts==="string"?v.arts.slice(0,80):"" }; }
   function fixGram(g){ g=(g&&typeof g==="object")?g:{}; const r=(g.rt&&typeof g.rt==="object")?g.rt:{}, d=(g.day&&typeof g.day==="object")?g.day:{};
     const one=a=>Array.isArray(a)?a.filter(x=>typeof x==="number" && x>0 && x<=RT_CAP).slice(-40):[];
-    return { rt:{art:one(r.art), dem:one(r.dem), rel:one(r.rel)}, day:{d:+d.d||0, n:+d.n||0, a:+d.a||0} }; }
+    const rt={art:one(r.art), dem:one(r.dem), rel:one(r.rel)};
+    ["art","dem","rel"].forEach(k=>{ const m=one(r[k+"~m"]); if(m.length) rt[k+"~m"]=m; });   // v25.3: "~m" = mixed-up buttons, their own speed
+    return { rt, day:{d:+d.d||0, n:+d.n||0, a:+d.a||0} }; }
   function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
 
   let rescued=null, saveBlocked=false, bootSave=false, saveWarned=false, saveN=0;   // v22: declared before load/save first run
@@ -1162,8 +1166,20 @@
   // language you're learning (de appel, het gezag; der/die/das). A gap, buttons in fixed places (de-forms left,
   // het-forms right), speed as the memory signal: right and fast on three separate days = automatic.
   // No lists, shurikens or rivals of its own. Progress per noun and gap lives on the card itself:
-  // w.gr = {art:"<day><f|s|m|x><fast days 0-3><article index>", dem:…, rel:…, x:1 = "not a noun"}.
-  const GRAM_LANGS={ nl:{arts:["de","het"], slots:["art","dem","rel"], name:"Dutch"}, de:{arts:["der","die","das"], slots:["art"], name:"German"} };
+  // w.gr = {art:"<day><f|s|m|x><fast days 0-3, then 4-6 = checks passed after a pause><article index>[!]", dem:…, rel:…, x:1 = "not a noun"}.
+  // ex: a card that shows the idea, meanings in English (the app's language for examples)
+  const GRAM_LANGS={ nl:{arts:["de","het"], slots:["art","dem","rel"], name:"Dutch", ex:"het verzoek = the request"},
+    de:{arts:["der","die","das"], slots:["art"], name:"German", ex:"das Haus = the house"},
+    // v25.3: built in, nothing to type: the singular articles that carry a noun's gender (cards with l', les, los, gli… stay out)
+    sv:{arts:["en","ett"], slots:["art"], name:"Swedish", ex:"ett hus = a house"},
+    da:{arts:["en","et"], slots:["art"], name:"Danish", ex:"et hus = a house"},
+    nb:{arts:["en","ei","et"], slots:["art"], name:"Norwegian", ex:"et hus = a house"},
+    fr:{arts:["le","la"], slots:["art"], name:"French", ex:"la maison = the house"},
+    es:{arts:["el","la"], slots:["art"], name:"Spanish", ex:"la casa = the house"},
+    it:{arts:["il","lo","la"], slots:["art"], name:"Italian", ex:"lo zaino = the backpack"},
+    pt:{arts:["o","a"], slots:["art"], name:"Portuguese", ex:"a casa = the house"},
+    ro:{arts:["un","o"], slots:["art"], name:"Romanian", ex:"o carte = a book"} };
+  GRAM_LANGS.nn=GRAM_LANGS.no=GRAM_LANGS.nb;
   const GRAM_NO_ARTS=new Set(["zh","ja","ko","th","vi","ru","uk","be","bg","mk","pl","cs","sk","sl","hr","sr","bs","fi","et","lt","lv","tr","az","kk","hi","ur","bn","id","ms","tl","fa","ar","he","hu","en"]);
   const GRAM_LABEL={art:"Article", dem:"This / that", rel:"Relative"};
   const GD_PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></svg>';
@@ -1176,9 +1192,9 @@
   function gramSet(){ if(!S.settings.gram || typeof S.settings.gram!=="object" || !S.settings.gram.size) S.settings.gram=fixGramSet(S.settings.gram); return S.settings.gram; }
   function gramState(){ if(!S.gram || !S.gram.rt || !S.gram.day) S.gram=fixGram(S.gram); return S.gram; }
   // a gap's progress; written for one article, so a card whose article was corrected starts afresh
-  function gGet(w,s,g){ const v=w&&w.gr&&w.gr[s], m=typeof v==="string" && v.match(/^(\d+)([fsmx])([0-3])(\d)?(!)?$/);
+  function gGet(w,s,g){ const v=w&&w.gr&&w.gr[s], m=typeof v==="string" && v.match(/^(\d+)([fsmx])([0-6])(\d)?(!)?$/);
     if(!m || (m[4]!=null && g!=null && +m[4]!==g)) return null; return {d:+m[1], r:m[2], c:+m[3], bang:!!m[5]}; }
-  function gSet(w,s,g,st){ if(!w.gr || typeof w.gr!=="object") w.gr={}; w.gr[s]=String(st.d)+st.r+Math.max(0,Math.min(3,st.c|0))+g+(st.bang?"!":""); }   // v25.2: "!" = missed today
+  function gSet(w,s,g,st){ if(!w.gr || typeof w.gr!=="object") w.gr={}; w.gr[s]=String(st.d)+st.r+Math.max(0,Math.min(6,st.c|0))+g+(st.bang?"!":""); }   // v25.2: "!" = missed today
   function gramOwnArts(){ return [...new Set(String(gramSet().arts||"").toLowerCase().split(/[\s,;\/|·]+/).map(a=>a.trim()).filter(a=>a && a.length<=12))].slice(0,8); }
   function gramGuess(){   // no language chosen anywhere: "het" = Dutch, "der"/"das" = German
     let nl=0, de=0;
@@ -1192,7 +1208,7 @@
       const g=gramGuess();
       if(g){ base=g; code=g==="nl"?"nl-NL":"de-DE"; } else { code=dojoLang("word")||""; base=code.split("-")[0].toLowerCase(); }
     }
-    if(GRAM_LANGS[base]) return {base, code, builtin:true, arts:GRAM_LANGS[base].arts.slice(), slots:GRAM_LANGS[base].slots.slice(), name:GRAM_LANGS[base].name};
+    if(GRAM_LANGS[base]) return {base, code, builtin:true, arts:GRAM_LANGS[base].arts.slice(), slots:GRAM_LANGS[base].slots.slice(), name:GRAM_LANGS[base].name, ex:GRAM_LANGS[base].ex};
     if(base && GRAM_NO_ARTS.has(base)) return null;           // a language without articles: no Grammar Dojo (yet)
     if(!base && own.length<2) return null;                    // language unknown, no articles typed
     return {base, code, builtin:false, arts:own.length>=2?own:[], slots:["art"], name:code?langName(code):""};
@@ -1225,15 +1241,20 @@
     const cfg=gramCfg(), v=cfg ? {cfg, nouns:cfg.arts.length?gramNouns(cfg):[]} : null;
     gramMemo={n:saveN, L:S.lists, v}; return v;
   }
-  // what a round can take, best first: misses, slow answers, nouns in progress, new ones (words you've mastered
-  // first, in list order), then the automatic ones you haven't seen for longest. Right and fast today = tomorrow.
+  // v25.3: an automatic form rests, then comes back for a check: after two weeks, a month, two months, then four
+  // (each right-and-fast check lengthens the pause; a miss sends it back to practice)
+  const GRAM_PAUSE={3:14, 4:30, 5:60};
+  function gramPause(c){ return GRAM_PAUSE[c]||120; }
+  // what a round can take, best first: misses, slow answers, nouns in progress, automatic forms that are due (a few
+  // per round), new ones (words you've mastered first, in list order), then the automatic ones you haven't seen for
+  // longest. Right and fast today = tomorrow.
   function gramItems(cfg, nouns, only){
     const td=gdDay(), sel=gramSel(), slots=only ? [only] : gramSlots(cfg), items=[];
     nouns.forEach(e=>{ if(e.x || !inGramSel(e,sel)) return;
       slots.forEach((s,si)=>{ if(e.phrase && s!=="art") return;   // a phrase ("het risico lopen"): the article gap only
         const st=gGet(e.w,s,e.g); let pri;
-        if(!st) pri=4; else if(st.r==="m") pri=1; else if(st.r==="s") pri=2; else { if(st.d>=td) return; pri=st.c>=3?5:3; }
-        items.push({e, s, si, pri, d:st?st.d:0}); }); });
+        if(!st) pri=4; else if(st.r==="m") pri=1; else if(st.r==="s") pri=2; else { if(st.d>=td) return; pri=st.c<3 ? 3 : (td-st.d>=gramPause(st.c) ? 3.5 : 5); }
+        items.push({e, s, si, pri, d:st?st.d:0, due:pri===3.5}); }); });
     items.sort((a,b)=>a.pri-b.pri || (a.pri===4 ? ((a.e.known?0:1)-(b.e.known?0:1) || a.e.ord-b.e.ord || a.si-b.si) : (a.d-b.d || a.e.ord-b.e.ord || a.si-b.si)));
     return items;
   }
@@ -1266,6 +1287,7 @@
     if(a.length<8) return ({2:1800,3:2100,4:2400})[n]||2700;
     const b=a.slice().sort((x,y)=>x-y), h=b.length>>1, med=b.length%2 ? b[h] : (b[h-1]+b[h])/2; return Math.max(600, med*1.5); }
   function gramNoteRt(s, rt){ const r=gramState().rt; if(!Array.isArray(r[s])) r[s]=[]; r[s].push(Math.round(rt)); if(r[s].length>40) r[s].splice(0, r[s].length-40); }
+  function gramRtKey(s){ return gramSet().mix===true ? s+"~m" : s; }   // v25.3: searching mixed-up buttons takes longer, so they keep their own speed
   function gramTally(auto){ const d=gramState().day, t=gdDay(); if(d.d!==t){ d.d=t; d.n=0; d.a=0; } d.n++; if(auto) d.a++; }
   function gramTallyHtml(){ const d=gramState().day; if(d.d!==gdDay() || !d.n) return "";
     return `<p class="tally-line" id="tallyLine">Today: <b>${d.n}</b> answered · <b>${d.a}</b> now automatic</p>`; }
@@ -1277,7 +1299,7 @@
     const head=sub=>`<div class="gd-top"><span class="gd-ico" lang="ja" aria-hidden="true">法</span><div><div class="gd-name">Articles</div><div class="gd-sub" translate="no">${esc(sub)}</div></div></div>`;
     if(!cfg.arts.length) return `<div class="${cls}" id="gdCard">${head("Your articles first")}<p class="gd-empty">Which articles does ${esc(cfg.name||"your language")} have? Type them in Settings, and every card that starts with one of them becomes a noun here.</p><button class="btn gd-go" id="gdSetup">Set the articles</button></div>`;
     const slots=gramSlots(cfg), live=nouns.filter(e=>!e.x).length;
-    if(!live){ const ex=cfg.base==="nl"?"de appel = der Apfel":cfg.base==="de"?"das Haus = the house":`${cfg.arts[0]} … = …`;
+    if(!live){ const ex=cfg.ex||`${cfg.arts[0]} … = …`;
       return `<div class="${cls}" id="gdCard">${head(gramForms(cfg,slots))}<p class="gd-empty">No nouns yet. Word Dojo cards whose word starts with an article, like <b translate="no">${esc(ex)}</b>, show up here.</p></div>`; }
     const sel=gramSel(), st=gramStats(cfg,nouns), groups=gramGroups(nouns), size=gramSize();
     // v25.1: one row per gap, each a start button of its own (a round drills one gap, so the buttons never change mid-round)
@@ -1331,7 +1353,13 @@
     const D=gramData(); if(!D || !D.cfg.arts.length) return;
     if(!D.cfg.slots.includes(slot)) slot=D.cfg.slots[0];
     const items=gramItems(D.cfg, D.nouns, slot), size=gramSize(), used=new Set(), pick=[];
-    for(const it of items){ if(pick.length>=size) break; if(used.has(it.e.key)) continue; used.add(it.e.key); pick.push(it); }
+    const capDue=Math.max(2, Math.round(size/5)), late=[]; let nDue=0;   // v25.3: due automatic forms, a few per round
+    const take=it=>{ if(pick.length>=size || used.has(it.e.key)) return; used.add(it.e.key); pick.push(it); };
+    for(const it of items){ if(pick.length>=size) break;
+      if(it.pri===5 && late.length){ late.splice(0).forEach(take); if(pick.length>=size) break; }   // due ones before the rest
+      if(it.due){ if(nDue>=capDue){ late.push(it); continue; } if(!used.has(it.e.key)) nDue++; }
+      take(it); }
+    late.forEach(take);
     hideGramToast(); gramStop();
     if(!pick.length){ S.view="library"; save(); render(); return; }
     const seq=[]; gramSlots(D.cfg).forEach(s=>seq.push(...gShuffle(pick.filter(it=>it.s===s))));
@@ -1373,24 +1401,27 @@
     const f=document.getElementById("gFrame"); f.className="gframe"; f.innerHTML=`${esc(fr.pre)}<span class="gap"></span>${esc(fr.post)}`;
     const m=document.getElementById("gMeaning"); m.hidden=!it.e.meaning; m.textContent=it.e.meaning||"";
     document.getElementById("gFb").innerHTML="";
-    const showLab=gramSet().labels!==false, rows=showLab?fr.rows:null, cols=showLab?fr.cols:null;   // v25.2: the labels can be switched off
-    const sig=fr.opts.join("|")+"/"+(rows||[]).join("|")+"/"+(cols||[]).join("|"), box=document.getElementById("gPills"), rebuild=GR.pillsFor!==sig;
+    const gs=gramSet(), mix=gs.mix===true, n=fr.opts.length;   // v25.3: mixed-up buttons change places on every card
+    const perm=[...Array(n).keys()]; if(mix) gShuffle(perm); GR.perm=perm;   // place → which form sits there
+    const showLab=!mix && gs.labels!==false, rows=showLab?fr.rows:null, cols=showLab?fr.cols:null;   // v25.2: the labels can be switched off (and point nowhere once the buttons move)
+    const sig=(mix?"mix:"+n:fr.opts.join("|"))+"/"+(rows||[]).join("|")+"/"+(cols||[]).join("|"), box=document.getElementById("gPills"), rebuild=GR.pillsFor!==sig;
     if(rebuild){
       // v25.1: the grid explains itself — de / het above the columns, hier / daar beside the rows
-      const pill=(o,i)=>`<button type="button" class="pill" data-i="${i}" translate="no" aria-keyshortcuts="${i+1}">${esc(o)}<span class="pk" aria-hidden="true">${i+1}</span></button>`;
+      const pill=pos=>{ const i=perm[pos]; return `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no" aria-keyshortcuts="${pos+1}">${esc(fr.opts[i])}<span class="pk" aria-hidden="true">${pos+1}</span></button>`; };
       const lab=(c,t)=>`<span class="${c}" translate="no" aria-hidden="true">${esc(t)}</span>`;
       let h="";
       if(rows){ const w=cols.length; h=lab("pl-c","")+cols.map(c=>lab("pl-h",c)).join("");
-        rows.forEach((r,ri)=>{ h+=lab("pl-r",r)+fr.opts.slice(ri*w,(ri+1)*w).map((o,k)=>pill(o,ri*w+k)).join(""); }); }
-      else h=(cols?cols.map(c=>lab("pl-h",c)).join(""):"")+fr.opts.map(pill).join("");
-      box.className="pills n"+Math.min(fr.opts.length,6)+(rows?" lab rows":cols?" lab":"");
+        rows.forEach((r,ri)=>{ h+=lab("pl-r",r); for(let k=0;k<w;k++) h+=pill(ri*w+k); }); }
+      else { h=cols?cols.map(c=>lab("pl-h",c)).join(""):""; for(let pos=0;pos<n;pos++) h+=pill(pos); }
+      box.className="pills n"+Math.min(n,6)+(rows?" lab rows":cols?" lab":"");
       box.innerHTML=h;
       box.querySelectorAll(".pill").forEach(p=>{
         p.addEventListener("pointerdown",e=>{ if(e.button!==0) return; e.preventDefault(); gramAnswer(+p.dataset.i); });
         p.addEventListener("click",e=>{ if(e.detail===0) gramAnswer(+p.dataset.i); });   // Enter or Space on a focused button
       });
       GR.pillsFor=sig;
-    } else box.querySelectorAll(".pill").forEach(p=>p.classList.remove("ok","no","right"));
+    } else box.querySelectorAll(".pill").forEach(p=>{ p.classList.remove("ok","no","right");
+      if(mix){ const i=perm[+p.dataset.pos]; p.dataset.i=i; p.firstChild.textContent=fr.opts[i]; } });   // the same buttons, new words: nothing pops in
     delete box.dataset.ready;
     const still=window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     const wait=(rebuild && (it.first||fresh) && !still && box.animate) ? gramPop(box) : 0;
@@ -1415,15 +1446,15 @@
     let fast=false, auto=false, after=null;
     if(it.retry){
       // the second chance inside the round: practice only — the card stays a miss for today and comes first next round
-      if(right) fast = rt <= gramThr(it.s, fr.opts.length);
+      if(right) fast = rt <= gramThr(gramRtKey(it.s), fr.opts.length);
     } else if(right){
-      fast = rt <= gramThr(it.s, fr.opts.length)+(it.first?400:0);   // a little grace on a block's first card
-      gramNoteRt(it.s, rt);
+      fast = rt <= gramThr(gramRtKey(it.s), fr.opts.length)+(it.first?400:0);   // a little grace on a block's first card
+      gramNoteRt(gramRtKey(it.s), rt);
       if(fast && missedToday) gSet(w,it.s,g,{d:td,r:"f",c:pc,bang:true});   // right after a miss today: done for today, but no fast day
-      else if(fast){ const c=Math.min(3, pc+((prev && prev.r==="f" && prev.d>=td)?0:1)); auto=c>=3 && pc<3; gSet(w,it.s,g,{d:td,r:"f",c}); }
+      else if(fast){ const c=Math.min(6, pc+((prev && prev.r==="f" && prev.d>=td)?0:1)); auto=c>=3 && pc<3; gSet(w,it.s,g,{d:td,r:"f",c}); }
       else gSet(w,it.s,g,{d:td,r:"s",c:pc,bang:missedToday});
     } else {
-      after={d:td, r:"m", c:missedToday?pc:Math.max(0,pc-1), bang:true};   // one step a day, however often you miss it
+      after={d:td, r:"m", c:missedToday?pc:(pc>=3?2:Math.max(0,pc-1)), bang:true};   // one step a day, however often you miss it; v25.3: an automatic form goes back to practice
       gSet(w,it.s,g,after);
       if(!GR.seq.some(x=>x.retry && x.e===it.e && x.s===it.s)) GR.seq.splice(Math.min(GR.i+6, GR.seq.length), 0, gramRetry(it));
     }
@@ -1433,8 +1464,8 @@
     // the whole phrase in green or red; the buttons say which was which
     const form=fr.opts[fr.ans], f=document.getElementById("gFrame"), card=document.getElementById("card");
     f.className="gframe "+(right?"ok":"no"); const gap=f.querySelector(".gap"); if(gap) gap.textContent=form;
-    const pills=[...document.querySelectorAll("#gPills .pill")];
-    if(pills[i]) pills[i].classList.add(right?"ok":"no"); if(!right && pills[fr.ans]) pills[fr.ans].classList.add("right");
+    const pOf=k=>document.querySelector(`#gPills .pill[data-i="${k}"]`), pi=pOf(i), pa=pOf(fr.ans);   // v25.3: by form, not by place
+    if(pi) pi.classList.add(right?"ok":"no"); if(!right && pa) pa.classList.add("right");
     if(document.activeElement && document.activeElement.blur && document.activeElement.classList && document.activeElement.classList.contains("pill")) document.activeElement.blur();
     if(card) card.classList.add(right?"flash-good":"flash-bad");
     const art=GR.cfg.arts[g]+" "+it.e.noun;
@@ -1508,7 +1539,7 @@
     const tag=(e.target&&e.target.tagName)||""; if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
     const n=gramFrame(GR.seq[GR.i]).opts.length; let i=-1;
     if(/^[1-9]$/.test(e.key)) i=+e.key-1; else if(n===2 && e.key==="ArrowLeft") i=0; else if(n===2 && e.key==="ArrowRight") i=1;
-    if(i>=0 && i<n){ e.preventDefault(); gramAnswer(i); }
+    if(i>=0 && i<n){ e.preventDefault(); gramAnswer(GR.perm && GR.perm.length===n ? GR.perm[i] : i); }   // a key names a place
   });
   // time spent in Help, Settings or another tab never counts as a slow answer
   const gramResume=()=>{ if(GR && GR.phase==="play" && !GR.answered && !GR.lock && !document.hidden && !document.querySelector(".overlay.open")) GR.shownAt=performance.now(); };
@@ -1520,6 +1551,8 @@
     document.getElementById("gLangSel").value=speakSet("word").lang || (cfg && cfg.code) || dojoLang("word");
     document.getElementById("gArtsBox").hidden=!!(cfg && cfg.builtin);
     document.getElementById("gLabBox").hidden=!(cfg && cfg.base==="nl");
+    document.getElementById("gBtnBox").hidden=!(cfg && cfg.arts.length);
+    document.getElementById("gMixToggle").classList.toggle("on", gs.mix===true);
     document.getElementById("gLabToggle").classList.toggle("on", gs.labels!==false);
     const gf=document.getElementById("gArts"); if(document.activeElement!==gf) gf.value=gs.arts||"";
     document.getElementById("gNoArts").hidden=!!cfg;
@@ -2824,9 +2857,35 @@
   // ======================= v22.4: welcome + Help =======================
   // v24.3: links inside Help, e.g. hl("help:rivals","rival"), hl("settings:backup","Export backup")
   function hl(go, text){ return `<a href="#" class="hl" data-go="${go}">${text}</a>`; }
+  // v25.3: the Grammar Dojo's Help speaks the language you're learning (Japanese has no articles, so the usual
+  // Japanese examples can't show it): Dutch and German as built in, others from the learner's own cards
+  const GRAM_BUILTIN="Dutch, German, Swedish, Danish, Norwegian, French, Spanish, Italian, Portuguese and Romanian";
+  function gramOwnEx(D){ const e=D && D.nouns.find(x=>!x.x); return e ? `${parseSide(e.w.nl).primary} = ${parseSide(e.w.de).primary}` : ""; }
+  function gramHelpHtml(){
+    const D=gramData(), cfg=D&&D.cfg, set=hl("settings:gram","Settings → Grammar Dojo");
+    const other=`<li>Another language? The Grammar Dojo uses the language you're learning. Built in: ${GRAM_BUILTIN}. For another one, type its articles in ${set} (e.g. <code translate="no">ο η το</code> for Greek). For a language without articles, like Chinese, the Grammar Dojo stays hidden.</li>`;
+    if(!cfg || !cfg.arts.length) return `<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, is for languages whose nouns carry an article, like German, Spanish or Swedish: it shows a noun with a gap, and you tap the right article as fast as you can.</p><ul>
+      <li>${cfg ? `First, type the articles of ${esc(cfg.name||"your language")} in ${set}: every Word Dojo card that starts with one of them becomes a noun here.` : `Its tile shows up when the language you're learning has articles: choose your language in Settings.`}</li>${other}</ul>`;
+    const nl=cfg.base==="nl", ex=cfg.ex||gramOwnEx(D), m=ex.match(/^(\S+) (.+?) = /), n=cfg.arts.length;
+    const gaps = nl ? `<li id="hGramGaps">Dutch has three kinds of gap: the <b>article</b> (<i>__ verzoek</i> → het), <b>this / that</b> (<i>__ antwoord hier</i> → dit) and the <b>relative</b> pronoun (<i>mijn nummer, __ je al kent</i> → dat). Each row on the Articles card starts a round of just that gap, so the buttons stay the same all round. A phrase like <i>het risico lopen</i> only gets the article gap.</li>`
+      : `<li id="hGramGaps">${esc(cfg.name||"Your language")}: the <b>article</b> gap${m?` (<i translate="no">__ ${esc(m[2])}</i> → ${esc(m[1])})`:""}, with the buttons <b translate="no">${cfg.arts.map(esc).join(", ")}</b>.</li>`;
+    const btns = nl ? `<li>The buttons stay in place: de-forms on the left, het-forms on the right, so your hand learns the split. In this / that, <i>hier</i> and <i>daar</i> label the rows: the sentence tells you the row, and you decide de or het. For a harder round, hide the labels or <b>mix up the buttons</b> in ${set}: then they change places on every card, so you read the word instead of following where it sits. On a keyboard, press ← → or 1–4.</li>`
+      : `<li>The buttons stay in place, so your hand learns where each one is. For a harder round, <b>mix up the buttons</b> in ${set}: then they change places on every card, so you read the word instead of following where it sits. On a keyboard, press ${n===2?"← → or 1–2":"1–"+n}.</li>`;
+    return `<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, shows a noun with a gap, and you tap the right form as fast as you can.</p><ul>
+      <li>The nouns come from your <b>Word Dojo</b> cards whose word starts with an article${ex?`, like <code translate="no">${esc(ex)}</code>`:""}, so there's nothing new to type. To practise particular nouns, put them in a list or group and pick it under <b>From</b>.</li>${gaps}${btns}
+      <li><b>Speed counts.</b> A right answer that's much slower than your usual comes back sooner. Right and fast on three separate days makes a form <b>automatic</b>: the gold part of each bar on the card.</li>
+      <li>Automatic forms rest, then come back for a check, a few per round: after two weeks, then a month, two months and four months. A miss sends a form back to practice.</li>
+      <li>Each round brings your misses first, then slow answers, then nouns in progress, then automatic forms that are due, then new ones (words you've already mastered first). A form you got right and fast waits until tomorrow.</li>
+      <li>A card you miss comes back once more later in the same round (marked <b>again</b>), and first in your next round. A miss earns nothing that day: right a few minutes later doesn't count toward automatic — it has to be right and fast again on another day. Just a slip? Tap it on the end screen, and it won't come back first.</li>
+      <li>The line under the tiles counts today's answers and the forms that became automatic.</li>
+      <li>A card that isn't a noun${nl?`, like <i>het spijt me</i>`:""}? Tap <b>Not a noun</b>, and it stays out. ${set} brings it back.</li>${other}</ul>`;
+  }
+  function gramListsLi(){ const D=gramData(), cfg=D&&D.cfg, ex=cfg && cfg.arts.length ? (cfg.ex||gramOwnEx(D)) : "";
+    return ex ? `<li>Write nouns with their article on the side you type, like <code translate="no">${esc(ex)}</code>: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`
+      : `<li>In a language with articles, write nouns with their article on the side you type: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`; }
   const HELP=[
     {id:"start", t:"Getting started", h:`<p>Language Senpai trains vocabulary and sentences with spaced practice. Everything happens in this browser; nothing leaves your device.</p><ol>
-      <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on de and het).</li>
+      <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on the articles of your nouns).</li>
       <li><b>Try the sample list</b>, or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
       <li id="hGold">Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
       <li>Words you've mastered come back in <b>Revisit</b>, above Master — the ones you haven't seen for longest first.</li>
@@ -2847,16 +2906,7 @@
       <li><b>Tap</b> a word to place it in the next free slot; tap it again to send it back. Or <b>drag</b> it onto any slot — onto another word and the two swap.</li>
       <li><b>Check</b>: words in the right place turn green and stay put. <b>Hint</b> places the next word for you (that sentence then counts as a miss).</li>
       <li>If your word order is also correct but the card didn't know it, press <b>My order is also correct</b> — the card learns it.</li></ul>`},
-    {id:"grammar", t:"Grammar Dojo", h:`<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, shows a noun with a gap, and you tap the right form as fast as you can.</p><ul>
-      <li>The nouns come from your <b>Word Dojo</b> cards whose word starts with an article, like <code>het verzoek = der Antrag</code>, so there's nothing new to type. To practise particular nouns, put them in a list or group and pick it under <b>From</b>.</li>
-      <li id="hGramGaps">Dutch has three kinds of gap: the <b>article</b> (<i>__ verzoek</i> → het), <b>this / that</b> (<i>__ antwoord hier</i> → dit) and the <b>relative</b> pronoun (<i>mijn nummer, __ je al kent</i> → dat). Each row on the Articles card starts a round of just that gap, so the buttons stay the same all round. A phrase like <i>het risico lopen</i> only gets the article gap. German: der, die or das.</li>
-      <li>The buttons never move: de-forms on the left, het-forms on the right, so your hand learns the split. In this / that, <i>hier</i> and <i>daar</i> label the rows: the sentence tells you the row, and you decide de or het. For a harder round, hide the labels in ${hl("settings:gram","Settings → Grammar Dojo")}. On a keyboard, press ← → or 1–4.</li>
-      <li><b>Speed counts.</b> A right answer that's much slower than your usual comes back sooner. Right and fast on three separate days makes a form <b>automatic</b>: the gold part of each bar on the card.</li>
-      <li>Each round brings your misses first, then slow answers, then nouns in progress, then new ones (words you've already mastered first). A form you got right and fast waits until tomorrow.</li>
-      <li>A card you miss comes back once more later in the same round (marked <b>again</b>), and first in your next round. A miss earns nothing that day: right a few minutes later doesn't count toward automatic — it has to be right and fast again on another day. Just a slip? Tap it on the end screen, and it won't come back first.</li>
-      <li>The line under the tiles counts today's answers and the forms that became automatic.</li>
-      <li>A card that isn't a noun, like <i>het spijt me</i>? Tap <b>Not a noun</b>, and it stays out. ${hl("settings:gram","Settings → Grammar Dojo")} brings it back.</li>
-      <li>Another language? The Grammar Dojo uses the language you're learning. For one other than Dutch and German, type its articles in ${hl("settings:gram","Settings → Grammar Dojo")} (e.g. <code>el la</code>). For a language without articles, like Chinese, the Grammar Dojo stays hidden.</li></ul>`},
+    {id:"grammar", t:"Grammar Dojo", get h(){ return gramHelpHtml(); }},
     {id:"rivals", t:"Rivals", h:`<p>A <b>rival</b> is a word (or sentence) that keeps beating you. Tap the <b>bolt</b> <span class="help-ico bolt">${BOLT}</span> in the top-left corner of any card to make it a rival. The red Rivals card at the top lets you challenge all of them at once. Afterwards you can leave behind the ones you got right on the first try.</p>`},
     {id:"revisit", t:"Revisit", h:`<p><b>Revisit</b> brings back the words you mastered longest ago, so they stay fresh. It sits above <b>Master</b>, in both dojos.</p><ul>
       <li>Each round takes your oldest words: as many as you pick under <b>Words per round</b>, next to From (until you pick, a list's size). Right on the first try: done. A miss: three correct answers, as in any list.</li>
@@ -2868,19 +2918,19 @@
       <li><b>Language:</b> choose the language you're learning once in Settings (each dojo has its own); it also decides how Chinese and Japanese characters are drawn. A list can read in another language — set it in the list's editor. Chinese, Japanese, Korean and Thai are recognised from the characters.</li>
       <li><b>Read aloud automatically</b> (Settings, off by default) plays each word as it appears.</li>
       <li>The voices come from your device, so they're free. A faded speaker means there's no voice for that language on this device yet: on iPhone, iPad and Mac, add one under Accessibility → Spoken Content; on other devices, search the settings for "text-to-speech".</li></ul>`},
-    {id:"lists", t:"Your lists", h:`<p>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</p>
+    {id:"lists", t:"Your lists", get h(){ return `<p>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</p>
       <div class="shorthand" id="hShorthand"><h5>Card shorthand</h5><dl>
         <dt><code>/</code> <b>either counts</b></dt><dd><code>dōjō / dojo = training hall</code>: type either one.</dd>
         <dt><code>[ ]</code> <b>also valid, but type the first</b></dt><dd><code>sensei [shishō] = teacher</code>: “shishō” turns teal, and the card waits for “sensei”.</dd>
         <dt><code>( )</code> <b>a hint</b>, on the side you're asked</dt><dd><code>karai = hot (spicy)</code>: you're asked “hot” with the hint “spicy”, so you know it's karai, not atsui (hot as in warm).</dd>
         <dt><code>( )</code> <b>optional</b>, on the side you type</dt><dd><code>arigatō (gozaimasu) = thank you</code>: “arigatō” and “arigatō gozaimasu” both count.</dd>
       </dl></div><ul>
-      <li>Write nouns with their article on the side you type, like <code>het verzoek = der Antrag</code>: in a language with articles, the ${hl("help:grammar","Grammar Dojo")} drills them.</li>
+      ${gramListsLi()}
       <li>Sentences: other correct word orders (same words) go after <code>/</code>.</li>
       <li><b>Groups</b> keep related lists under one heading — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date created</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists created before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
-      <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`},
+      <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`; }},
     {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
       <li><b>Language you're learning</b> (at the top): picks the speaker's voice and how characters are drawn — e.g. Taiwanese or mainland shapes for Chinese.</li>
@@ -3008,6 +3058,7 @@
   document.getElementById("gLangSel").onchange=e=>setSpeak("word","lang",e.target.value);
   document.getElementById("gArts").oninput=e=>{ gramSet().arts=e.target.value; save(); paintGramPane(); };
   document.getElementById("gLabToggle").onclick=()=>{ const gs=gramSet(); gs.labels=gs.labels===false; save(); paintGramPane(); };
+  document.getElementById("gMixToggle").onclick=()=>{ const gs=gramSet(); gs.mix=gs.mix!==true; save(); paintGramPane(); };
   document.getElementById("gNotBack").onclick=()=>{ S.lists.forEach(l=>l.words.forEach(w=>{ if(w.gr && w.gr.x) delete w.gr.x; })); save(); paintGramPane(); };
   document.getElementById("wAutoToggle").onclick=()=>setSpeak("word","auto",!speakSet("word").auto);
   document.getElementById("sAutoToggle").onclick=()=>setSpeak("sentence","auto",!speakSet("sentence").auto);
