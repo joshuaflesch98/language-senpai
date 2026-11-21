@@ -758,10 +758,11 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.6";
+  const APP_VERSION="25.7";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
-    {v:"25.6", items:["Older iPhones and iPads (before iOS 26) now also open Language Senpai from the Home Screen as its own app, like newer ones do: safe from Safari's one-week rule, with its own progress."]},
+    {v:"25.7", items:["Clearer steps for adding Language Senpai to your Home Screen, on the welcome screen and in Help: what to tap, and where Share is on newer iPhones."]},
+{v:"25.6", items:["Older iPhones and iPads (before iOS 26) now also open Language Senpai from the Home Screen as its own app, like newer ones do: safe from Safari's one-week rule, with its own progress."]},
 {v:"25.5", items:["Feedback now sits at the top of the page, next to Help and Settings. On a phone the three get their own row under the name, so nothing is squeezed.","The welcome screen now says up front how your progress stays safe. On an iPhone or iPad: add the app to your Home Screen before you start, because Safari can delete a website's progress after a week without a visit. On Android it suggests the Home Screen for one-tap practice, and in Safari on a Mac it reminds you to back up.","Help \u2192 Saving your progress says which devices this applies to."]},
 {v:"25.4", items:["Send feedback: a link next to the version number in Settings, and at the bottom of Help, opens a short form in a new tab. Only what you type is sent, plus the app's version.","Help \u2192 Settings describes the Grammar Dojo's settings as they are now."]},
     {v:"25.3", items:["Grammar Dojo: articles built in for Swedish, Danish, Norwegian, French, Spanish, Italian, Portuguese and Romanian \u2014 nothing to type in Settings.","New in Settings \u2192 Grammar Dojo: Mix up the buttons. They change places on every card, so you read the word instead of following where it sits.","Automatic forms now come back after a pause \u2014 two weeks, then a month, then longer \u2014 a few per round, so they stay automatic. A miss sends one back to practice.","Help for the Grammar Dojo shows examples in the language you're learning."]},
@@ -2958,8 +2959,8 @@
       <li><b>Use a normal window.</b> Private or incognito windows forget everything when they close.</li>
       <li><b>Always open the same address</b> — bookmark it. A different address, or a newly downloaded copy of the file, starts empty.</li>
       <li><b>If your progress disappears when you close the browser</b>, a privacy setting or extension is deleting what websites save. Allow this site to keep its data — in many browsers through the small icon to the left of the address — or switch that setting off.</li>
-      <li><b>Safari can delete a website's data</b> after about a week without a visit — on an iPhone, an iPad and a Mac. On an iPhone or iPad, add the page to your Home Screen (Share → Add to Home Screen) and practise from there; on a Mac, practise at least once a week. Either way, keep backing up.</li>
-      <li><b>On an iPhone or iPad, the Home Screen app keeps its own storage</b>, separate from Safari. Add it before you start — or, if you've already practised in Safari, export a backup there and import it in the Home Screen app. On Android, the Home Screen icon opens your browser, with the same progress.</li></ul>
+      <li><b>Safari can delete a website's data</b> after about a week without a visit — on an iPhone, an iPad and a Mac. On an iPhone or iPad, add the page to your Home Screen and practise from there: tap Share (on newer iPhones it's in the menu next to the address), then Add to Home Screen (if you don't see it, tap View More first). On a Mac, practise at least once a week. Either way, keep backing up.</li>
+      <li><b>On an iPhone or iPad, the Home Screen app keeps its own storage</b>, separate from Safari. Add it before you start — or, if you've already practised in Safari, export a backup there and import it in the Home Screen app. On Android, tap your browser's menu (⋮), then Add to Home screen; the icon opens your browser, with the same progress.</li></ul>
       <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
       <p class="hint">If saving is blocked completely, Language Senpai tells you straight away. Settings &amp; backup shows how much room your progress takes: browsers keep about 5 MB per website — room for well over 10,000 words — and the app warns you long before it's full.</p>`}
   ];
@@ -3148,9 +3149,9 @@
     if(/Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Firefox|Edg|OPR/.test(ua)) return "macsafari";
   }catch(e){} return ""; }
   const WL_PHONE={
-    ios:"<b>On an iPhone or iPad?</b> Add this page to your Home Screen first (Share \u2192 Add to Home Screen) and practise from there. Safari can delete a website's progress after about a week without a visit; the Home Screen app is safe from that and keeps its own progress, separate from Safari.",
-    android:"<b>On Android?</b> Add this page to your Home Screen (your browser's menu \u2192 Add to Home screen), so practice is one tap away. It keeps the same progress as your browser.",
-    macsafari:"<b>Using Safari?</b> It can delete a website's progress after about a week without a visit, so practise at least once a week and export a backup now and then (Settings &amp; backup \u2192 Export backup)."
+    ios:"<b>On an iPhone or iPad?</b> Add this page to your Home Screen first, and practise from there: tap Share, then Add to Home Screen (on newer iPhones, Share is in the menu next to the address). Safari can delete a website's progress after about a week without a visit; the Home Screen app is safe from that and keeps its own progress, separate from Safari.",
+    android:"<b>On Android?</b> Add this page to your Home Screen, so practice is one tap away: tap your browser's menu (⋮), then Add to Home screen. It keeps the same progress as your browser.",
+    macsafari:"<b>Using Safari?</b> It can delete a website's progress after about a week without a visit, so practise at least once a week, and now and then export a backup: open Settings &amp; backup and click Export backup."
   };
   { const wp=document.getElementById("wlPhone"), k=isStandaloneApp()?"":deviceKind();
     if(wp && k){ wp.innerHTML=WL_PHONE[k]+' <button type="button" class="linkish" id="wlPhoneMore">More</button>'; wp.dataset.kind=k; wp.hidden=false;

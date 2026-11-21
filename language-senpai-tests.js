@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (768 at V25.6)
+ * Language Senpai — automated checks (768 at V25.7)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.6"')), 'version 25.6');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.7"')), 'version 25.7');
     await ctx.close();
   }
   {
@@ -3051,10 +3051,10 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         return { ctx, page, r };
       }
       let { ctx, page, r } = await wl(iphone);
-      ok(r.vis && r.kind === 'ios' && /Add this page to your Home Screen first/.test(r.t) && /about a week without a visit/.test(r.t) && /keeps its own progress, separate from Safari/.test(r.t), 'iPhone: add it to the Home Screen first — Safari\'s week, and the app\'s own progress');
+      ok(r.vis && r.kind === 'ios' && /Add this page to your Home Screen first/.test(r.t) && /about a week without a visit/.test(r.t) && /keeps its own progress, separate from Safari/.test(r.t) && /tap Share, then Add to Home Screen \(on newer iPhones, Share is in the menu next to the address\)/.test(r.t) && !/→/.test(r.t), 'iPhone: add it to the Home Screen first — Safari\'s week, and the app\'s own progress');
       await page.click('#wlPhoneMore'); await page.waitForTimeout(200);
       const hb = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
-      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && /Saving your progress/.test(hb) && /on an iPhone, an iPad and a Mac/.test(hb) && /On Android, the Home Screen icon opens your browser/.test(hb), '"More" opens Help → Saving your progress, which says which devices it concerns');
+      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && /Saving your progress/.test(hb) && /on an iPhone, an iPad and a Mac/.test(hb) && /On Android, tap your browser's menu/.test(hb) && /tap View More first/.test(hb), '"More" opens Help → Saving your progress, which says which devices it concerns');
       await ctx.close();
       ({ ctx, r } = await wl({ viewport: { width: 820, height: 1180 }, userAgent: MAC_SAFARI }, () => Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get() { return 5; }, configurable: true })));
       ok(r.vis && r.kind === 'ios', 'an iPad that introduces itself as a Mac gets the iPhone/iPad note');
@@ -3063,10 +3063,10 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       ok(!r.vis && await page.$eval('#wlHome', e => !e.hidden), 'opened from the Home Screen: no tip, the own-storage note instead');
       await ctx.close();
       ({ ctx, r } = await wl({ viewport: { width: 412, height: 915 }, userAgent: devices['Pixel 7'].userAgent, isMobile: true, hasTouch: true }));
-      ok(r.vis && r.kind === 'android' && /Home Screen/.test(r.t) && /same progress as your browser/.test(r.t) && !/week/.test(r.t), 'Android: a Home Screen tip, without Safari\'s week');
+      ok(r.vis && r.kind === 'android' && /Home Screen/.test(r.t) && /same progress as your browser/.test(r.t) && /tap your browser's menu \(⋮\), then Add to Home screen/.test(r.t) && !/→/.test(r.t) && !/week/.test(r.t), 'Android: a Home Screen tip, without Safari\'s week');
       await ctx.close();
       ({ ctx, r } = await wl({ userAgent: MAC_SAFARI }));
-      ok(r.vis && r.kind === 'macsafari' && /about a week without a visit/.test(r.t) && /Export backup/.test(r.t) && !/Home Screen/.test(r.t), 'Safari on a Mac: the week, and a reminder to back up');
+      ok(r.vis && r.kind === 'macsafari' && /about a week without a visit/.test(r.t) && /open Settings & backup and click Export backup/.test(r.t) && !/Home Screen/.test(r.t), 'Safari on a Mac: the week, and a reminder to back up');
       await ctx.close();
       ({ ctx, r } = await wl({ userAgent: MAC_CHROME })); const macChrome = !r.vis && r.kind === ''; await ctx.close();
       ({ ctx, r } = await wl({}));
