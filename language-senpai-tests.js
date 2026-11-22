@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (779 at V25.8)
+ * Language Senpai — automated checks (805 at V25.9)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1237,8 +1237,8 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
   {
     const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } }); const page = await ctx.newPage(); page.on('pageerror', e => errors.push('pageerror: ' + e.message));
     await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(500);
-    ok(await page.$eval('#wlOverlay', e => e.classList.contains('open')) && /Your language journey begins here/.test(await page.textContent('#wlOverlay')), 'first visit: a welcome');
-    await page.click('#wlTour'); await page.waitForTimeout(150);
+    ok(await page.$eval('#wlOverlay', e => e.classList.contains('open')) && /Hi! My name is Joshi/.test(await page.textContent('#wlOverlay')), 'first visit: a welcome');
+    await page.click('#wlNext'); await page.click('#wlTour'); await page.waitForTimeout(150);
     ok(await page.$eval('#helpOverlay', e => e.classList.contains('open')) && /Pick a dojo/.test(await page.textContent('#helpBody')), '"Show me around" opens Help at Getting started');
     await page.click('#helpNav [data-help="save"]'); await page.waitForTimeout(80);
     const hs = await page.textContent('#helpBody');
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.8"')), 'version 25.8');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.9"')), 'version 25.9');
     await ctx.close();
   }
   {
@@ -1831,7 +1831,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const ctx = await browser.newContext(); const page = await ctx.newPage();
     await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
     ok(await page.$eval('#wlOverlay', e => e.classList.contains('open')) && !!(await page.$('#wlLang')), 'the welcome screen asks which language you are learning');
-    await page.selectOption('#wlLang', 'zh-TW'); await page.waitForTimeout(80);
+    await page.click('#wlNext'); await page.selectOption('#wlLang', 'zh-TW'); await page.waitForTimeout(80);
     const sp = (await getS(page)).settings.speak;
     ok(sp.word.lang === 'zh-TW' && sp.sentence.lang === 'zh-TW', '…and the answer sets both dojos');
     await ctx.close();
@@ -3047,6 +3047,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
         const page = await ctx.newPage(); page.on('pageerror', e => errors.push('pageerror: ' + e.message));
         await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        await page.click('#wlNext'); await page.waitForTimeout(80);   // V25.9: the welcome's page 2
         const r = await page.$eval('#wlPhone', e => ({ vis: !e.hidden && getComputedStyle(e).display !== 'none', kind: e.dataset.kind || '', t: e.textContent.replace(/\s+/g, ' ') }));
         return { ctx, page, r };
       }
@@ -3087,12 +3088,13 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } }); const page = await ctx.newPage();
         page.on('pageerror', e => errors.push('pageerror: ' + e.message)); page.on('dialog', d => d.accept());
         await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        await page.click('#wlNext'); await page.waitForTimeout(80);   // V25.9: the welcome's page 2
         return { ctx, page };
       }
       let { ctx, page } = await fresh0();
       const w = (await page.textContent('#wlOverlay')).replace(/\s+/g, ' ');
-      ok(/Learn the words you choose, in any language/.test(w) && await page.$$eval('#wlOverlay .wl-steps li', l => l.length) === 3 && /Add your words: type or paste a list/.test(w) && /you see the meaning and type the word/.test(w) && /The ones you miss come back until you know them/.test(w) && /Your language journey begins here/.test(w), 'the welcome says what it is and how it works, in three steps');
-      ok(await page.isVisible('#wlDemo') && await page.isVisible('#wlOwn') && await page.isVisible('#wlTour') && await page.isVisible('#wlSkip') && !(await page.isVisible('#wlOwnBox')), 'two ways to start; "Show me around" and "I know my way" stay');
+      ok(/Learn the words you choose, in any language/.test(w) && await page.$$eval('#wlOverlay .wl-steps li', l => l.length) === 3 && /Add your words: type or paste a list/.test(w) && /you see the meaning and type the word/.test(w) && /The ones you miss come back until you know them/.test(w) && /How it works/.test(w), 'the welcome says what it is and how it works, in three steps');
+      ok(await page.isVisible('#wlDemo') && await page.isVisible('#wlOwn') && await page.isVisible('#wlTour') && await page.isVisible('#wlSkip2') && !(await page.isVisible('#wlOwnBox')), 'two ways to start; "Show me around" and "I know my way" stay');
       await page.click('#wlDemo'); await page.waitForTimeout(300);
       let S1 = await getS(page); const demo = S1.lists.find(l => l.demo);
       ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && S1.welcomed === true && S1.view === 'study' && S1.activeListId === demo.id && S1.tipNext === 'pending', '"Try 8 sample words" starts the sample right away');
@@ -3129,6 +3131,75 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       await page.click('#backBtn'); await page.waitForTimeout(250);
       ok(!(await page.$('#nextNote')) && !(await getS(page)).tipNext, 'people with their own lists get no next-step note');
       await ctx.close();
+    }
+
+    console.log('\n[40] V25.9: the welcome starts with a personal note; the globe for the app\'s language');
+    {
+      async function fresh9(opts) {
+        const ctx = await browser.newContext(Object.assign({ viewport: { width: 900, height: 900 } }, opts || {})); const page = await ctx.newPage();
+        page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        return { ctx, page };
+      }
+      let { ctx, page } = await fresh9();
+      const p1 = (await page.textContent('#wlP1')).replace(/\s+/g, ' ');
+      const imgs = await page.$$eval('#wlNote img', l => l.map(i => ({ ok: i.complete && i.naturalWidth > 100, alt: i.getAttribute('alt') })));
+      ok(await page.isVisible('#wlP1') && !(await page.isVisible('#wlP2')) && /Hi! My name is Joshi\./.test(p1) && /kept developing it/.test(p1) && /needs no account/.test(p1) && /Onward, student! Have fun and good luck :\)/.test(p1) && imgs.length === 2 && imgs.every(i => i.ok) && imgs[0].alt === '' && imgs[1].alt === 'Joshi', 'page 1: the note, the drawing and the signature');
+      const wlAll = await page.textContent('#wlOverlay');
+      ok(await page.isVisible('#wlNext') && await page.isVisible('#wlSkip') && !/Your language journey begins here/.test(wlAll) && !/No account needed/.test(wlAll), 'page 1: "Let\'s start" and "I know my way"; the old subtitle and the repeated hint are gone');
+      await page.click('#wlNext'); await page.waitForTimeout(120);
+      const lab = await page.$eval('#wlOverlay .modal', m => m.getAttribute('aria-labelledby'));
+      ok(!(await page.isVisible('#wlP1')) && await page.isVisible('#wlP2') && await page.isVisible('#wlDemo') && await page.isVisible('#wlOwn') && await page.isVisible('#wlTour') && await page.isVisible('#wlSkip2') && await page.isVisible('#wlLang') && /How it works/.test(await page.textContent('#wlTitle2')) && lab === 'wlTitle2', '"Let\'s start" shows how it works and the two ways to start');
+      await page.click('#wlPrev'); await page.waitForTimeout(100);
+      ok(await page.isVisible('#wlP1') && !(await page.isVisible('#wlP2')) && await page.$eval('#wlOverlay .modal', m => m.getAttribute('aria-labelledby')) === 'wlTitle', 'Back returns to the note');
+      await page.click('#wlNext'); await page.click('#wlSkip2'); await page.waitForTimeout(150);
+      ok(!(await page.$eval('#wlOverlay', e => e.classList.contains('open'))) && (await getS(page)).welcomed === true, '"I know my way" on page 2 closes the welcome too');
+      ok(await page.isVisible('#langBtnHdr') && /EN/.test(await page.textContent('#langBtnHdr')) && await page.getAttribute('#langBtnHdr', 'aria-label') === 'Language: English', 'the header has a globe');
+      await page.click('#langBtnHdr'); await page.waitForTimeout(120);
+      const names = await page.$$eval('#langList [data-uil]', l => l.map(b => b.textContent.replace('✓', '').trim()));
+      ok(names.join(',') === 'English,Português,Español,Deutsch,Nederlands,Français,Italiano' && await page.$eval('#langList', e => e.getAttribute('translate') === 'no') && !(await page.isVisible('#langMsg')) && /English\s*✓/.test(await page.textContent('#langList')), 'the globe lists the languages in their own names; English is the current one');
+      for (const [k, re, title, close] of [['pt', /Traduzir/, 'Idioma', 'Fechar'], ['es', /Traducir/, 'Idioma', 'Cerrar'], ['de', /Übersetzen/, 'Sprache', 'Schließen'], ['nl', /Vertalen/, 'Taal', 'Sluiten'], ['fr', /Traduire/, 'Langue', 'Fermer'], ['it', /Traduci/, 'Lingua', 'Chiudi']]) {
+        await page.click(`#langList [data-uil="${k}"]`); await page.waitForTimeout(40);
+        const r = await page.evaluate(() => { const m = document.getElementById('langMsg'); return { m: m.textContent, l: m.lang, vis: !m.hidden, t: document.getElementById('langTitle').textContent, c: document.getElementById('langClose').textContent, on: [...document.querySelectorAll('#langList .on')].map(b => b.dataset.uil).join() }; });
+        ok(r.vis && re.test(r.m) && /Language Senpai/.test(r.m) && /Chrome ⋮/.test(r.m) && /Safari/.test(r.m) && r.l === k && r.t === title && r.c === close && r.on === k, `${k}: two sentences on letting the browser translate the page, in that language`);
+      }
+      await page.click('#langList [data-uil="en"]'); await page.waitForTimeout(40);
+      ok(!(await page.isVisible('#langMsg')) && (await page.textContent('#langClose')) === 'Close' && (await page.textContent('#langTitle')) === 'Language', 'English: no message, back to Language and Close');
+      await page.click('#langClose'); await page.waitForTimeout(80);
+      ok(!(await page.$eval('#langOverlay', e => e.classList.contains('open'))), 'Close closes the language window');
+      await page.click('#langBtnHdr'); await page.waitForTimeout(80); await page.keyboard.press('Escape'); await page.waitForTimeout(80);
+      const escClosed = !(await page.$eval('#langOverlay', e => e.classList.contains('open')));
+      await page.click('#langBtnHdr'); await page.waitForTimeout(80); await page.click('#langOverlay .xclose'); await page.waitForTimeout(80);
+      ok(escClosed && !(await page.$eval('#langOverlay', e => e.classList.contains('open'))), 'so do Escape and the ×');
+      await page.click('#helpBtnHdr'); await page.click('#helpNav [data-help="about"]'); await page.waitForTimeout(120);
+      const about = await page.evaluate(() => ({ t: document.getElementById('helpBody').textContent.replace(/\s+/g, ' '), imgs: [...document.querySelectorAll('#helpBody img')].map(i => i.complete && i.naturalWidth > 100) }));
+      ok(/About Language Senpai/.test(about.t) && /Hi! My name is Joshi/.test(about.t) && /Onward, student!/.test(about.t) && about.imgs.length === 2 && about.imgs.every(Boolean), 'Help → About Language Senpai shows the same note');
+      await page.click('#helpNav [data-help="start"]'); await page.waitForTimeout(80);
+      ok(/The globe at the top is for the app's language/.test((await page.textContent('#helpBody')).replace(/\s+/g, ' ')), 'Help → Getting started mentions the globe');
+      await page.click('#helpClose'); await page.waitForTimeout(80);
+      await page.evaluate(() => document.getElementById('wnBtn').click()); await page.waitForTimeout(120);
+      const wn = (await page.textContent('#wnList')).replace(/\s+/g, ' ');
+      ok(/Version 25\.9/.test(wn) && /personal note/.test(wn) && /About Language Senpai/.test(wn) && /globe/.test(wn) && wn.indexOf('Version 25.9') < wn.indexOf('Version 25.8'), "What's new lists 25.9 first");
+      await page.evaluate(() => document.getElementById('wnClose').click()); await page.evaluate(() => document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'))); await page.click('[data-a="study"]'); await page.waitForTimeout(300);
+      ok(await page.$eval('#langBtnHdr', e => e.style.display === 'none'), 'during study the globe gives way to the card bar');
+      await ctx.close();
+      ({ ctx, page } = await fresh9({ locale: 'pt-BR' }));
+      await page.click('#wlP1 [data-lang-open]'); await page.waitForTimeout(120);
+      ok(await page.$eval('#langOverlay', e => e.classList.contains('open')) && await page.$eval('#wlOverlay', e => e.classList.contains('open')) && /Traduzir/.test(await page.textContent('#langMsg')) && (await page.textContent('#langClose')) === 'Fechar', 'the welcome\'s globe opens on the browser\'s own language (here Portuguese)');
+      await page.click('#langClose'); await page.waitForTimeout(80);
+      ok(await page.isVisible('#wlP1'), '…and closing it goes back to the welcome');
+      await ctx.close();
+      for (const w of [320, 375]) {
+        ({ ctx, page } = await fresh9({ viewport: { width: w, height: 700 }, isMobile: true, hasTouch: true }));
+        const g1 = await page.evaluate(() => { const m = document.querySelector('#wlOverlay .modal'), a = document.querySelector('#wlNote .note-art').getBoundingClientRect(), mr = m.getBoundingClientRect(), gb = document.querySelector('#wlP1 [data-lang-open]').getBoundingClientRect(), t = document.getElementById('wlTitle').getBoundingClientRect();
+          return { fit: m.scrollWidth <= m.clientWidth + 1 && a.right <= mr.right && gb.right <= mr.right, above: gb.bottom <= t.top + 2 }; });
+        ok(g1.fit && g1.above, `phone ${w}px: the note and the drawing fit, the globe above the title`);
+        await page.click('#wlSkip'); await page.waitForTimeout(150);
+        const g2 = await page.evaluate(() => { const q = id => document.getElementById(id).getBoundingClientRect(); const b = q('brand'), l = q('langBtnHdr'), h = q('helpBtnHdr');
+          return { sameRow: Math.abs((l.top + l.bottom) / 2 - (b.top + b.bottom) / 2) < 12, right: l.right <= innerWidth && (l.left > b.right || l.top >= b.bottom - 2), linksBelow: h.top >= l.bottom - 2, fit: document.documentElement.scrollWidth <= innerWidth }; });
+        ok((g2.sameRow || w < 350) && g2.right && g2.linksBelow && g2.fit, `phone ${w}px: the globe at the end of the name's row (on the smallest phones just under it), the links below`);
+        await ctx.close();
+      }
     }
   }
 

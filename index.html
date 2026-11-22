@@ -43,7 +43,6 @@
   /* v20: shurikens replace crowns — silver per mastered day, all three gold at mastery */
   /* v22.4: welcome, Help, study-bar links, accent chips */
   .modal.welcome{max-width:470px}
-  .wl-sub{font-family:var(--serif);font-size:19px;color:var(--indigo);margin:0 0 8px}
   .wl-fix{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
   .modal.help{max-height:86vh;overflow:auto}
   .helpnav{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
@@ -76,6 +75,27 @@
   .wl-more{margin:12px 0 0;text-align:center;font-size:13px;color:var(--faint)}
   .wl-more .linkish{margin:0 4px}
   .demo-note{font-size:12.5px;color:var(--faint);margin-top:2px}
+  /* v25.9: the welcome in two pages (a personal note first, then how it works), and the globe for the app's language */
+  .wl-page[hidden]{display:none}
+  .wl-top{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:-8px -6px 6px 0;min-height:30px}
+  .wl-top .wl-back{margin:0 auto 0 0;font-size:14px}
+  .note{font-size:14.5px;line-height:1.55;color:var(--ink)}
+  .note p,#helpBody .note p{margin:0 0 9px}
+  .note::after{content:"";display:block;clear:both}
+  .note-art{float:right;width:118px;height:auto;margin:0 -4px 6px 12px}
+  .note-sig{display:block;width:93px;height:auto;margin:2px 0 4px -2px}
+  .lang-btn{display:inline-flex;align-items:center;gap:5px;flex:none;background:none;border:1px solid var(--line-2);border-radius:999px;padding:4px 10px 4px 7px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;line-height:1}
+  .lang-btn svg{width:17px;height:17px;flex:none}
+  .lang-btn:hover,.lang-btn:focus-visible{color:var(--indigo);border-color:var(--indigo);outline:none}
+  header .lang-btn{margin-left:auto}
+  .modal.lang{max-width:420px}
+  .lang-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 4px}
+  .lang-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;padding:11px 13px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);font-family:var(--sans);font-size:15px;color:var(--ink);cursor:pointer}
+  .lang-opt.on{border-color:var(--indigo);background:var(--indigo-soft)}
+  .lang-opt .ck{color:var(--indigo);font-weight:700}
+  @media (hover:hover){ .lang-opt:hover{border-color:var(--indigo)} }
+  .lang-msg{margin:12px 0 4px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;font-size:14.5px;line-height:1.5;color:var(--ink)}
+  .lang-msg[hidden]{display:none}
   .shorthand{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:8px 0 12px}
   .shorthand h5{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 2px}
   .shorthand dt{margin-top:9px;color:var(--ink)} .shorthand dt code{margin-right:6px}
@@ -591,6 +611,7 @@
 <div class="wrap">
   <header>
     <div class="brand" id="brand"><h1><svg class="seal" viewBox="0 0 24 24" aria-hidden="true"><rect x="0.8" y="0.8" width="22.4" height="22.4" rx="3" fill="#CF4A2E"/><path fill-rule="evenodd" fill="#FFFCF7" transform="translate(12 12) scale(0.74) translate(-12 -12)" d="M12 1.2Q16.2 4.8 15 9L22.8 12Q19.2 16.2 15 15L12 22.8Q7.8 19.2 9 15L1.2 12Q4.8 7.8 9 9Z M13.8 12A1.8 1.8 0 1 0 10.2 12A1.8 1.8 0 1 0 13.8 12Z"/></svg>Language <span class="accent">Senpai</span></h1><span class="crumb" id="crumb"></span></div>
+    <button type="button" class="lang-btn" id="langBtnHdr" data-lang-open aria-label="Language: English" title="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.5 2.6 3.8 5.7 3.8 9.2s-1.3 6.6-3.8 9.2M12 2.8c-2.5 2.6-3.8 5.7-3.8 9.2s1.3 6.6 3.8 9.2"/></svg><span translate="no">EN</span></button>
     <div class="hdr-right"><div class="tally" id="tally"></div><button class="link quiet" id="helpBtnHdr">Help</button><a class="link quiet" id="fbHdr" href="https://tally.so/r/OQ7Q4K" target="_blank" rel="noopener">Feedback</a><button class="link quiet" id="setBtnHdr">Settings &amp; backup</button></div>
   </header>
   <div id="stage"></div>
@@ -730,21 +751,38 @@
   </div>
 </div>
 
-<!-- v22.4: welcome (first visit) and Help -->
+<!-- v22.4: welcome (first visit) and Help; v25.9: the welcome has two pages, a personal note first -->
 <div class="overlay" id="wlOverlay">
   <div class="modal welcome" role="dialog" aria-labelledby="wlTitle">
-    <h3 id="wlTitle">Welcome to Language Senpai</h3>
-    <p class="wl-sub">Your language journey begins here.</p>
-    <p class="wl-what">Learn the words you choose, in any language.</p>
-    <ol class="wl-steps"><li><b>Add your words:</b> type or paste a list, or let your AI make one for you.</li><li><b>Practise:</b> you see the meaning and type the word.</li><li><b>The ones you miss come back</b> until you know them.</li></ol>
-    <p class="hint">No account needed: your progress stays in this browser, and nothing leaves your device.</p>
-    <p class="hint wl-phone" id="wlPhone" hidden></p>
-    <div class="wl-go" id="wlGo"><button class="btn" id="wlDemo">Try 8 sample words</button><button class="btn ghost" id="wlOwn">Add my own words</button></div>
-    <div class="wl-go" id="wlOwnBox" hidden><p class="wl-q">How do you want to add them?</p><button class="btn" id="wlType">Type or paste a list</button><button class="btn" id="wlAi">Let my AI make one</button><button type="button" class="linkish" id="wlBack">Back</button></div>
-    <p class="wl-more"><button type="button" class="linkish" id="wlTour">Show me around</button> · <button type="button" class="linkish" id="wlSkip">I know my way</button></p>
-    <label class="setsel wl-lang">Which language are you learning? <select class="field" id="wlLang"></select><small>Optional — for the speaker's voice and how characters are drawn. You can change it any time in Settings.</small></label>
-    <p class="hint wl-home" id="wlHome" hidden>Opened as an app from your Home Screen or Dock? It keeps its own storage, separate from your browser. If you've already practised in the browser, export a backup there and import it here (Settings &amp; backup → Import backup).</p>
-    <p class="hint wl-fix">Seeing this every time you open the app? Then your browser is deleting what this page saves. <button type="button" class="linkish" id="wlFix">Here's how to fix it</button></p>
+    <div class="wl-page" id="wlP1">
+      <div class="wl-top"><button type="button" class="lang-btn" data-lang-open aria-label="Language: English" title="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.5 2.6 3.8 5.7 3.8 9.2s-1.3 6.6-3.8 9.2M12 2.8c-2.5 2.6-3.8 5.7-3.8 9.2s1.3 6.6 3.8 9.2"/></svg><span translate="no">EN</span></button></div>
+      <h3 id="wlTitle">Welcome to Language Senpai</h3>
+      <div class="note" id="wlNote"></div>
+      <div class="wl-go"><button class="btn" id="wlNext">Let's start</button></div>
+      <p class="wl-more"><button type="button" class="linkish" id="wlSkip">I know my way</button></p>
+      <p class="hint wl-home" id="wlHome" hidden>Opened as an app from your Home Screen or Dock? It keeps its own storage, separate from your browser. If you've already practised in the browser, export a backup there and import it here (Settings &amp; backup → Import backup).</p>
+      <p class="hint wl-fix">Seeing this every time you open the app? Then your browser is deleting what this page saves. <button type="button" class="linkish" id="wlFix">Here's how to fix it</button></p>
+    </div>
+    <div class="wl-page" id="wlP2" hidden>
+      <div class="wl-top"><button type="button" class="linkish wl-back" id="wlPrev">‹ Back</button><button type="button" class="lang-btn" data-lang-open aria-label="Language: English" title="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.5 2.6 3.8 5.7 3.8 9.2s-1.3 6.6-3.8 9.2M12 2.8c-2.5 2.6-3.8 5.7-3.8 9.2s1.3 6.6 3.8 9.2"/></svg><span translate="no">EN</span></button></div>
+      <h3 id="wlTitle2">How it works</h3>
+      <p class="wl-what">Learn the words you choose, in any language.</p>
+      <ol class="wl-steps"><li><b>Add your words:</b> type or paste a list, or let your AI make one for you.</li><li><b>Practise:</b> you see the meaning and type the word.</li><li><b>The ones you miss come back</b> until you know them.</li></ol>
+      <p class="hint wl-phone" id="wlPhone" hidden></p>
+      <div class="wl-go" id="wlGo"><button class="btn" id="wlDemo">Try 8 sample words</button><button class="btn ghost" id="wlOwn">Add my own words</button></div>
+      <div class="wl-go" id="wlOwnBox" hidden><p class="wl-q">How do you want to add them?</p><button class="btn" id="wlType">Type or paste a list</button><button class="btn" id="wlAi">Let my AI make one</button><button type="button" class="linkish" id="wlBack">Back</button></div>
+      <p class="wl-more"><button type="button" class="linkish" id="wlTour">Show me around</button> · <button type="button" class="linkish" id="wlSkip2">I know my way</button></p>
+      <label class="setsel wl-lang">Which language are you learning? <select class="field" id="wlLang"></select><small>Optional — for the speaker's voice and how characters are drawn. You can change it any time in Settings.</small></label>
+    </div>
+  </div>
+</div>
+<!-- v25.9: the globe: the app's language -->
+<div class="overlay" id="langOverlay">
+  <div class="modal lang" role="dialog" aria-labelledby="langTitle">
+    <h3 id="langTitle">Language</h3>
+    <div class="lang-list" id="langList" translate="no"></div>
+    <p class="lang-msg" id="langMsg" translate="no" hidden></p>
+    <div class="modal-row" style="justify-content:flex-end"><button class="btn" id="langClose">Close</button></div>
   </div>
 </div>
 <div class="overlay" id="helpOverlay">
@@ -774,9 +812,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.8";
+  const APP_VERSION="25.9";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.9", items:["The welcome screen now starts with a personal note about why Language Senpai exists and how it helps you learn. \u201cLet\u2019s start\u201d leads on to how it works and how to begin.","The note is also in Help, under About Language Senpai.","A globe button at the top (and on the welcome screen) is for the app\u2019s language. For now it shows, in Portuguese, Spanish, German, Dutch, French or Italian, how to let your browser translate the page."]},
     {v:"25.8", items:["The welcome screen now says what Language Senpai is and how it works, in three steps, with two ways to start: try 8 sample words, or add your own.","After the sample, a short note shows the next step: add your own words, or take a quick tour.","The sample lists say they're a demo in Japanese: your own lists can be in any language."]},
 {v:"25.7", items:["Clearer steps for adding Language Senpai to your Home Screen, on the welcome screen and in Help: what to tap, and where Share is on newer iPhones."]},
 {v:"25.6", items:["Older iPhones and iPads (before iOS 26) now also open Language Senpai from the Home Screen as its own app, like newer ones do: safe from Safari's one-week rule, with its own progress."]},
@@ -1649,7 +1688,8 @@
     if(S.view==="gram" && GR){ crumb.textContent="· Articles"; tally.innerHTML=""; if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
     else if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
     else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; if(helpH) helpH.style.display=""; if(fbH) fbH.style.display=""; }
-    document.querySelector("header").classList.toggle("hnav", !helpH || helpH.style.display!=="none");   // v25.5: phones put the links on their own row
+    document.querySelector("header").classList.toggle("hnav", !helpH || helpH.style.display!=="none");
+    const langH=document.getElementById("langBtnHdr"); if(langH) langH.style.display = helpH && helpH.style.display==="none" ? "none" : "";   // v25.9   // v25.5: phones put the links on their own row
   }
   function shuriRow(lvl,n){ let h=""; for(let i=0;i<3;i++){ const k = lvl==="gold" ? "gold" : (i<n ? "silver" : "ghost"); h+='<span class="shuri '+k+'">'+SHURI+'</span>'; } return h; }
 
@@ -2927,7 +2967,8 @@
       <li>Once you've practised, a line under the dojos shows what you learned and revisited today.</li>
       <li>Choose the <b>language you're learning</b> once in Settings — it picks the voice and draws characters the right way. Then tap the <b>speaker</b> next to a word to hear it.</li>
       <li><b>Back up</b> now and then (${hl("settings:backup","Settings &amp; backup → Export backup")}).</li>
-      <li>Stuck, or missing something? <b>Feedback</b> at the top opens a short form in a new tab. Only what you type is sent, plus the app's version.</li></ol>`},
+      <li>Stuck, or missing something? <b>Feedback</b> at the top opens a short form in a new tab. Only what you type is sent, plus the app's version.</li>
+      <li>The <b>globe</b> at the top is for the app's language. For now Language Senpai is in English, and the globe shows, in Portuguese, Spanish, German, Dutch, French or Italian, how to let your browser translate the page. Your cards are never translated.</li></ol>`},
     {id:"word", t:"Word Dojo", h:`<ul>
       <li>You see the prompt and type the answer. A brand-new word is shown once so you can copy it.</li>
       <li>Each word needs a few correct answers; words you already mastered come back now and then to space out the hard ones.</li>
@@ -2983,7 +3024,8 @@
       <li><b>Safari can delete a website's data</b> after about a week without a visit — on an iPhone, an iPad and a Mac. On an iPhone or iPad, add the page to your Home Screen and practise from there: tap Share (on newer iPhones it's in the menu next to the address), then Add to Home Screen (if you don't see it, tap View More first). On a Mac, practise at least once a week. Either way, keep backing up.</li>
       <li><b>On an iPhone or iPad, the Home Screen app keeps its own storage</b>, separate from Safari. Add it before you start — or, if you've already practised in Safari, export a backup there and import it in the Home Screen app. On Android, tap your browser's menu (⋮), then Add to Home screen; the icon opens your browser, with the same progress.</li></ul>
       <p><button type="button" class="btn ghost sm" id="persistBtn">Ask my browser to protect this page's data</button> <span class="hint" id="persistStatus"></span></p>
-      <p class="hint">If saving is blocked completely, Language Senpai tells you straight away. Settings &amp; backup shows how much room your progress takes: browsers keep about 5 MB per website — room for well over 10,000 words — and the app warns you long before it's full.</p>`}
+      <p class="hint">If saving is blocked completely, Language Senpai tells you straight away. Settings &amp; backup shows how much room your progress takes: browsers keep about 5 MB per website — room for well over 10,000 words — and the app warns you long before it's full.</p>`},
+    {id:"about", t:"About Language Senpai", get h(){ return `<div class="note">${noteHtml()}</div>`; }}
   ];
   const helpOverlay=document.getElementById("helpOverlay"), wlOverlay=document.getElementById("wlOverlay");
   function openHelp(id, anchor){
@@ -3034,6 +3076,47 @@
     document.getElementById("wlType").onclick=()=>{ closeWelcome(); openList(null); };
     document.getElementById("wlAi").onclick=()=>{ closeWelcome(); openGetWords(); }; }
   document.getElementById("wlFix").onclick=()=>{ closeWelcome(); openHelp("save"); };
+
+  // v25.9: the personal note: page 1 of the welcome, and Help → About Language Senpai
+  const ART_SENSEI="data:image/png;base64,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", ART_SIG="data:image/png;base64,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";
+  function noteHtml(){ return `<img class="note-art" src="${ART_SENSEI}" alt="" width="118" height="121"><p>Hi! My name is Joshi.</p><p>Some time ago I created Language Senpai. I had to learn Dutch in a very short amount of time, and I was not happy with the available language-learning options. So, I decided to create my own. As a psychology student, I based it on scientific findings about how we learn efficiently: recall new words yourself instead of just reading them, and repeat them spread out over time. As I practised new words, I came up with many new ideas and kept developing it. Language Senpai helped me a lot, and I hope it will help you too, whatever language you are learning.</p><p>It is free, needs no account, and your words stay on your own device.</p><p>Thank you for being here. If something is confusing, doesn't work, or you have new ideas, use the Feedback button at the top and let me know. I love getting input, and I love working on the app.</p><p>Onward, student! Have fun and good luck :)</p><img class="note-sig" src="${ART_SIG}" alt="Joshi" width="93" height="46">`; }
+  // v25.9: page 1 is the note; "Let's start" opens page 2: how it works, and the two ways to start
+  { const p1=document.getElementById("wlP1"), p2=document.getElementById("wlP2"), dlg=wlOverlay.querySelector(".modal");
+    document.getElementById("wlNote").innerHTML=noteHtml();
+    const page=n=>{ p1.hidden=n!==1; p2.hidden=n!==2; dlg.setAttribute("aria-labelledby", n===1?"wlTitle":"wlTitle2"); dlg.scrollTop=0; };
+    document.getElementById("wlNext").onclick=()=>page(2);
+    document.getElementById("wlPrev").onclick=()=>page(1);
+    document.getElementById("wlSkip2").onclick=closeWelcome; }
+  // v25.9: the globe. The app is in English for now: picking another language says, in that language, how to let the
+  // browser translate the page (cards stay as they are: they carry translate="no")
+  const UI_LANGS=[
+    {k:"en", n:"English", t:"", c:"", m:""},
+    {k:"pt", n:"Português", t:"Idioma", c:"Fechar", m:"Por enquanto, o Language Senpai só está em inglês, mas o seu navegador pode traduzir a página para você. Abra o menu do navegador (no Chrome ⋮, no Safari o menu ao lado do endereço) e escolha Traduzir."},
+    {k:"es", n:"Español", t:"Idioma", c:"Cerrar", m:"Por ahora, Language Senpai solo está en inglés, pero tu navegador puede traducir la página por ti. Abre el menú del navegador (en Chrome ⋮, en Safari el menú junto a la dirección) y elige Traducir."},
+    {k:"de", n:"Deutsch", t:"Sprache", c:"Schließen", m:"Language Senpai gibt es vorerst nur auf Englisch, aber dein Browser kann die Seite für dich übersetzen. Öffne das Menü deines Browsers (in Chrome ⋮, in Safari das Menü neben der Adresse) und wähle Übersetzen."},
+    {k:"nl", n:"Nederlands", t:"Taal", c:"Sluiten", m:"Language Senpai is voorlopig alleen in het Engels, maar je browser kan de pagina voor je vertalen. Open het menu van je browser (in Chrome ⋮, in Safari het menu naast het adres) en kies Vertalen."},
+    {k:"fr", n:"Français", t:"Langue", c:"Fermer", m:"Pour l’instant, Language Senpai n’existe qu’en anglais, mais votre navigateur peut traduire la page pour vous. Ouvrez le menu de votre navigateur (dans Chrome ⋮, dans Safari le menu à côté de l’adresse) et choisissez Traduire."},
+    {k:"it", n:"Italiano", t:"Lingua", c:"Chiudi", m:"Per ora Language Senpai è solo in inglese, ma il tuo browser può tradurre la pagina per te. Apri il menu del browser (in Chrome ⋮, in Safari il menu accanto all’indirizzo) e scegli Traduci."}
+  ];
+  const langOverlay=document.getElementById("langOverlay");
+  let langPick="";
+  function paintLang(){
+    const L=UI_LANGS.find(x=>x.k===langPick && x.m), list=document.getElementById("langList"), msg=document.getElementById("langMsg");
+    list.innerHTML=UI_LANGS.map(x=>`<button type="button" class="lang-opt${x.k===langPick?" on":""}" data-uil="${x.k}" lang="${x.k}" aria-pressed="${x.k===langPick}"><span>${x.n}</span>${x.k==="en"?'<span class="ck" aria-label="current">✓</span>':""}</button>`).join("");
+    list.querySelectorAll("[data-uil]").forEach(b=>b.onclick=()=>{ langPick=b.dataset.uil; paintLang(); });
+    msg.hidden=!L; msg.textContent=L?L.m:""; if(L) msg.lang=L.k; else msg.removeAttribute("lang");
+    const t=document.getElementById("langTitle"), c=document.getElementById("langClose");
+    t.textContent=L?L.t:"Language"; c.textContent=L?L.c:"Close"; if(L){ t.lang=L.k; c.lang=L.k; } else { t.removeAttribute("lang"); c.removeAttribute("lang"); }
+  }
+  function openLang(){   // opens on the browser's own language, when it is one of the list
+    const nav=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||""]).map(x=>String(x).slice(0,2).toLowerCase());
+    const hit=nav.find(k=>UI_LANGS.some(x=>x.k===k));
+    langPick = hit && hit!=="en" ? hit : ""; paintLang(); langOverlay.classList.add("open");
+  }
+  document.querySelectorAll("[data-lang-open]").forEach(b=>b.onclick=openLang);
+  document.getElementById("langClose").onclick=()=>langOverlay.classList.remove("open");
+  langOverlay.addEventListener("click",e=>{ if(e.target===langOverlay) langOverlay.classList.remove("open"); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && langOverlay.classList.contains("open")) langOverlay.classList.remove("open"); });
 
   // ---- settings ----
   const setOverlay=document.getElementById("setOverlay");
@@ -3154,7 +3237,7 @@
 
   // v24.6: every window gets a × that does what its own Close/Cancel does; while a window is open the page behind is locked
   // (phones: html.modal-open), and dragging on the dim backdrop never scrolls the page
-  [["listOverlay","listCancel"],["cardOverlay","cardCancel"],["gwOverlay","gwClose"],["setOverlay","setClose"],["helpOverlay","helpClose"],["wnOverlay","wnClose"]].forEach(([o,c])=>{
+  [["listOverlay","listCancel"],["cardOverlay","cardCancel"],["gwOverlay","gwClose"],["setOverlay","setClose"],["helpOverlay","helpClose"],["wnOverlay","wnClose"],["langOverlay","langClose"]].forEach(([o,c])=>{
     const m=document.querySelector("#"+o+" .modal"), btn=document.getElementById(c); if(!m||!btn) return;
     const bar=document.createElement("div"); bar.className="xbar";
     bar.innerHTML='<button type="button" class="xclose" aria-label="Close" title="Close">\u00d7</button>';
