@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (841 at V25.11)
+ * Language Senpai — automated checks (852 at V25.12)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.11"')), 'version 25.11');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.12"')), 'version 25.12');
     await ctx.close();
   }
   {
@@ -3354,6 +3354,47 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         ok(g, 'phone ' + w + ' px: the line under Group fits');
         await c2.close();
       }
+    }
+
+    console.log('\n[43] V25.12: spaces don\'t count in rōmaji, pinyin and romanization; several meanings with " / "');
+    {
+      // one card, one answer: was it counted right (streak up, no miss)?
+      async function answerOne(nl, de, typed, lang, settings) {
+        const l = list('T', [word(nl, de)]); if (lang) l.lang = lang;
+        const r = await freshD(state([l], settings || {}));
+        await r.page.click('[data-a="study"]'); await r.page.waitForTimeout(400);
+        await r.page.fill('#ans', typed); await r.page.press('#ans', 'Enter'); await r.page.waitForTimeout(300);
+        const w = (await getS(r.page)).lists[0].words[0];
+        await r.ctx.close();
+        return w.misses === 0 && w.streak === 1;
+      }
+      ok(await answerOne('時給 / じきゅう / jik yū', 'hourly wage', 'jikyu', 'ja-JP'), 'Japanese: "jikyu" counts for "jik yū"');
+      ok(await answerOne('仕事内容 / しごとないよう / shigoto naiyō', 'job responsibilities', 'shigotonaiyō'), 'a card with kanji: the rōmaji counts without its space (no list language needed)');
+      ok(await answerOne('ōbo suru', 'to apply', 'obosuru', 'ja-JP'), 'a Japanese list in rōmaji only: "obosuru" counts');
+      ok(await answerOne('你好 / nǐ hǎo', 'hello', 'nihao'), 'Chinese: "nihao" counts for "nǐ hǎo"');
+      ok(await answerOne('안녕하세요 / annyeong haseyo', 'hello', 'annyeonghaseyo', 'ko-KR'), 'Korean: the romanization without its space counts');
+      ok(!(await answerOne('op tijd', 'on time', 'optijd', 'nl-NL')), 'Dutch: spaces still count ("optijd" ≠ "op tijd")');
+      ok(await answerOne('仕事 / しごと / shigoto', 'work / job', 'job', 'ja-JP', { typeDutch: false }), 'prompted with the word: either meaning counts ("work / job")');
+      ok(!(await answerOne('仕事 / しごと / shigoto', 'job interview', 'jobinterview', 'ja-JP', { typeDutch: false })), 'the meaning side keeps its spaces');
+      // Get words asks for " / " between several meanings
+      const c = await browser.newContext({ viewport: { width: 900, height: 900 } }); const p = await c.newPage();
+      p.on('pageerror', e => errors.push('pageerror: ' + e.message));
+      await p.goto(FILE); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+      await p.evaluate(() => document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-ai]')) e.preventDefault(); }));
+      await p.click('#wlSkip'); await p.waitForTimeout(150); await p.click('#gwBtn'); await p.waitForTimeout(200);
+      await p.fill('#gwLearn', 'Japanese'); await p.fill('#gwMeaning', 'English'); await p.fill('#gwTopic', 'work');
+      await p.click('#gwCopy'); await p.waitForTimeout(120);
+      const m = await p.inputValue('#gwPrompt');
+      ok(m.split('If a word has more than one English meaning, separate them with " / " too, not with commas or semicolons.').length === 2, 'Get words asks for " / " between several meanings');
+      await p.click('#gwClose'); await p.waitForTimeout(100);
+      await p.click('#helpBtnHdr'); await p.click('#helpNav [data-help="lists"]'); await p.waitForTimeout(100);
+      const hl = (await p.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/spaces in the rōmaji, pinyin or romanization don’t count/.test(hl) && /shigoto = work \/ job/.test(hl), 'Help → Your lists: spaces and several meanings');
+      await p.click('#helpClose'); await p.waitForTimeout(80);
+      await p.evaluate(() => document.getElementById('wnBtn').click()); await p.waitForTimeout(120);
+      const wn = (await p.textContent('#wnList')).replace(/\s+/g, ' ');
+      ok(wn.indexOf('Version 25.12') >= 0 && wn.indexOf('Version 25.12') < wn.indexOf('Version 25.11') && /spaces don’t count/.test(wn) && /between several meanings/.test(wn), "What's new lists 25.12 first");
+      await c.close();
     }
 
   // ---------------- screenshots ----------------

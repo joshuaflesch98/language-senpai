@@ -833,9 +833,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.11";
+  const APP_VERSION="25.12";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.12", items:["Japanese, Chinese and Korean: spaces don’t count when you type the Latin letters, so “shigotonaiyō” is as right as “shigoto naiyō”.","Get words asks the AI to put “ / ” between several meanings, so any one of them counts when you’re asked the meaning."]},
     {v:"25.11", items:["Get words asks for the reading of Japanese, Chinese and Korean words (心理学 / しんりがく / shinrigaku), so you can type a word in its own script or in Latin letters, and every answer shows the characters with their reading.","A short line under “Group” says what it does: lists with the same group sit together under one heading, like in a folder."]},
     {v:"25.10", items:["Get words is simpler: three steps and a button for your AI. ChatGPT and Claude open with the message already filled in; every button also copies it, so Gemini or any other AI works too.","New here? The library starts simple: your lists and how to add more. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap \u201cShow everything now\u201d. Everyone else sees everything, as before."]},
     {v:"25.9", items:["The welcome screen now starts with a personal note about why Language Senpai exists and how it helps you learn. \u201cLet\u2019s start\u201d leads on to how it works and how to begin.","The note is also in Help, under About Language Senpai.","A globe button at the top (and on the welcome screen) is for the app\u2019s language. For now it shows, in Portuguese, Spanish, German, Dutch, French or Italian, how to let your browser translate the page."]},
@@ -1137,14 +1138,21 @@
   // Letters, accents, apostrophes and hyphens are spelling, so they always count.
   const STRAY=";+=$#@\\|~*";
   function stripStray(input, target){ const t=String(target==null?"":target); let out=""; for(const ch of String(input==null?"":input)){ if(STRAY.includes(ch) && !t.includes(ch)) continue; out+=ch; } return out; }
-  function check(input,target){
+  // v25.12: Japanese, Chinese and Korean typed in Latin letters: spaces don't count (jikyu = jik yū, obosuru = ōbo suru)
+  const CJK_RX=/[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}\p{sc=Hangul}]/u;
+  function spaceFree(greens, lang){ const b=String(lang||"").split("-")[0]; return greens.some(f=>CJK_RX.test(f)) || b==="ja" || b==="zh" || b==="ko" || b==="yue"; }
+  function answerLang(w){ if(S.settings.typeDutch===false) return ""; const hl=homeListOf(w); return (hl&&hl.lang)||dojoLang(); }   // the language you type in
+  function check(input,target,lang){
     input=stripStray(input,target);
     const {green,teal,primary}=parseSide(target);
     const greens=(green.length?green:[String(target||"")]).concat(optionalForms(target));
+    const sf=spaceFree(greens, lang);
     const canon=primary||greens[0]||String(target||"");
     const rank={wrong:0,typo:1,accent:2,exact:3};
     let best={verdict:"wrong",canonical:canon,rank:0};
-    for(const alt of greens){ const v=verdictOne(input,alt); if(rank[v]>best.rank) best={verdict:v,canonical:alt,rank:rank[v]}; }
+    for(const alt of greens){ let v=verdictOne(input,alt);
+      if(sf && v!=="exact" && !CJK_RX.test(alt)){ const t=verdictOne(input.replace(/\s+/g,""), alt.replace(/\s+/g,"")); if(rank[t]>rank[v]) v=t; }
+      if(rank[v]>best.rank) best={verdict:v,canonical:alt,rank:rank[v]}; }
     if(best.rank>=2) return best;                                  // a fully-correct answer wins
     for(const alt of teal){ if(baseNorm(input)===baseNorm(alt)||looseNorm(input)===looseNorm(alt)) return {verdict:"teal",canonical:canon,typedAlt:alt,rank:0}; }
     if(best.rank>0) return best;                                   // v23.3: an exact teal answer beats a near-miss of a green one
@@ -2125,7 +2133,7 @@
     if(phase==="reveal"){ advance(l); return; }
     const input=document.getElementById("ans");
     if(phase==="retype"){
-      const r=check(input.value, answerText(w));
+      const r=check(input.value, answerText(w), answerLang(w));
       if(passRetype(r)){ advance(l); return; }
       if(!stripStray(input.value, answerText(w)).trim()) return;
       const c=document.getElementById("card"), fb=document.getElementById("fb");
@@ -2142,7 +2150,7 @@
     }
     const val=input.value; if(!stripStray(val, answerText(w)).trim()) return;   // v24.3: only stray symbols = nothing typed yet
     const rt=rtJudge();
-    const res=check(val, answerText(w));
+    const res=check(val, answerText(w), answerLang(w));
     if(res.verdict==="teal"){
       // a real translation, but not the word this card drills — no advance, no miss, type the target
       const card=document.getElementById("card"), fb=document.getElementById("fb");
@@ -2845,6 +2853,7 @@
       L.push(`- For nouns, include the article (or gender) if ${learn} has one.`);
       L.push(`- Double-check every article before you answer.`);
       L.push(`- If two ${learn} words mean exactly the same, put both on the left, separated by " / ".`);
+      L.push(`- If a word has more than one ${meaning} meaning, separate them with " / " too, not with commas or semicolons.`);   // v25.12: then any one counts
     } else {
       L.push(`Write ${ask} natural sentences in ${learn} for a learner, with translations in ${meaning}.`);
       L.push(`Topic: ${topic||"everyday life"}.`);
@@ -3065,7 +3074,7 @@
       <li>The voices come from your device, so they're free. A faded speaker means there's no voice for that language on this device yet: on iPhone, iPad and Mac, add one under Accessibility → Spoken Content; on other devices, search the settings for "text-to-speech".</li></ul>`},
     {id:"lists", t:"Your lists", get h(){ return `<p>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</p>
       <div class="shorthand" id="hShorthand"><h5>Card shorthand</h5><dl>
-        <dt><code>/</code> <b>either counts</b></dt><dd><code>dōjō / dojo = training hall</code>: type either one. Scripts work the same way: <code>心理学 / しんりがく / shinrigaku = psychology</code> takes the kanji, the kana or the rōmaji.</dd>
+        <dt><code>/</code> <b>either counts</b></dt><dd><code>dōjō / dojo = training hall</code>: type either one. Scripts work the same way: <code>心理学 / しんりがく / shinrigaku = psychology</code> takes the kanji, the kana or the rōmaji, and spaces in the rōmaji, pinyin or romanization don’t count. On the meaning side, <code>shigoto = work / job</code> lets either meaning count when you’re asked the meaning.</dd>
         <dt><code>[ ]</code> <b>also valid, but type the first</b></dt><dd><code>sensei [shishō] = teacher</code>: “shishō” turns teal, and the card waits for “sensei”.</dd>
         <dt><code>( )</code> <b>a hint</b>, on the side you're asked</dt><dd><code>karai = hot (spicy)</code>: you're asked “hot” with the hint “spicy”, so you know it's karai, not atsui (hot as in warm).</dd>
         <dt><code>( )</code> <b>optional</b>, on the side you type</dt><dd><code>arigatō (gozaimasu) = thank you</code>: “arigatō” and “arigatō gozaimasu” both count.</dd>
