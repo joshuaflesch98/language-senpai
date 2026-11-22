@@ -150,6 +150,17 @@
   .gwf[hidden]{display:none}
   .gwrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .gwstatus{font-size:13px;color:var(--good)}
+  /* v25.10: Get words in three steps, with a button per AI; a simpler library for brand-new users */
+  .gw-step{margin:2px 0 6px}
+  .gw-ai{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 4px}
+  .gw-ai #gwCopy{grid-column:1/-1}
+  .gw-ai .btn{display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;padding:11px 10px}
+  .gw-note{font-size:12.5px;color:var(--faint);margin:6px 0 2px;line-height:1.45}
+  p.gwstatus{margin:6px 0 0}
+  p.gwstatus:empty{display:none}
+  #stage.simple .dojos,#stage.simple .hardcard,#stage.simple #revCard,#stage.simple .folder.f-learned.empty{display:none}
+  .more-later{font-size:13px;color:var(--faint);text-align:center;margin:18px 0 6px;line-height:1.5}
+  .more-later .linkish{margin:0}
   .gwshow{margin:10px 0 2px}
   .gwshow summary,.gwdet summary{cursor:pointer;font-size:13px;color:var(--indigo)}
   .gw textarea{width:100%;box-sizing:border-box}
@@ -661,9 +672,9 @@
 <div class="overlay" id="gwOverlay">
   <div class="modal gw" role="dialog" aria-labelledby="gwTitle">
     <h3 id="gwTitle">Get words</h3>
-    <p class="hint">Your own AI writes the list; Language Senpai turns it into cards and never adds anything you already have. Nothing leaves this browser.</p>
+    <p class="hint">Your AI writes the list. Language Senpai makes you remember it.</p>
     <div id="gwMore"></div>
-    <h4>1 · Describe it</h4>
+    <h4>1 · Describe the list</h4>
     <div class="gwgrid">
       <label class="gwf"><span class="flabel">Learning</span><input type="text" class="field" id="gwLearn" placeholder="e.g. Japanese" autocomplete="off"></label>
       <label class="gwf"><span class="flabel">Meanings in</span><input type="text" class="field" id="gwMeaning" placeholder="e.g. English" autocomplete="off"></label>
@@ -672,10 +683,15 @@
       <label class="gwf"><span class="flabel">Level</span><select class="field" id="gwLevel"><option value="">Any level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
       <label class="gwf"><span class="flabel">How many</span><select class="field" id="gwCount"></select></label>
     </div>
-    <div class="gwrow"><button class="btn" id="gwCopy">Copy prompt</button><span class="gwstatus" id="gwStatus" role="status"></span></div>
-    <details class="gwshow"><summary>See the prompt</summary><textarea id="gwPrompt" readonly rows="8"></textarea></details>
-    <h4>2 · Paste the answer</h4>
-    <textarea id="gwPaste" rows="7" placeholder="Paste your AI's answer here (copy it with the Copy button on its code box)"></textarea>
+    <h4>2 · Send it to your AI</h4>
+    <p class="hint gw-step">Language Senpai writes a message for your AI. Tap yours and send the message there.</p>
+    <div class="gw-ai"><a class="btn" id="gwGpt" data-ai="gpt" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a><a class="btn" id="gwClaude" data-ai="claude" href="https://claude.ai/new" target="_blank" rel="noopener">Claude</a><a class="btn" id="gwGemini" data-ai="gemini" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini</a><button class="btn ghost" id="gwCopy">Copy for another AI</button></div>
+    <p class="gw-note">ChatGPT and Claude open with the message already filled in. Every button also copies it, so with Gemini, DeepSeek or any other AI you just paste it.</p>
+    <p class="gwstatus" id="gwStatus" role="status"></p>
+    <details class="gwshow"><summary>See the message</summary><textarea id="gwPrompt" readonly rows="8"></textarea></details>
+    <h4>3 · Paste its answer here</h4>
+    <p class="hint gw-step">In your AI, copy its whole answer (its box has a Copy button), then come back and paste it below.</p>
+    <textarea id="gwPaste" rows="7" placeholder="Paste your AI's answer here"></textarea>
     <div class="gwsum" id="gwSum" role="status"></div>
     <div id="gwDups"></div>
     <div class="gwgrid">
@@ -812,9 +828,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.9";
+  const APP_VERSION="25.10";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.10", items:["Get words is simpler: three steps and a button for your AI. ChatGPT and Claude open with the message already filled in; every button also copies it, so Gemini or any other AI works too.","New here? The library starts simple: your lists and how to add more. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap \u201cShow everything now\u201d. Everyone else sees everything, as before."]},
     {v:"25.9", items:["The welcome screen now starts with a personal note about why Language Senpai exists and how it helps you learn. \u201cLet\u2019s start\u201d leads on to how it works and how to begin.","The note is also in Help, under About Language Senpai.","A globe button at the top (and on the welcome screen) is for the app\u2019s language. For now it shows, in Portuguese, Spanish, German, Dutch, French or Italian, how to let your browser translate the page."]},
     {v:"25.8", items:["The welcome screen now says what Language Senpai is and how it works, in three steps, with two ways to start: try 8 sample words, or add your own.","After the sample, a short note shows the next step: add your own words, or take a quick tour.","The sample lists say they're a demo in Japanese: your own lists can be in any language."]},
 {v:"25.7", items:["Clearer steps for adding Language Senpai to your Home Screen, on the welcome screen and in Help: what to tap, and where Share is on newer iPhones."]},
@@ -924,6 +941,10 @@
   let S = load();
   if(bootSave) save();   // a fix applied while loading is written straight away
   let showWelcome = !S.welcomed && !rescued;   // v22.4: first visit (and once for everyone updating)
+  // v25.10: brand-new users start with a simpler library: their lists and how to add more. The rest appears once they
+  // practise a list of their own, or with "Show everything now"; "I know my way" shows it all at once. Anyone who
+  // already has lists of their own (everyone updating, anyone importing a backup) sees everything.
+  if(showWelcome && S.simple===undefined && !S.lists.some(l=>!l.demo) && !(S.sLists||[]).some(l=>!l.demo)){ S.simple=true; S.dojo="word"; }
   function load(){
     let raw=null;
     try{ raw=localStorage.getItem(KEY); }catch(e){}
@@ -1128,6 +1149,7 @@
   // ---- session ----
   let work=[], lastIdx=null, trial=0, cur=null, phase="answer", shownAt=0, firstKey=0, timer=null;
   function startSession(l){ lastAnswered=null; closeSortMenu(); hideSortToast();
+    if(S.simple && l && !l.demo && !l._virtual) S.simple=false;   // v25.10: practising a list of your own shows everything
     if(l.demo && !S.tipNext && ![...S.lists, ...(S.sLists||[])].some(x=>!x.demo)) S.tipNext="pending";   // v25.8: newcomers get a next-step note after the sample
     l.words.forEach(w=>{ w.mastered=false; w.streak=0; w.misses=0; w.lapsed=false; w._t=0; w._drop=false; w._seen=false; w._aced=false; });
     work=[]; for(let i=0;i<l.words.length && work.length<SET_SIZE;i++) work.push(i);
@@ -1737,7 +1759,7 @@
   function folderHtml(fk,label,n,withAdd){
     const shut=!!(S.collapsed && S.collapsed[folderKey(fk)]);
     const empty = fk==="learn" ? "No lists here." : "Nothing here yet — lists you master or already know land here.";
-    return `<div class="folder"><h3 class="fhead${shut?' collapsed':''}" data-fk="${fk}" role="button" tabindex="0" aria-expanded="${!shut}"><span class="chev">▾</span>${label} <span class="n">${n}</span>${folderSortIcon(fk,label)}</h3>
+    return `<div class="folder f-${fk}${n?"":" empty"}"><h3 class="fhead${shut?' collapsed':''}" data-fk="${fk}" role="button" tabindex="0" aria-expanded="${!shut}"><span class="chev">▾</span>${label} <span class="n">${n}</span>${folderSortIcon(fk,label)}</h3>
       <div class="fold${shut?' shut':''}"${shut?' inert':''}><div class="foldin">
         ${withAdd?`<div class="addrow"><button class="btn ghost sm" id="addBtn">+ New list</button><button class="btn ghost sm" id="gwBtn">${isSent()?"Get sentences":"Get words"}</button></div>`:''}
         <div id="${fk}Wrap">${n?"":'<div class="empty">'+empty+'</div>'}</div>
@@ -1766,14 +1788,17 @@
     const intro = sent
       ? "Your sentence lists. Build each sentence from its words — once a list is mastered on three separate days, its shurikens turn gold."
       : "Your word lists. Study a list until every word is mastered on three separate days to turn its shurikens gold — or, for a list you already know, move it straight to Master.";
+    const simple = S.simple===true && !sent;   // v25.10
     stage.classList.toggle("quiet", !!quiet);
+    stage.classList.toggle("simple", simple);
     stage.innerHTML=`${noticeHtml()}${dojoTiles()}${tallyHtml()}
-      <p class="lib-intro">${intro}</p>
+      <p class="lib-intro">${simple ? "Your word lists. Press Study on a list: you see the meaning and type the word, and the ones you miss come back until you know them." : intro}</p>
       <div class="hardcard"><div class="hc-left"><span class="hc-bolt">${BOLT}</span><div><div class="hc-name">Rivals</div><div class="hc-sub">${hard.length===0?"No rivals right now":hard.length===1?"1 rival awaits you":`${hard.length} rivals await you`}</div></div></div>${hard.length?`<button class="btn sm rival" id="hardGo">${hard.length===1?"Challenge your rival":"Challenge your rivals"}</button>`:""}</div>
       ${folderHtml("learn","Student",learn.length,true)}
       ${revisitCardHtml(!!quiet)}
-      ${folderHtml("learned","Master",learned.length,false)}`;
+      ${folderHtml("learned","Master",learned.length,false)}${simple ? `<p class="more-later" id="moreLater">More appears as you go: Rivals, Revisit and the other dojos.<br><button type="button" class="linkish" id="showAll">Show everything now</button></p>` : ""}`;
     fillFolder("learnWrap", "learn"); fillFolder("learnedWrap", "learned");
+    { const sa=document.getElementById("showAll"); if(sa) sa.onclick=()=>{ S.simple=false; save(); renderLibrary(); paintHeader(); }; }
     stage.querySelectorAll(".fhead").forEach(h=>wireFold(h, h.nextElementSibling, folderKey(h.dataset.fk)));
     stage.querySelectorAll(".fsort").forEach(b=>wireSort(b, ()=>folderScope(b.dataset.sf)));
     document.getElementById("addBtn").onclick=()=>openList(null);
@@ -2850,7 +2875,7 @@
     if(p.junk.length) parts.push(`${p.junk.length} other line${p.junk.length===1?"":"s"} ignored`);
     gwe("gwSum").innerHTML=parts.join(" · ")+'<span id="gwNote"></span>';
     const nd=p.dups.length, them=nd===1?"it":"them", ng=p.glued.length;
-    const none = !ng && !(p.fresh.length+nd) && p.junk.length ? `<div class="gwwarn" id="gwNone" role="alert"><b>No line here looks like \u201c${unit} = ${sent?"translation":"meaning"}\u201d</b>, so nothing can become a card. Paste your AI's answer to the prompt above: it asks for exactly that shape.</div>` : "";
+    const none = !ng && !(p.fresh.length+nd) && p.junk.length ? `<div class="gwwarn" id="gwNone" role="alert"><b>No line here looks like \u201c${unit} = ${sent?"translation":"meaning"}\u201d</b>, so nothing can become a card. Paste your AI's answer to the message above: it asks for exactly that shape.</div>` : "";
     const glued = !ng ? none : `<div class="gwwarn" id="gwGlued" role="alert">${(p.fresh.length+nd) ? `<b>${ng===1?"1 line holds":ng+" lines hold"} several ${unit} pairs</b>: their line breaks got lost while copying. Copy the answer again with your AI's Copy button, or put each pair on its own line here.` : `<b>This arrived as one long line</b>: the line breaks got lost while copying (it happens on phones). In your AI chat, tap the Copy button on its code box, or under its answer, instead of selecting the text. Then paste here again.`}</div>`;
     gwe("gwDups").innerHTML=glued+(nd?`<div class="gwdupbar"><span>${nd===1?"1 is":nd+" are"} already in your lists.</span><span class="dseg mini"><button type="button" data-all="skip" class="on">Skip ${them}</button><button type="button" data-all="keep">Keep ${them}</button></span><button type="button" class="linkish" id="gwDupOne">choose one by one</button></div><div id="gwDupList" hidden>${p.dups.map((d,i)=>`<label class="gwdup"><input type="checkbox" data-k="${i}"><span><b>Keep</b> ${esc(d.nl)} = ${esc(d.de)} <small>you have \u201c${esc(d.existing)}\u201d in ${esc(d.where)}</small></span></label>`).join("")}</div>`:"")+
       (p.junk.length?`<details class="gwdet"><summary>Lines that weren't ${unit} pairs</summary>${p.junk.slice(0,40).map(j=>`<div class="gwjunk">${esc(j)}</div>`).join("")}</details>`:"");
@@ -2922,9 +2947,23 @@
     let ok=false;
     try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){}
     if(!ok){ const ta=gwe("gwPrompt"); ta.closest("details").open=true; ta.focus(); ta.select(); try{ ok=document.execCommand("copy"); }catch(e){} }
-    gwe("gwStatus").textContent = ok ? "Copied — paste it into the AI chat you use, then paste its answer below." : "Select the prompt below and copy it.";
+    gwe("gwStatus").textContent = ok ? "Copied. Paste it into your AI chat and send it, then copy its whole answer and paste it below." : "Select the message below and copy it.";
     gwSetDefaults();
   };
+  // v25.10: a button per AI. Each one copies the message too; ChatGPT and Claude also get it filled in through the link.
+  // The tap opens the link itself, so no pop-up blocker gets in the way and a phone can hand it to the AI's app.
+  const GW_AI={gpt:{n:"ChatGPT", u:"https://chatgpt.com/", q:"?q="}, claude:{n:"Claude", u:"https://claude.ai/new", q:"?q="}, gemini:{n:"Gemini", u:"https://gemini.google.com/app", q:""}};
+  const GW_URL_MAX=7000;   // a longer link may not arrive whole: then the AI opens empty and the copied message is pasted
+  function gwAiLink(k, text){ const ai=GW_AI[k]; if(!ai.q) return ai.u; const u=ai.u+ai.q+encodeURIComponent(text); return u.length<=GW_URL_MAX ? u : ai.u; }
+  document.querySelectorAll("#gwOverlay [data-ai]").forEach(a=>a.addEventListener("click",()=>{
+    const k=a.dataset.ai, ai=GW_AI[k]; gwRemember(); const text=gwPrompt(); gwe("gwPrompt").value=text;
+    const link=gwAiLink(k, text), filled=link!==ai.u; a.href=link;
+    let p; try{ p=navigator.clipboard.writeText(text); }catch(e){ p=Promise.reject(e); }
+    Promise.resolve(p).then(()=>true, ()=>false).then(ok=>{
+      gwe("gwStatus").textContent = (filled ? ai.n+" opens with the message filled in: send it there." : ok ? "Copied. Paste the message into "+ai.n+" and send it." : "Copy the message from “See the message” below and paste it into "+ai.n+".")+" Then copy its whole answer and paste it below.";
+    });
+    gwSetDefaults();
+  }));
   gwe("gwCreate").onclick=gwCreate;
   gwe("gwClose").onclick=()=>gwOverlay.classList.remove("open");   // no closing on a stray backdrop click: a pasted answer would be lost
 
@@ -2960,6 +2999,7 @@
       : `<li>In a language with articles, write nouns with their article on the side you type: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`; }
   const HELP=[
     {id:"start", t:"Getting started", h:`<p>Language Senpai trains vocabulary and sentences with spaced practice. Everything happens in this browser; nothing leaves your device.</p><ol>
+      <li id="hSimple">New here? The library starts simple: your lists, <b>+ New list</b> and <b>Get words</b>. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap <b>Show everything now</b> at the bottom.</li>
       <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on the articles of your nouns).</li>
       <li><b>Try the sample list</b> (a short demo in Japanese), or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
       <li id="hGold">Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
@@ -3008,7 +3048,7 @@
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date created</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists created before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`; }},
-    {id:"get", t:"Get words", h:`<p>Describe what you want (language, topic, level, how many), press <b>Copy prompt</b>, paste it into the AI chat you use, then paste its answer back and create the list. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
+    {id:"get", t:"Get words", h:`<p>Describe the list (language, topic, level, how many), then tap your AI: <b>ChatGPT</b> and <b>Claude</b> open with the message already filled in, <b>Gemini</b> opens and you paste it, and <b>Copy for another AI</b> works with any other one (DeepSeek, Mistral, one on your own computer). Every button also copies the message. Send it, copy the AI's whole answer, come back, paste it into step 3 and create the list. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
       <li><b>Language you're learning</b> (at the top): picks the speaker's voice and how characters are drawn — e.g. Taiwanese or mainland shapes for Chinese.</li>
       <li><b>Reading aloud:</b> have each word read aloud automatically, if you like.</li>
@@ -3064,7 +3104,8 @@
   helpOverlay.addEventListener("click",e=>{ if(e.target===helpOverlay) helpOverlay.classList.remove("open"); });
   document.getElementById("helpBtnHdr").onclick=()=>openHelp(isSent()?"sentence":S.dojo==="gram"?"grammar":"start");
   function closeWelcome(){ wlOverlay.classList.remove("open"); S.welcomed=true; save(); }
-  document.getElementById("wlSkip").onclick=closeWelcome;
+  function skipWelcome(){ if(S.simple) S.simple=false; closeWelcome(); render(); }   // v25.10: "I know my way" also shows everything
+  document.getElementById("wlSkip").onclick=skipWelcome;
   { const wl=document.getElementById("wlLang"); wl.innerHTML=langOptions("Choose later"); wl.value=speakSet("word").lang||"";
     wl.onchange=()=>{ S.settings.speak=fixSpeak(S.settings.speak); S.settings.speak.word.lang=wl.value; S.settings.speak.sentence.lang=wl.value; save(); }; }
   document.getElementById("wlTour").onclick=()=>{ closeWelcome(); openHelp("start"); };
@@ -3086,7 +3127,7 @@
     const page=n=>{ p1.hidden=n!==1; p2.hidden=n!==2; dlg.setAttribute("aria-labelledby", n===1?"wlTitle":"wlTitle2"); dlg.scrollTop=0; };
     document.getElementById("wlNext").onclick=()=>page(2);
     document.getElementById("wlPrev").onclick=()=>page(1);
-    document.getElementById("wlSkip2").onclick=closeWelcome; }
+    document.getElementById("wlSkip2").onclick=skipWelcome; }
   // v25.9: the globe. The app is in English for now: picking another language says, in that language, how to let the
   // browser translate the page (cards stay as they are: they carry translate="no")
   const UI_LANGS=[
@@ -3226,7 +3267,7 @@
   const importFile=document.getElementById("importFile");
   document.getElementById("importBtn").onclick=()=>importFile.click();
   importFile.onchange=()=>{ const f=importFile.files[0]; if(!f) return; const r=new FileReader();
-    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||!Array.isArray(p.lists)) throw 0; p.settings=fixSettings(p.settings); p.groupOrder=fixGroupOrder(p.groupOrder); tidyStoredCards(p); if(!Array.isArray(p.sLists)) p.sLists=[]; p.sGroupOrder=fixGroupOrder(p.sGroupOrder); p.dojo=["sentence","gram"].includes(p.dojo)?p.dojo:"word"; p.gram=fixGram(p.gram); gramStop(); p.collapsed=(p.collapsed&&typeof p.collapsed==="object")?p.collapsed:{}; p.view="library"; p.activeListId=null; S=p; save(); setOverlay.classList.remove("open"); render(); alert("Backup imported."); }
+    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||!Array.isArray(p.lists)) throw 0; p.settings=fixSettings(p.settings); p.groupOrder=fixGroupOrder(p.groupOrder); tidyStoredCards(p); if(!Array.isArray(p.sLists)) p.sLists=[]; p.sGroupOrder=fixGroupOrder(p.sGroupOrder); p.dojo=["sentence","gram"].includes(p.dojo)?p.dojo:"word"; delete p.simple; p.gram=fixGram(p.gram); gramStop(); p.collapsed=(p.collapsed&&typeof p.collapsed==="object")?p.collapsed:{}; p.view="library"; p.activeListId=null; S=p; save(); setOverlay.classList.remove("open"); render(); alert("Backup imported."); }
       catch(e){ alert("That file doesn't look like a valid backup."); } importFile.value=""; };
     r.readAsText(f); };
 

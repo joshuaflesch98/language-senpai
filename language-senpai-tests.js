@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (805 at V25.9)
+ * Language Senpai — automated checks (823 at V25.10)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.9"')), 'version 25.9');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.10"')), 'version 25.10');
     await ctx.close();
   }
   {
@@ -2222,7 +2222,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     await page.fill('#gwLearn', 'French'); await page.fill('#gwMeaning', 'German'); await page.waitForTimeout(80);
     const pr = await page.inputValue('#gwPrompt');
     ok(/Number the lines \(1\. 2\. 3\. …\) and put them all in one code block/.test(pr) && /only the numbered lines/.test(pr) && !/No numbering/.test(pr), 'the prompt asks for numbered lines in one code block');
-    ok(/Copy button on its code box/.test(await page.getAttribute('#gwPaste', 'placeholder')), 'the paste box says to copy with the code box\'s Copy button');
+    ok(/copy its whole answer \(its box has a Copy button\)/.test(await page.textContent('#gwOverlay')), 'Get words says to copy the answer with its box\'s Copy button');
     r = await paste('Here you go: ```text ' + N33.join(' ') + ' ```');
     ok(r.sum === '4 new · 1 other line ignored' && !r.off, 'a whole message copied with separators: the fences drop out, the intro is the 1 other line, 4 new');
     r = await paste('```text ' + N33.join(' ') + ' ```');
@@ -3198,6 +3198,85 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         const g2 = await page.evaluate(() => { const q = id => document.getElementById(id).getBoundingClientRect(); const b = q('brand'), l = q('langBtnHdr'), h = q('helpBtnHdr');
           return { sameRow: Math.abs((l.top + l.bottom) / 2 - (b.top + b.bottom) / 2) < 12, right: l.right <= innerWidth && (l.left > b.right || l.top >= b.bottom - 2), linksBelow: h.top >= l.bottom - 2, fit: document.documentElement.scrollWidth <= innerWidth }; });
         ok((g2.sameRow || w < 350) && g2.right && g2.linksBelow && g2.fit, `phone ${w}px: the globe at the end of the name's row (on the smallest phones just under it), the links below`);
+        await ctx.close();
+      }
+    }
+
+    console.log('\n[41] V25.10: Get words in three steps with a button per AI; a simpler start for new users');
+    {
+      async function fresh10(opts) {
+        const ctx = await browser.newContext(Object.assign({ viewport: { width: 900, height: 900 } }, opts || {})); const page = await ctx.newPage();
+        page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        await page.evaluate(() => document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-ai]')) e.preventDefault(); }));   // the AI links stay in the test page
+        return { ctx, page };
+      }
+      const visible = (page, sel) => page.$eval(sel, e => !!e.offsetParent).catch(() => false);
+      let { ctx, page } = await fresh10();
+      await page.click('#wlSkip'); await page.waitForTimeout(200);
+      await page.click('#gwBtn'); await page.waitForTimeout(200);
+      await page.fill('#gwLearn', 'English'); await page.fill('#gwMeaning', 'Portuguese'); await page.fill('#gwTopic', 'travel');
+      const win = await page.evaluate(() => { const m = document.querySelector('#gwOverlay .modal'); const c = m.cloneNode(true); c.querySelectorAll('textarea').forEach(t => t.remove());
+        return { h4: [...m.querySelectorAll('h4')].map(h => h.textContent.trim()), t: c.textContent.replace(/\s+/g, ' '), links: [...m.querySelectorAll('a[data-ai]')].map(a => a.textContent.trim() + '|' + a.target + '|' + a.rel), copy: document.getElementById('gwCopy').textContent.trim() }; });
+      ok(win.h4.slice(0, 3).join(' / ') === '1 · Describe the list / 2 · Send it to your AI / 3 · Paste its answer here' && /Your AI writes the list\. Language Senpai makes you remember it\./.test(win.t) && /See the message/.test(win.t) && !/prompt/i.test(win.t), 'Get words: three steps, "message", never "prompt"');
+      ok(win.links.join(',') === 'ChatGPT|_blank|noopener,Claude|_blank|noopener,Gemini|_blank|noopener' && win.copy === 'Copy for another AI' && /ChatGPT and Claude open with the message already filled in/.test(win.t), 'a button per AI, and Copy for another AI');
+      await page.click('#gwGpt'); await page.waitForTimeout(200);
+      let r = await page.evaluate(() => ({ href: document.getElementById('gwGpt').getAttribute('href'), msg: document.getElementById('gwPrompt').value, st: document.getElementById('gwStatus').textContent }));
+      ok(r.msg.length > 100 && r.href === 'https://chatgpt.com/?q=' + encodeURIComponent(r.msg) && /ChatGPT opens with the message filled in: send it there\. Then copy its whole answer/.test(r.st), 'ChatGPT opens with the message filled in');
+      await page.click('#gwClaude'); await page.waitForTimeout(200);
+      r = await page.evaluate(() => ({ href: document.getElementById('gwClaude').getAttribute('href'), msg: document.getElementById('gwPrompt').value, st: document.getElementById('gwStatus').textContent }));
+      ok(r.href === 'https://claude.ai/new?q=' + encodeURIComponent(r.msg) && /^Claude opens with the message filled in/.test(r.st), 'so does Claude');
+      await page.click('#gwGemini'); await page.waitForTimeout(200);
+      r = await page.evaluate(() => ({ href: document.getElementById('gwGemini').getAttribute('href'), st: document.getElementById('gwStatus').textContent }));
+      ok(r.href === 'https://gemini.google.com/app' && /(Copied\. Paste the message into Gemini|paste it into Gemini)/.test(r.st), 'Gemini opens empty: the message is copied to paste');
+      await page.fill('#gwTopic', 'travel '.repeat(1300)); await page.click('#gwGpt'); await page.waitForTimeout(200);
+      r = await page.evaluate(() => ({ href: document.getElementById('gwGpt').getAttribute('href'), st: document.getElementById('gwStatus').textContent }));
+      ok(r.href === 'https://chatgpt.com/' && !/filled in/.test(r.st) && /ChatGPT/.test(r.st), 'a very long message: ChatGPT opens empty and the message is pasted');
+      await page.fill('#gwTopic', 'travel'); await page.click('#gwCopy'); await page.waitForTimeout(200);
+      ok(/^(Copied\. Paste it into your AI chat and send it|Select the message below)/.test(await page.textContent('#gwStatus')), 'Copy for another AI copies, with what to do next');
+      await page.click('#gwClose'); await page.waitForTimeout(100);
+      await page.click('#helpBtnHdr'); await page.click('#helpNav [data-help="get"]'); await page.waitForTimeout(100);
+      const hg = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/ChatGPT and Claude open with the message already filled in/.test(hg) && /Copy for another AI works with any other one/.test(hg) && !/Copy prompt/.test(hg), 'Help → Get words describes the buttons');
+      await page.click('#helpNav [data-help="start"]'); await page.waitForTimeout(80);
+      ok(/The library starts simple/.test(await page.textContent('#helpBody')), 'Help → Getting started explains the simple start');
+      await page.click('#helpClose'); await page.waitForTimeout(80);
+      await page.evaluate(() => document.getElementById('wnBtn').click()); await page.waitForTimeout(120);
+      const wn = (await page.textContent('#wnList')).replace(/\s+/g, ' ');
+      ok(wn.indexOf('Version 25.10') >= 0 && wn.indexOf('Version 25.10') < wn.indexOf('Version 25.9') && /a button for your AI/.test(wn) && /starts simple/.test(wn), "What's new lists 25.10 first");
+      ok(!(await getS(page)).simple && await visible(page, '.dojos') && await visible(page, '.hardcard') && await visible(page, '#revCard'), '"I know my way" shows everything at once');
+      await ctx.close();
+      // a brand-new user who closes the welcome another way gets the simple library
+      ({ ctx, page } = await fresh10());
+      await page.click('#wlNext'); await page.click('#wlTour'); await page.waitForTimeout(150); await page.click('#helpClose'); await page.waitForTimeout(150);
+      let g = await page.evaluate(() => ({ simple: JSON.parse(localStorage.getItem('language_senpai_v1')).simple, intro: document.querySelector('.lib-intro').textContent, more: document.getElementById('moreLater') && document.getElementById('moreLater').textContent }));
+      ok(g.simple === true && !(await visible(page, '.dojos')) && !(await visible(page, '.hardcard')) && !(await visible(page, '#revCard')) && !(await visible(page, '.folder.f-learned')) && await visible(page, '.folder.f-learn') && await visible(page, '#addBtn') && await visible(page, '#gwBtn') && /Press Study on a list/.test(g.intro) && /More appears as you go: Rivals, Revisit and the other dojos/.test(g.more || '') && await visible(page, '#showAll'), 'new users: their lists and how to add more; the rest waits');
+      await page.click('.listcard:has-text("Dojo words (sample)") [data-a="study"]'); await page.waitForTimeout(250); await page.click('#backBtn'); await page.waitForTimeout(250);
+      ok((await getS(page)).simple === true && !(await visible(page, '.dojos')) && !!(await page.$('#nextNote')), 'the sample keeps it simple (and shows the next step)');
+      await page.click('#showAll'); await page.waitForTimeout(200);
+      const shown = !(await getS(page)).simple && await visible(page, '.dojos') && await visible(page, '.hardcard') && await visible(page, '#revCard') && await visible(page, '.folder.f-learned') && !(await page.$('#moreLater'));
+      await page.reload(); await page.waitForTimeout(300);
+      ok(shown && await visible(page, '.dojos'), '"Show everything now" shows it all, for good');
+      await ctx.close();
+      // practising a list of your own shows everything
+      const st10 = state([list('Mine', [word('de appel', 'A'), word('het huis', 'B')])]); st10.simple = true;
+      let rr = await freshD(st10);
+      const before = !(await visible(rr.page, '.dojos'));
+      await rr.page.click('.listcard:has-text("Mine") [data-a="study"]'); await rr.page.waitForTimeout(250);
+      await rr.page.click('#backBtn'); await rr.page.waitForTimeout(250);
+      ok(before && (await getS(rr.page)).simple === false && await visible(rr.page, '.dojos') && await visible(rr.page, '.hardcard'), 'practising a list of your own shows everything');
+      await rr.ctx.close();
+      // people with lists of their own never see the simple start
+      const st11 = state([list('W', [word('a', 'A')])]); delete st11.welcomed;
+      rr = await freshD(st11);
+      ok((await getS(rr.page)).simple === undefined && await visible(rr.page, '.dojos'), 'people updating with lists of their own see everything');
+      await rr.ctx.close();
+      for (const w of [320, 375]) {
+        ({ ctx, page } = await fresh10({ viewport: { width: w, height: 760 }, isMobile: true, hasTouch: true }));
+        await page.click('#wlSkip'); await page.waitForTimeout(150); await page.click('#gwBtn'); await page.waitForTimeout(200);
+        const gp = await page.evaluate(() => { const m = document.querySelector('#gwOverlay .modal'), bs = [...m.querySelectorAll('.gw-ai > *')].map(b => b.getBoundingClientRect());
+          return { fit: m.scrollWidth <= m.clientWidth + 1 && bs.every(b => b.right <= innerWidth && b.left >= 0), rows: new Set(bs.map(b => Math.round(b.top))).size, h: Math.max(...bs.map(b => b.height)) }; });
+        ok(gp.fit && gp.rows === 2 && gp.h < 60, `phone ${w}px: the AI buttons fit: three in a row, Copy for another AI under them`);
         await ctx.close();
       }
     }
