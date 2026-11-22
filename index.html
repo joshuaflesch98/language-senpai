@@ -155,6 +155,9 @@
   .gw-ai{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 4px}
   .gw-ai #gwCopy{grid-column:1/-1}
   .gw-ai .btn{display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;padding:11px 10px}
+  .grp-note{font-size:12.5px;color:var(--faint);line-height:1.45;margin:6px 2px 12px}
+  .grpwrap + .grp-note{margin-top:-6px}
+  .gwgrid + .grp-note{margin-top:-4px}
   .gw-note{font-size:12.5px;color:var(--faint);margin:6px 0 2px;line-height:1.45}
   p.gwstatus{margin:6px 0 0}
   p.gwstatus:empty{display:none}
@@ -634,6 +637,7 @@
     <div class="modal-head"><h3 id="listTitle">New list</h3><button type="button" class="qmark" data-go="help:lists#hShorthand" title="Card shorthand: / [ ] ( ) explained in Help" aria-label="Card shorthand, explained in Help">?</button></div>
     <input type="text" class="field" id="listName" placeholder="List name (e.g. Frequency 1–100, or Psychology terms)">
     <div class="grpwrap"><input type="text" class="field" id="listGroup" autocomplete="off" placeholder="Group (optional) — e.g. Frequency, Psychology. Blank = Ungrouped"><div class="grpmenu" id="grpMenu"></div></div>
+    <p class="grp-note" id="listGrpNote">Lists with the same group sit together under one heading in your library, like in a folder.</p>
     <label class="setsel listlang">Reads aloud in <select class="field" id="listLang"></select></label>
     <p class="hint" id="listHelp">One pair per line: <code>word = meaning</code>. Symbols you can add:<br>
       &nbsp;• <code>/</code> — both fully correct, either counts: <code>dōjō / dojo = training hall</code><br>
@@ -698,6 +702,7 @@
       <label class="gwf"><span class="flabel">List name</span><input type="text" class="field" id="gwName" autocomplete="off"></label>
       <label class="gwf"><span class="flabel">Group</span><input type="text" class="field" id="gwGroup" autocomplete="off"></label>
     </div>
+    <p class="grp-note" id="gwGrpNote">Lists with the same group sit together under one heading in your library, like in a folder.</p>
     <div class="modal-row" style="justify-content:flex-end"><div style="display:flex;gap:10px"><button class="btn ghost" id="gwClose">Close</button><button class="btn" id="gwCreate" disabled>Create list</button></div></div>
   </div>
 </div>
@@ -828,9 +833,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.10";
+  const APP_VERSION="25.11";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"25.11", items:["Get words asks for the reading of Japanese, Chinese and Korean words (心理学 / しんりがく / shinrigaku), so you can type a word in its own script or in Latin letters, and every answer shows the characters with their reading.","A short line under “Group” says what it does: lists with the same group sit together under one heading, like in a folder."]},
     {v:"25.10", items:["Get words is simpler: three steps and a button for your AI. ChatGPT and Claude open with the message already filled in; every button also copies it, so Gemini or any other AI works too.","New here? The library starts simple: your lists and how to add more. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap \u201cShow everything now\u201d. Everyone else sees everything, as before."]},
     {v:"25.9", items:["The welcome screen now starts with a personal note about why Language Senpai exists and how it helps you learn. \u201cLet\u2019s start\u201d leads on to how it works and how to begin.","The note is also in Help, under About Language Senpai.","A globe button at the top (and on the welcome screen) is for the app\u2019s language. For now it shows, in Portuguese, Spanish, German, Dutch, French or Italian, how to let your browser translate the page."]},
     {v:"25.8", items:["The welcome screen now says what Language Senpai is and how it works, in three steps, with two ways to start: try 8 sample words, or add your own.","After the sample, a short note shows the next step: add your own words, or take a quick tour.","The sample lists say they're a demo in Japanese: your own lists can be in any language."]},
@@ -2800,6 +2806,27 @@
     return out;
   }
   function gwFromWords(){ const id=gwe("gwFrom").value; if(!id) return []; const l=S.lists.find(x=>x.id===id); return l ? l.words.slice(0,120).map(w=>parseSide(w.nl).primary) : []; }
+  // v25.11: Japanese, Chinese and Korean cards carry their reading ("/" = either counts): type the script or Latin letters
+  function gwScript(learn){
+    const t=String(learn||"").toLowerCase(), code=langCodeFromName(learn), b=code.split("-")[0];
+    if(b==="ja" || /japan|japon|japán|日本|nihongo/.test(t)) return "ja";
+    if(b==="ko" || /korea|corea|coreia|한국|조선/.test(t)) return "ko";
+    if(b==="zh" || /\bchin|mandarin|cantone|kanton|中文|汉语|漢語|普通话|國語|国语|华语|華語|粵|广东话|廣東話/.test(t)){
+      const set=speakSet("word").lang||"";
+      if(code==="zh-HK" || /cantone|kanton|粵|广东话|廣東話/.test(t) || (set==="zh-HK" && !/mandarin/.test(t))) return "yue";
+      if(code==="zh-TW" || /taiwan|traditional|繁|臺|台|hong ?kong|港/.test(t) || set==="zh-TW" || set==="zh-HK") return "zh-trad";
+      return "zh";
+    }
+    return "";
+  }
+  function gwReading(learn, meaning){
+    const k=gwScript(learn), m=`= ${meaning} meaning`;
+    if(k==="ja") return `- Write each word in Japanese script, then its reading in hiragana (leave that out if the word is written only in kana), then in rōmaji (Hepburn, with macrons for long vowels), all separated by " / ", like this: 心理学 / しんりがく / shinrigaku ${m}, or ストレス / sutoresu ${m}.`;
+    if(k==="zh" || k==="zh-trad") return `- Write each word in ${k==="zh"?"simplified":"traditional"} Chinese characters, then in pinyin with tone marks (the syllables of one word written together), separated by " / ", like this: 中文 / zhōngwén ${m}.`;
+    if(k==="yue") return `- Write each word in traditional Chinese characters, then in Jyutping with tone numbers, separated by " / ", like this: 中文 / zung1 man4 ${m}.`;
+    if(k==="ko") return `- Write each word in Hangul, then in the Revised Romanization, separated by " / ", like this: 한국어 / hangugeo ${m}.`;
+    return "";
+  }
   function gwPrompt(){
     const sent=isSent();
     const learn=gwe("gwLearn").value.trim()||"[the language you're learning]", meaning=gwe("gwMeaning").value.trim()||"[your language]";
@@ -2814,6 +2841,7 @@
       if(general && have>300) L.push(`I already know roughly the ${Math.floor(have/100)*100} most common ${learn} words, so choose less common ones beyond those.`);
       L.push(`Give ${ask} words or short expressions, one per line, in exactly this format:`);
       L.push(`${learn} word = ${meaning} meaning`);
+      const rd=gwReading(learn, meaning); if(rd) L.push(rd);   // v25.11: the reading, so any keyboard can answer
       L.push(`- For nouns, include the article (or gender) if ${learn} has one.`);
       L.push(`- Double-check every article before you answer.`);
       L.push(`- If two ${learn} words mean exactly the same, put both on the left, separated by " / ".`);
@@ -3037,18 +3065,18 @@
       <li>The voices come from your device, so they're free. A faded speaker means there's no voice for that language on this device yet: on iPhone, iPad and Mac, add one under Accessibility → Spoken Content; on other devices, search the settings for "text-to-speech".</li></ul>`},
     {id:"lists", t:"Your lists", get h(){ return `<p>One per line: <code>word = meaning</code> (sentences: <code>sentence = translation</code>).</p>
       <div class="shorthand" id="hShorthand"><h5>Card shorthand</h5><dl>
-        <dt><code>/</code> <b>either counts</b></dt><dd><code>dōjō / dojo = training hall</code>: type either one.</dd>
+        <dt><code>/</code> <b>either counts</b></dt><dd><code>dōjō / dojo = training hall</code>: type either one. Scripts work the same way: <code>心理学 / しんりがく / shinrigaku = psychology</code> takes the kanji, the kana or the rōmaji.</dd>
         <dt><code>[ ]</code> <b>also valid, but type the first</b></dt><dd><code>sensei [shishō] = teacher</code>: “shishō” turns teal, and the card waits for “sensei”.</dd>
         <dt><code>( )</code> <b>a hint</b>, on the side you're asked</dt><dd><code>karai = hot (spicy)</code>: you're asked “hot” with the hint “spicy”, so you know it's karai, not atsui (hot as in warm).</dd>
         <dt><code>( )</code> <b>optional</b>, on the side you type</dt><dd><code>arigatō (gozaimasu) = thank you</code>: “arigatō” and “arigatō gozaimasu” both count.</dd>
       </dl></div><ul>
       ${gramListsLi()}
       <li>Sentences: other correct word orders (same words) go after <code>/</code>.</li>
-      <li><b>Groups</b> keep related lists under one heading — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
+      <li><b>Groups</b> keep related lists under one heading, like a folder — say, all your travel lists. Give a list its group in the <b>Group</b> field when you create or edit it.</li>
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date created</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists created before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`; }},
-    {id:"get", t:"Get words", h:`<p>Describe the list (language, topic, level, how many), then tap your AI: <b>ChatGPT</b> and <b>Claude</b> open with the message already filled in, <b>Gemini</b> opens and you paste it, and <b>Copy for another AI</b> works with any other one (DeepSeek, Mistral, one on your own computer). Every button also copies the message. Send it, copy the AI's whole answer, come back, paste it into step 3 and create the list. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
+    {id:"get", t:"Get words", h:`<p>Describe the list (language, topic, level, how many), then tap your AI: <b>ChatGPT</b> and <b>Claude</b> open with the message already filled in, <b>Gemini</b> opens and you paste it, and <b>Copy for another AI</b> works with any other one (DeepSeek, Mistral, one on your own computer). Every button also copies the message. Send it, copy the AI's whole answer, come back, paste it into step 3 and create the list. For Japanese, Chinese and Korean the message also asks for each word's reading (<code>心理学 / しんりがく / shinrigaku = psychology</code>), so you can type a word in its own script or in Latin letters, and every answer shows both. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
       <li><b>Language you're learning</b> (at the top): picks the speaker's voice and how characters are drawn — e.g. Taiwanese or mainland shapes for Chinese.</li>
       <li><b>Reading aloud:</b> have each word read aloud automatically, if you like.</li>

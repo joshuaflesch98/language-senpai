@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (823 at V25.10)
+ * Language Senpai — automated checks (841 at V25.11)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.10"')), 'version 25.10');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.11"')), 'version 25.11');
     await ctx.close();
   }
   {
@@ -3281,6 +3281,80 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       }
     }
   }
+
+    console.log('\n[42] V25.11: readings for Japanese, Chinese and Korean in Get words; a line under Group');
+    {
+      async function fresh11(pre) {
+        const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } }); const page = await ctx.newPage();
+        page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await page.goto(FILE); await page.evaluate(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
+        await page.evaluate(() => document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-ai]')) e.preventDefault(); }));   // the AI links stay in the test page
+        if (pre) await pre(page); else await page.click('#wlSkip');
+        await page.waitForTimeout(150); await page.click('#gwBtn'); await page.waitForTimeout(200);
+        return { ctx, page };
+      }
+      async function msgFor(page, learn) {
+        await page.fill('#gwLearn', learn); await page.fill('#gwMeaning', 'English'); await page.fill('#gwTopic', 'psychology');
+        await page.click('#gwCopy'); await page.waitForTimeout(120);
+        return page.inputValue('#gwPrompt');
+      }
+      let { ctx, page } = await fresh11();
+      let m = await msgFor(page, 'Japanese');
+      ok(/then its reading in hiragana \(leave that out if the word is written only in kana\), then in rōmaji/.test(m) && m.includes('心理学 / しんりがく / shinrigaku = English meaning') && m.includes('ストレス / sutoresu = English meaning'), 'Japanese: the message asks for kanji / kana / rōmaji');
+      ok(/reading in hiragana/.test(await msgFor(page, 'Japonês')), 'Japanese named in another language works too');
+      m = await msgFor(page, 'Chinese');
+      ok(/in simplified Chinese characters, then in pinyin with tone marks/.test(m) && m.includes('中文 / zhōngwén = English meaning'), 'Chinese: characters / pinyin');
+      ok(/in traditional Chinese characters, then in pinyin/.test(await msgFor(page, 'Chinese (Taiwan)')), 'Chinese (Taiwan): traditional characters');
+      m = await msgFor(page, 'Cantonese');
+      ok(/traditional Chinese characters, then in Jyutping/.test(m) && m.includes('中文 / zung1 man4'), 'Cantonese: Jyutping');
+      m = await msgFor(page, 'Korean');
+      ok(/in Hangul, then in the Revised Romanization/.test(m) && m.includes('한국어 / hangugeo = English meaning'), 'Korean: Hangul / romanization');
+      m = await msgFor(page, 'Dutch');
+      ok(!/hiragana|pinyin|Jyutping|Hangul/.test(m) && /For nouns, include the article/.test(m), 'other languages: no reading line');
+      ok(/Lists with the same group sit together under one heading in your library, like in a folder\./.test(await page.textContent('#gwGrpNote')) && await page.$eval('#gwGrpNote', e => !!e.offsetParent), 'Get words: a line says what a group is');
+      await page.fill('#gwLearn', 'Japanese');
+      await page.fill('#gwPaste', '```\n1. 心理学 / しんりがく / shinrigaku = psychology\n2. ストレス / sutoresu = stress\n```'); await page.waitForTimeout(300);
+      await page.click('#gwCreate'); await page.waitForTimeout(300);
+      const made = (await getS(page)).lists.find(l => l.words.some(w => w.nl === '心理学 / しんりがく / shinrigaku'));
+      ok(!!made && made.words.length === 2 && made.words.some(w => w.nl === 'ストレス / sutoresu' && w.de === 'stress'), 'an answer with readings makes cards with every form');
+      await page.click('#addBtn'); await page.waitForTimeout(200);
+      ok(await page.$eval('#listGrpNote', e => !!e.offsetParent && /sit together under one heading/.test(e.textContent)), '+ New list: the same line under Group');
+      await ctx.close();
+      // Chinese (Mandarin, Taiwan) chosen on the welcome: traditional characters even if Get words just says "Chinese"
+      ({ ctx, page } = await fresh11(async p => { await p.click('#wlNext'); await p.selectOption('#wlLang', 'zh-TW'); await p.click('#wlSkip2'); }));
+      ok(/in traditional Chinese characters/.test(await msgFor(page, 'Chinese')), 'Taiwan chosen in Settings: traditional characters');
+      await ctx.close();
+      // studying such a card: the kanji, its kana and rōmaji; rōmaji counts
+      const r = await freshD(state([list('J', [word('心理学 / しんりがく / shinrigaku', 'psychology', { everSeen: false })])]));
+      await r.page.click('[data-a="study"]'); await r.page.waitForTimeout(400);
+      const big = ((await r.page.textContent('.show-answer')) || '').trim(), also = ((await r.page.textContent('.show-also')) || '').replace(/\s+/g, ' ').trim();
+      ok(big === '心理学' && /^or: しんりがく · shinrigaku$/.test(also), 'the copy step shows the kanji, with its kana and rōmaji (' + also + ')');
+      await r.page.fill('#ans', 'shinrigaku'); await r.page.press('#ans', 'Enter'); await r.page.waitForTimeout(900);
+      ok((await getS(r.page)).lists[0].words[0].everSeen === true, 'typing the rōmaji counts');
+      await r.page.click('#backBtn'); await r.page.waitForTimeout(250);
+      await r.page.click('#helpBtnHdr'); await r.page.click('#helpNav [data-help="get"]'); await r.page.waitForTimeout(100);
+      const hg = (await r.page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/For Japanese, Chinese and Korean the message also asks for each word's reading/.test(hg) && hg.includes('心理学 / しんりがく / shinrigaku = psychology'), 'Help → Get words explains the readings');
+      await r.page.click('#helpNav [data-help="lists"]'); await r.page.waitForTimeout(100);
+      const hl = (await r.page.textContent('#helpBody')).replace(/\s+/g, ' ');
+      ok(/takes the kanji, the kana or the rōmaji/.test(hl) && /under one heading, like a folder/.test(hl), 'Help → Your lists: scripts in the shorthand, groups like a folder');
+      await r.page.click('#helpClose'); await r.page.waitForTimeout(80);
+      await r.page.evaluate(() => document.getElementById('wnBtn').click()); await r.page.waitForTimeout(120);
+      const wn = (await r.page.textContent('#wnList')).replace(/\s+/g, ' ');
+      ok(wn.indexOf('Version 25.11') >= 0 && wn.indexOf('Version 25.11') < wn.indexOf('Version 25.10') && /reading of Japanese, Chinese and Korean/.test(wn) && /under “Group”/.test(wn), "What's new lists 25.11 first");
+      await r.ctx.close();
+      // phones: the line fits
+      for (const w of [320, 375]) {
+        const c2 = await browser.newContext({ viewport: { width: w, height: 760 } }); const p2 = await c2.newPage();
+        p2.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await p2.goto(FILE); await p2.evaluate(() => localStorage.clear()); await p2.reload(); await p2.waitForTimeout(400);
+        await p2.click('#wlSkip'); await p2.waitForTimeout(150); await p2.click('#gwBtn'); await p2.waitForTimeout(200);
+        const g = await p2.evaluate(() => { const md = document.querySelector('#gwOverlay .modal'), n = document.getElementById('gwGrpNote').getBoundingClientRect(), mr = md.getBoundingClientRect();
+          return md.scrollWidth <= md.clientWidth + 1 && n.left >= mr.left && n.right <= mr.right + 1; });
+        ok(g, 'phone ' + w + ' px: the line under Group fits');
+        await c2.close();
+      }
+    }
 
   // ---------------- screenshots ----------------
   {
