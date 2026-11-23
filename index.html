@@ -593,6 +593,9 @@
   .pills.n5 .pill:nth-child(1){left:50%;top:13%} .pills.n5 .pill:nth-child(2){left:85%;top:39%} .pills.n5 .pill:nth-child(3){left:71%;top:83%}
   .pills.n5 .pill:nth-child(4){left:29%;top:83%} .pills.n5 .pill:nth-child(5){left:15%;top:39%}
   .pills.n6{grid-template-columns:repeat(3,1fr)}
+  .pills.prep{grid-template-columns:repeat(4,1fr);gap:9px;max-width:440px;margin-top:24px}   /* v26: the prepositions, four to a row */
+  .pills.prep .pill{font-size:19px;min-height:50px;padding:8px 4px;border-radius:12px}
+  .pill.dim{opacity:.3}
   .pill{position:relative;font-family:var(--serif);font-weight:700;font-size:24px;line-height:1.1;min-height:58px;padding:10px 8px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 0 var(--line);transition:background .12s,border-color .12s,color .12s,box-shadow .12s}
   @media (hover:hover){ .pill:hover{border-color:var(--indigo)} }   /* v25.2: no sticky hover on touch screens */
   .pill:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
@@ -606,6 +609,9 @@
   .gfb .art{color:var(--muted)}
   .gfoot{display:flex;justify-content:flex-end;margin-top:6px}
   .gfoot .link{font-size:12.5px}
+  .gfoot .gkeys{margin-right:auto;align-self:center;font-size:12.5px;color:var(--faint)}
+  @media (hover:none), (pointer:coarse){ .gfoot .gkeys{display:none} }
+  .gframe.long{font-size:clamp(22px,5.6vw,34px)}   /* v26: "zich zorgen maken __" stays on one line on a phone */
   /* v25: the end of a round */
   .biggram{width:66px;height:66px;margin:4px auto 18px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--indigo-soft);border:1px solid #C9D3E3;font-family:var(--serif);font-size:32px;color:var(--indigo);animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
   .gmiss{margin:18px auto 6px;max-width:440px}
@@ -616,6 +622,8 @@
   .gchip.slip{background:var(--surface-2);border-color:var(--line);color:var(--faint);text-decoration:line-through}
   .screen .gm-hint{font-size:13px;color:var(--faint);margin-top:10px}
   @media (max-width:540px){ .card.gcard{padding:20px 16px 14px} .pills{gap:10px} .pill{min-height:64px} }
+  @media (max-width:540px){ .pills.prep{gap:8px;margin-top:20px} .pills.prep .pill{min-height:54px;font-size:18px} }
+  @media (max-width:540px) and (max-height:620px){ .pills.prep{margin-top:14px} .pills.prep .pill{min-height:46px} }   /* small phones: all four rows in view */
   @media (prefers-reduced-motion: reduce){ .gprog i,.gframe,.gframe .gap,.pill{transition:none} .biggram{animation:none} }
 </style>
 </head>
@@ -749,13 +757,14 @@
     </div>
     <div id="setGramPane" hidden>
     <h4>Your language</h4>
-    <label class="setsel">Language you're learning <select class="field" id="gLangSel"></select><small>The same as the Word Dojo's: the Grammar Dojo drills the nouns in your Word Dojo lists.</small></label>
+    <label class="setsel">Language you're learning <select class="field" id="gLangSel"></select><small>The same as the Word Dojo's: the Grammar Dojo drills the words in your Word Dojo lists.</small></label>
     <p class="hint" id="gNoArts" hidden>This language has no articles to drill, so the Grammar Dojo stays hidden for it.</p>
     <div id="gBtnBox"><h4>Buttons</h4>
     <div id="gLabBox"><div class="toggle" id="gLabToggle"><div class="switch"></div><div>Show the labels<small>hier and daar beside the rows, de and het above the columns. Off makes it harder.</small></div></div></div>
-    <div class="toggle" id="gMixToggle"><div class="switch"></div><div>Mix up the buttons<small>They change places on every card, so you read the word instead of following where it sits. Harder, and slower at first.</small></div></div></div>
+    <div class="toggle" id="gMixToggle"><div class="switch"></div><div>Mix up the buttons<small>Articles: they change places on every card, so you read the word instead of following where it sits. Harder, and slower at first.</small></div></div></div>
     <div id="gArtsBox"><label class="setsel">Articles <input type="text" class="field" id="gArts" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. ο η το"><small>For a language whose articles aren't built in, like Greek: type them with a space between them. Every Word Dojo card that starts with one of them becomes a noun here.</small></label></div>
     <div id="gNotBox" hidden><h4>Not a noun</h4><p class="hint"><span id="gNotCount"></span></p><button type="button" class="btn ghost sm" id="gNotBack">Bring them back</button></div>
+    <div id="gPxBox" hidden><h4>Not a fixed preposition</h4><p class="hint"><span id="gPxCount"></span></p><button type="button" class="btn ghost sm" id="gPxBack">Bring them back</button></div>
     </div>
     <div class="divider"></div>
     <h4 id="setBackup">Backup (whole library)</h4>
@@ -833,9 +842,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="25.12";
+  const APP_VERSION="26";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"26", items:["Grammar Dojo, for Dutch: a second card, Prepositions. Every card in your Word Dojo lists whose word ends with its fixed preposition (leiden tot, trots op, de zeggenschap over) comes up with a gap, “leiden __”: tap the right preposition, as fast as you can.","The twelve common prepositions always sit in the same places, in alphabetical order, and a rarer one that your cards use gets its own button after them. On a computer, type the first letters.","It works like Articles: its own From and Per round, misses first, right and fast on three separate days makes it automatic, and “Not a fixed preposition” for a card that isn’t one."]},
     {v:"25.12", items:["Japanese, Chinese and Korean: spaces don’t count when you type the Latin letters, so “shigotonaiyō” is as right as “shigoto naiyō”.","Get words asks the AI to put “ / ” between several meanings, so any one of them counts when you’re asked the meaning."]},
     {v:"25.11", items:["Get words asks for the reading of Japanese, Chinese and Korean words (心理学 / しんりがく / shinrigaku), so you can type a word in its own script or in Latin letters, and every answer shows the characters with their reading.","A short line under “Group” says what it does: lists with the same group sit together under one heading, like in a folder."]},
     {v:"25.10", items:["Get words is simpler: three steps and a button for your AI. ChatGPT and Claude open with the message already filled in; every button also copies it, so Gemini or any other AI works too.","New here? The library starts simple: your lists and how to add more. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap \u201cShow everything now\u201d. Everyone else sees everything, as before."]},
@@ -935,12 +945,14 @@
   function fixSettings(s){ s=s||{}; return { speak:fixSpeak(s.speak), showPrev:s.showPrev!==false, revisitGroups:fixRevSel(s.revisitGroups), revisitSize:fixRevSize(s.revisitSize), wListSize:[10,20,25,50].includes(+s.wListSize)?+s.wListSize:25, sListSize:[5,10,15,20,25].includes(+s.sListSize)?+s.sListSize:10, punctTiles:!!s.punctTiles, sSlipResets:s.sSlipResets!==false, sShowFirst:!!s.sShowFirst, sQuick:s.sQuick!==false, typeDutch:s.typeDutch!==false, typoTolerance:!!s.typoTolerance, strictSpelling:!!s.strictSpelling, accentChars:(typeof s.accentChars==="string"?s.accentChars:(s.showAccents===false?"":DEFAULT_ACCENTS)), accentCustom:(typeof s.accentCustom==="string"?s.accentCustom:""), gram:fixGramSet(s.gram), timeMatters:!!s.timeMatters, slipResets:s.slipResets!==false, retypeOnError:!!s.retypeOnError }; }
   // v25: Grammar Dojo settings (which gaps, round size, From, articles typed by hand) and state (your answer times, today's count)
   function fixGramSet(v){ v=(v&&typeof v==="object")?v:{};
-    return { labels:v.labels!==false, mix:v.mix===true, size:[10,25,50,100].includes(+v.size)?+v.size:25,
-      from:Array.isArray(v.from)&&v.from.length?v.from.filter(g=>typeof g==="string"):null, arts:typeof v.arts==="string"?v.arts.slice(0,80):"" }; }
+    const sz=n=>[10,25,50,100].includes(+n)?+n:25, grp=f=>Array.isArray(f)&&f.length?f.filter(g=>typeof g==="string"):null;
+    return { labels:v.labels!==false, mix:v.mix===true, size:sz(v.size), from:grp(v.from), arts:typeof v.arts==="string"?v.arts.slice(0,80):"",
+      psize:sz(v.psize), pfrom:grp(v.pfrom) }; }   // v26: the Prepositions card has its own From and Per round
   function fixGram(g){ g=(g&&typeof g==="object")?g:{}; const r=(g.rt&&typeof g.rt==="object")?g.rt:{}, d=(g.day&&typeof g.day==="object")?g.day:{};
     const one=a=>Array.isArray(a)?a.filter(x=>typeof x==="number" && x>0 && x<=RT_CAP).slice(-40):[];
     const rt={art:one(r.art), dem:one(r.dem), rel:one(r.rel)};
     ["art","dem","rel"].forEach(k=>{ const m=one(r[k+"~m"]); if(m.length) rt[k+"~m"]=m; });   // v25.3: "~m" = mixed-up buttons, their own speed
+    { const p=one(r.pre); if(p.length) rt.pre=p; }   // v26: the prepositions' own speed
     return { rt, day:{d:+d.d||0, n:+d.n||0, a:+d.a||0} }; }
   function fixGroupOrder(g){ g=(g&&typeof g==="object")?g:{}; return { learn:Array.isArray(g.learn)?g.learn:[], learned:Array.isArray(g.learned)?g.learned:[] }; }
 
@@ -1272,7 +1284,8 @@
   // language you're learning (de appel, het gezag; der/die/das). A gap, buttons in fixed places (de-forms left,
   // het-forms right), speed as the memory signal: right and fast on three separate days = automatic.
   // No lists, shurikens or rivals of its own. Progress per noun and gap lives on the card itself:
-  // w.gr = {art:"<day><f|s|m|x><fast days 0-3, then 4-6 = checks passed after a pause><article index>[!]", dem:…, rel:…, x:1 = "not a noun"}.
+  // w.gr = {art:"<day><f|s|m|x><fast days 0-3, then 4-6 = checks passed after a pause><article index>[!]", dem:…, rel:…, x:1 = "not a noun",
+  //         pre:"<day><f|s|m|x><fast days><the preposition>[!]" (v26), px:1 = "not a fixed preposition"}.
   // ex: a card that shows the idea, meanings in English (the app's language for examples)
   const GRAM_LANGS={ nl:{arts:["de","het"], slots:["art","dem","rel"], name:"Dutch", ex:"het verzoek = the request"},
     de:{arts:["der","die","das"], slots:["art"], name:"German", ex:"das Haus = the house"},
@@ -1287,19 +1300,26 @@
     ro:{arts:["un","o"], slots:["art"], name:"Romanian", ex:"o carte = a book"} };
   GRAM_LANGS.nn=GRAM_LANGS.no=GRAM_LANGS.nb;
   const GRAM_NO_ARTS=new Set(["zh","ja","ko","th","vi","ru","uk","be","bg","mk","pl","cs","sk","sl","hr","sr","bs","fi","et","lt","lv","tr","az","kk","hi","ur","bn","id","ms","tl","fa","ar","he","hu","en"]);
-  const GRAM_LABEL={art:"Article", dem:"This / that", rel:"Relative"};
+  const GRAM_LABEL={art:"Article", dem:"This / that", rel:"Relative", pre:"Preposition"};
+  // v26: fixed prepositions (vaste voorzetsels). Every Word Dojo card whose word ends with a preposition becomes an item:
+  // "leiden tot" → "leiden __" → tot; "iets" or "iemand" may follow it ("iemand bedanken voor iets").
+  // The common ones always have a button, in alphabetical order, so the hand learns where each one sits;
+  // a rarer one gets a button after them only when one of your cards uses it.
+  const PREP_LANGS={ nl:{common:["aan","bij","in","met","naar","om","op","over","tot","uit","van","voor"],
+    more:["achter","door","jegens","na","onder","tegen","tegenover","tussen","zonder"],
+    fill:["iets","iemand","iem"], term:"vaste voorzetsels", ex:"leiden tot = to lead to", ex2:"trots op = proud of"} };
   const GD_PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></svg>';
   const REL_TAILS=["je al kent","ik je liet zien","je gisteren zag"];
   let GR=null, gramMemo=null, gramToastT=null;
-  const gdUI={open:false, q:""};
+  const gdUI={open:false, q:""}, gpUI={open:false, q:""};   // the From panels of the Articles and Prepositions cards
   const gramToastEl=document.getElementById("gramToast");
   function gdDay(){ const d=new Date(); return Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5); }
   function fmtN(n){ return Number(n).toLocaleString("en-GB"); }
   function gramSet(){ if(!S.settings.gram || typeof S.settings.gram!=="object" || !S.settings.gram.size) S.settings.gram=fixGramSet(S.settings.gram); return S.settings.gram; }
   function gramState(){ if(!S.gram || !S.gram.rt || !S.gram.day) S.gram=fixGram(S.gram); return S.gram; }
-  // a gap's progress; written for one article, so a card whose article was corrected starts afresh
-  function gGet(w,s,g){ const v=w&&w.gr&&w.gr[s], m=typeof v==="string" && v.match(/^(\d+)([fsmx])([0-6])(\d)?(!)?$/);
-    if(!m || (m[4]!=null && g!=null && +m[4]!==g)) return null; return {d:+m[1], r:m[2], c:+m[3], bang:!!m[5]}; }
+  // a gap's progress; written for one article (or preposition), so a card whose article was corrected starts afresh
+  function gGet(w,s,g){ const v=w&&w.gr&&w.gr[s], m=typeof v==="string" && v.match(/^(\d+)([fsmx])([0-6])(\d+|[a-zß-ɏ]+)?(!)?$/);
+    if(!m || (m[4]!=null && g!=null && m[4]!==String(g))) return null; return {d:+m[1], r:m[2], c:+m[3], bang:!!m[5]}; }
   function gSet(w,s,g,st){ if(!w.gr || typeof w.gr!=="object") w.gr={}; w.gr[s]=String(st.d)+st.r+Math.max(0,Math.min(6,st.c|0))+g+(st.bang?"!":""); }   // v25.2: "!" = missed today
   function gramOwnArts(){ return [...new Set(String(gramSet().arts||"").toLowerCase().split(/[\s,;\/|·]+/).map(a=>a.trim()).filter(a=>a && a.length<=12))].slice(0,8); }
   function gramGuess(){   // no language chosen anywhere: "het" = Dutch, "der"/"das" = German
@@ -1342,9 +1362,46 @@
     out.forEach(e=>{ e.x=e.ws.some(w=>w.gr&&w.gr.x); if(cnt.get(e.noun.toLowerCase())>1) e.meaning=parseSide(e.w.de).primary; });   // het blik / de blik: say which
     return out;
   }
+  // v26: "leiden tot" → {pre:"leiden ", p:"tot", post:""}; "iemand bedanken voor iets" → {pre:"iemand bedanken ", p:"voor", post:" iets"}
+  function prepSplit(s, P){
+    const t=String(s||"").replace(/\s+/g," ").trim().split(" "), bare=x=>x.toLowerCase().replace(/[.,;:!?…]+$/,"");
+    let k=t.length; while(k>1 && (!bare(t[k-1]) || P.fill.includes(bare(t[k-1])))) k--;   // "iets", "iemand", "…" may follow it
+    if(k<2) return null;
+    const p=bare(t[k-1]); if(!P.common.includes(p) && !P.more.includes(p)) return null;
+    const before=t.slice(0,k-1).join(" "), after=t.slice(k).join(" ");
+    return {p, pre:before+" ", post:after?" "+after:"", fk:before.toLowerCase(), phrase:before+" "+p+(after?" "+after:"")};
+  }
+  // one entry per phrase (words + preposition), like the nouns: its progress sits on the copy that has some (else the first, Master first)
+  function gramPreps(cfg){
+    const P=PREP_LANGS[cfg.base]; if(!P) return [];
+    const byKey=new Map(), out=[], order=[...S.lists.filter(l=>l.folder==="learned"), ...S.lists.filter(l=>l.folder!=="learned")];
+    const has=w=>w.gr && typeof w.gr==="object" && typeof w.gr.pre==="string" ? 1 : 0;
+    order.forEach(l=>l.words.forEach(w=>{
+      const ps=parseSide(w.nl), t=prepSplit(ps.primary, P); if(!t) return;
+      for(const f of ps.green.slice(1)){ const u=prepSplit(f, P); if(u && u.fk===t.fk && u.p!==t.p) return; }   // "denken aan / denken over" on one card: ambiguous
+      const key=t.fk+"|"+t.p, grp=l.group||"";
+      let e=byKey.get(key);
+      if(!e){ e={key, g:t.p, noun:t.phrase, pre:t.pre, post:t.post, fk:t.fk, w, ws:[w], groups:[grp], ord:out.length, known:false, meaning:"", x:false, phrase:false}; byKey.set(key,e); out.push(e); }
+      else { e.ws.push(w); if(has(w)>has(e.w)) e.w=w; if(!e.groups.includes(grp)) e.groups.push(grp); }
+      if(w.days && w.days.length) e.known=true;
+    }));
+    const cnt=new Map(); out.forEach(e=>cnt.set(e.fk,(cnt.get(e.fk)||0)+1));
+    out.forEach(e=>{ e.x=e.ws.some(w=>w.gr&&w.gr.px); if(cnt.get(e.fk)>1) e.meaning=parseSide(e.w.de).primary; });   // denken aan / denken over: say which
+    return out;
+  }
+  // the buttons: the common ones, then (alphabetically) any rarer one your cards use
+  function prepOpts(cfg, preps){ const P=PREP_LANGS[cfg.base]; if(!P) return [];
+    return P.common.concat([...new Set(preps.filter(e=>!e.x && !P.common.includes(e.g)).map(e=>e.g))].sort((a,b)=>a.localeCompare(b))); }
+  function prepSel(){ const f=gramSet().pfrom; return Array.isArray(f)&&f.length?f:null; }
+  function prepSize(){ return gramSet().psize||25; }
+  function prepStats(D){ const sel=prepSel(), st={auto:0, prog:0, total:0};
+    D.preps.forEach(e=>{ if(e.x || !inGramSel(e,sel)) return; st.total++; const v=gGet(e.w,"pre",e.g); if(v){ if(v.c>=3) st.auto++; else st.prog++; } });
+    return st; }
+  function gOut(it){ const k=it.s==="pre"?"px":"x"; return it.e.ws.some(w=>w.gr&&w.gr[k]); }   // marked "Not a noun" / "Not a fixed preposition"
   function gramData(){
     if(gramMemo && gramMemo.n===saveN && gramMemo.L===S.lists) return gramMemo.v;
-    const cfg=gramCfg(), v=cfg ? {cfg, nouns:cfg.arts.length?gramNouns(cfg):[]} : null;
+    const cfg=gramCfg(), v=cfg ? {cfg, nouns:cfg.arts.length?gramNouns(cfg):[], preps:gramPreps(cfg)} : null;
+    if(v) v.popts=prepOpts(cfg, v.preps);
     gramMemo={n:saveN, L:S.lists, v}; return v;
   }
   // v25.3: an automatic form rests, then comes back for a check: after two weeks, a month, two months, then four
@@ -1355,7 +1412,7 @@
   // per round), new ones (words you've mastered first, in list order), then the automatic ones you haven't seen for
   // longest. Right and fast today = tomorrow.
   function gramItems(cfg, nouns, only){
-    const td=gdDay(), sel=gramSel(), slots=only ? [only] : gramSlots(cfg), items=[];
+    const td=gdDay(), sel=only==="pre" ? prepSel() : gramSel(), slots=only ? [only] : gramSlots(cfg), items=[];
     nouns.forEach(e=>{ if(e.x || !inGramSel(e,sel)) return;
       slots.forEach((s,si)=>{ if(e.phrase && s!=="art") return;   // a phrase ("het risico lopen"): the article gap only
         const st=gGet(e.w,s,e.g); let pri;
@@ -1383,6 +1440,7 @@
   // the gap: fixed frames, so any noun works without new lists. This/that: hier → deze/dit, daar → die/dat.
   // Relative: the article stays hidden ("mijn"), so you need to know the noun, not just het → dat.
   function gramFrame(it){
+    if(it.s==="pre") return {pre:it.e.pre, post:it.e.post, opts:GR.popts, ans:GR.popts.indexOf(it.e.g)};   // v26: "leiden __" → tot
     const n=it.e.noun, g=it.e.g;
     if(it.s==="dem") return {pre:"", post:` ${n} ${it.far?"daar":"hier"}`, opts:["deze","dit","die","dat"], ans:(it.far?2:0)+g, rows:["hier","daar"], cols:["de","het"]};
     if(it.s==="rel") return {pre:`mijn ${n}, `, post:` ${it.tail}`, opts:["die","dat"], ans:g, cols:["de","het"]};
@@ -1390,16 +1448,40 @@
   }
   // speed: a right answer slower than 1.5 × your own median for that gap isn't automatic yet (fixed defaults until 8 answers)
   function gramThr(s, n){ const a=(gramState().rt[s])||[];
-    if(a.length<8) return ({2:1800,3:2100,4:2400})[n]||2700;
+    if(a.length<8) return ({2:1800,3:2100,4:2400})[n]||(n>6?3500:2700);   // v26: a dozen prepositions take longer to find
     const b=a.slice().sort((x,y)=>x-y), h=b.length>>1, med=b.length%2 ? b[h] : (b[h-1]+b[h])/2; return Math.max(600, med*1.5); }
   function gramNoteRt(s, rt){ const r=gramState().rt; if(!Array.isArray(r[s])) r[s]=[]; r[s].push(Math.round(rt)); if(r[s].length>40) r[s].splice(0, r[s].length-40); }
-  function gramRtKey(s){ return gramSet().mix===true ? s+"~m" : s; }   // v25.3: searching mixed-up buttons takes longer, so they keep their own speed
+  function gramRtKey(s){ return gramSet().mix===true && s!=="pre" ? s+"~m" : s; }   // v25.3: searching mixed-up buttons takes longer, so they keep their own speed (v26: prepositions never mix)
   function gramTally(auto){ const d=gramState().day, t=gdDay(); if(d.d!==t){ d.d=t; d.n=0; d.a=0; } d.n++; if(auto) d.a++; }
   function gramTallyHtml(){ const d=gramState().day; if(d.d!==gdDay() || !d.n) return "";
     return `<p class="tally-line" id="tallyLine">Today: <b>${d.n}</b> answered · <b>${d.a}</b> now automatic</p>`; }
   function gShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-  // ---- the Grammar Dojo's home: one card per mode (Articles for now) ----
+  // ---- the Grammar Dojo's home: one card per mode (Articles; v26: Prepositions for Dutch) ----
+  // From and Per round, the same on every card (px = the card's id prefix: gd = Articles, gp = Prepositions)
+  function gramFromHtml(px, ui, sel, size, groups, what){
+    const label=!sel ? "All groups" : (sel.length===1 ? (sel[0]||"Ungrouped") : `${sel[0]||"Ungrouped"} + ${sel.length-1} more`);
+    return `<div class="rv-from">From <button type="button" class="rv-pick" id="${px}Pick" aria-expanded="${ui.open}">${esc(label)} ${ui.open?"▴":"▾"}</button><label class="rv-size">Per round <select id="${px}Size" aria-label="${what} per round">${[10,25,50,100].map(v=>`<option${v===size?" selected":""}>${v}</option>`).join("")}</select></label></div>
+      <div class="rv-panel" id="${px}Panel"${ui.open?"":" hidden"}>
+        <div class="rv-search"><input type="text" id="${px}Q" placeholder="Filter groups" value="${esc(ui.q)}" autocomplete="off" aria-label="Filter groups"><button type="button" class="btn ghost sm" id="${px}Tick">Tick all shown</button></div>
+        <label class="rv-row rv-all"><span><input type="checkbox" id="${px}All"${sel?"":" checked"}> All groups</span></label>
+        <div class="rv-list">${groups.map(g=>`<label class="rv-row" data-g="${esc(g.key)}"><span><input type="checkbox" data-gk="${esc(g.key)}"${sel&&sel.includes(g.key)?" checked":""}> ${esc(g.label)}</span><span class="n">${fmtN(g.count)}</span></label>`).join("")}</div>
+      </div>`;
+  }
+  // a row that starts a round: "Article · 612 of 1,240 automatic ▸" with its bar ("All caught up for today" when nothing's left)
+  function gramRowHtml(s, label, a, p, total, n){ const T=total||1;
+    const inner=`<span class="gd-rl"><span>${label}</span><span>${n ? `${fmtN(a)} of ${fmtN(total)} automatic<span class="gd-play" aria-hidden="true">${GD_PLAY}</span>` : "All caught up for today"}</span></span><span class="gd-bar" aria-hidden="true"><i class="a" style="width:${(a/T*100).toFixed(1)}%"></i><i class="p" style="width:${(p/T*100).toFixed(1)}%"></i></span>`;
+    return n ? `<button type="button" class="gd-row" data-slot="${s}" data-go="${s}" aria-label="Practise: ${label}, ${fmtN(a)} of ${fmtN(total)} automatic">${inner}</button>` : `<div class="gd-row done" data-slot="${s}">${inner}</div>`; }
+  // v26: the Prepositions card (Dutch): one row, its own From and Per round
+  function prepCardHtml(D, noAnim){
+    const P=PREP_LANGS[D.cfg.base], cls=`revcard gdcard gpcard${noAnim?" noanim":""}`;
+    const head=`<div class="gd-top"><span class="gd-ico" lang="ja" aria-hidden="true">前</span><div><div class="gd-name">Prepositions</div><div class="gd-sub" translate="no">${esc(P.term)}</div></div></div>`;
+    if(!D.preps.some(e=>!e.x)) return `<div class="${cls}" id="gpCard">${head}<p class="gd-empty">No fixed prepositions yet. Word Dojo cards whose word ends with its preposition, like <b translate="no">${esc(P.ex)}</b>, show up here. To get some, use Get words with a topic like “verbs with fixed prepositions”.</p></div>`;
+    const sel=prepSel(), st=prepStats(D), from=gramFromHtml("gp", gpUI, sel, prepSize(), gramGroups(D.preps), "Prepositions");
+    if(!st.total) return `<div class="${cls}" id="gpCard">${head}${from}<p class="gd-done">No prepositions in the groups you picked.</p></div>`;
+    const n=gramItems(D.cfg, D.preps, "pre").length;
+    return `<div class="${cls}" id="gpCard">${head}<div class="gd-rows">${gramRowHtml("pre", GRAM_LABEL.pre, st.auto, st.prog, st.total, n)}</div>${from}</div>`;
+  }
   function gramCardHtml(D, noAnim){
     const {cfg, nouns}=D, cls=`revcard gdcard${noAnim?" noanim":""}`;
     const head=sub=>`<div class="gd-top"><span class="gd-ico" lang="ja" aria-hidden="true">法</span><div><div class="gd-name">Articles</div><div class="gd-sub" translate="no">${esc(sub)}</div></div></div>`;
@@ -1409,56 +1491,58 @@
       return `<div class="${cls}" id="gdCard">${head(gramForms(cfg,slots))}<p class="gd-empty">No nouns yet. Word Dojo cards whose word starts with an article, like <b translate="no">${esc(ex)}</b>, show up here.</p></div>`; }
     const sel=gramSel(), st=gramStats(cfg,nouns), groups=gramGroups(nouns), size=gramSize();
     // v25.1: one row per gap, each a start button of its own (a round drills one gap, so the buttons never change mid-round)
-    const rows=slots.map(s=>{ const a=st.st[s].auto, p=st.st[s].prog, T=st.st[s].total||1, n=st.st[s].total ? gramItems(cfg,nouns,s).length : 0;
-      const inner=`<span class="gd-rl"><span>${GRAM_LABEL[s]}</span><span>${n ? `${fmtN(a)} of ${fmtN(st.st[s].total)} automatic<span class="gd-play" aria-hidden="true">${GD_PLAY}</span>` : "All caught up for today"}</span></span><span class="gd-bar" aria-hidden="true"><i class="a" style="width:${(a/T*100).toFixed(1)}%"></i><i class="p" style="width:${(p/T*100).toFixed(1)}%"></i></span>`;
-      return n ? `<button type="button" class="gd-row" data-slot="${s}" data-go="${s}" aria-label="Practise: ${GRAM_LABEL[s]}, ${fmtN(a)} of ${fmtN(st.st[s].total)} automatic">${inner}</button>` : `<div class="gd-row done" data-slot="${s}">${inner}</div>`; }).join("");
-    const label=!sel ? "All groups" : (sel.length===1 ? (sel[0]||"Ungrouped") : `${sel[0]||"Ungrouped"} + ${sel.length-1} more`);
-    const from=`<div class="rv-from">From <button type="button" class="rv-pick" id="gdPick" aria-expanded="${gdUI.open}">${esc(label)} ${gdUI.open?"▴":"▾"}</button><label class="rv-size">Per round <select id="gdSize" aria-label="Nouns per round">${[10,25,50,100].map(v=>`<option${v===size?" selected":""}>${v}</option>`).join("")}</select></label></div>
-      <div class="rv-panel" id="gdPanel"${gdUI.open?"":" hidden"}>
-        <div class="rv-search"><input type="text" id="gdQ" placeholder="Filter groups" value="${esc(gdUI.q)}" autocomplete="off" aria-label="Filter groups"><button type="button" class="btn ghost sm" id="gdTick">Tick all shown</button></div>
-        <label class="rv-row rv-all"><span><input type="checkbox" id="gdAll"${sel?"":" checked"}> All groups</span></label>
-        <div class="rv-list">${groups.map(g=>`<label class="rv-row" data-g="${esc(g.key)}"><span><input type="checkbox" data-gk="${esc(g.key)}"${sel&&sel.includes(g.key)?" checked":""}> ${esc(g.label)}</span><span class="n">${fmtN(g.count)}</span></label>`).join("")}</div>
-      </div>`;
+    const rows=slots.map(s=>gramRowHtml(s, GRAM_LABEL[s], st.st[s].auto, st.st[s].prog, st.st[s].total, st.st[s].total ? gramItems(cfg,nouns,s).length : 0)).join("");
+    const from=gramFromHtml("gd", gdUI, sel, size, groups, "Nouns");
     if(!st.total) return `<div class="${cls}" id="gdCard">${head(gramForms(cfg,slots))}${from}<p class="gd-done">No nouns in the groups you picked.</p></div>`;
     return `<div class="${cls}" id="gdCard">${head(gramForms(cfg,slots))}<div class="gd-rows">${rows}</div>${from}</div>`;
   }
   function renderGramHome(D, quiet){
     const keepY = quiet ? window.scrollY : 0;
     stage.classList.toggle("quiet", !!quiet);
+    const prep=!!PREP_LANGS[D.cfg.base];   // v26: Dutch has a second card, Prepositions
     stage.innerHTML=`${noticeHtml()}${dojoTiles()}${tallyHtml()}
-      <p class="lib-intro">Rapid fire on the nouns in your Word Dojo lists: tap the right form, as fast as you can. Right and fast on three separate days makes it automatic.</p>
-      ${gramCardHtml(D, !!quiet)}`;
+      <p class="lib-intro">Rapid fire on the nouns${prep?" and fixed prepositions":""} in your Word Dojo lists: tap the right form, as fast as you can. Right and fast on three separate days makes it automatic.</p>
+      ${gramCardHtml(D, !!quiet)}${prep?prepCardHtml(D, !!quiet):""}`;
     wireNotice(); wireTiles(); wireGram();
     if(quiet) window.scrollTo(0,keepY);
   }
   function refreshGramCard(){ const c=document.getElementById("gdCard"), D=gramData(); if(!c || !D) return; c.outerHTML=gramCardHtml(D,true); wireGram(); }
-  function setGramSel(v){ gramSet().from=(v&&v.length)?v:null; save(); }
-  function applyGramFilter(){ const q=gdUI.q.trim().toLowerCase();
-    document.querySelectorAll("#gdPanel .rv-list .rv-row").forEach(r=>{ r.hidden = !!q && !((r.dataset.g||"Ungrouped").toLowerCase().includes(q)); }); }
-  function wireGram(){
-    document.querySelectorAll("#gdCard [data-go]").forEach(b=>b.onclick=()=>startGramRound(b.dataset.go));
-    const su=document.getElementById("gdSetup"); if(su) su.onclick=()=>{ openSettings(); setDojo="gram"; paintSettings(); const f=document.getElementById("gArts"); if(f) f.focus(); };
-    const sz=document.getElementById("gdSize"); if(sz) sz.onchange=()=>{ gramSet().size=+sz.value; save(); };
-    const pick=document.getElementById("gdPick"); if(pick) pick.onclick=()=>{ gdUI.open=!gdUI.open; refreshGramCard();
-      if(gdUI.open && window.matchMedia && window.matchMedia("(hover: hover)").matches){ const q=document.getElementById("gdQ"); if(q) q.focus(); } };
-    const q=document.getElementById("gdQ"); if(q){ q.oninput=()=>{ gdUI.q=q.value; applyGramFilter(); };
-      q.onkeydown=e=>{ if(e.key==="Escape"){ gdUI.open=false; refreshGramCard(); } }; }
-    const all=document.getElementById("gdAll"); if(all) all.onchange=()=>{ setGramSel(null); refreshGramCard(); };
-    document.querySelectorAll("#gdPanel [data-gk]").forEach(cb=>cb.onchange=()=>{ const k=cb.dataset.gk; let sel=(gramSel()||[]).slice();
+  function refreshPrepCard(){ const c=document.getElementById("gpCard"), D=gramData(); if(!c || !D) return; c.outerHTML=prepCardHtml(D,true); wireGram(); }
+  // each card's From panel: which setting it changes, which entries it counts, how it repaints
+  const GRAM_FROM={ gd:{ui:gdUI, sel:()=>gramSel(), set:v=>{ gramSet().from=v; }, size:v=>{ gramSet().size=v; }, pool:D=>D.nouns, refresh:()=>refreshGramCard()},
+    gp:{ui:gpUI, sel:()=>prepSel(), set:v=>{ gramSet().pfrom=v; }, size:v=>{ gramSet().psize=v; }, pool:D=>D.preps, refresh:()=>refreshPrepCard()} };
+  function applyGramFilter(px){ px=px||"gd"; const q=GRAM_FROM[px].ui.q.trim().toLowerCase();
+    document.querySelectorAll(`#${px}Panel .rv-list .rv-row`).forEach(r=>{ r.hidden = !!q && !((r.dataset.g||"Ungrouped").toLowerCase().includes(q)); }); }
+  function wireGramFrom(px){
+    const F=GRAM_FROM[px], $=id=>document.getElementById(px+id), setSel=v=>{ F.set((v&&v.length)?v:null); save(); };
+    const sz=$("Size"); if(sz) sz.onchange=()=>{ F.size(+sz.value); save(); };
+    const pick=$("Pick"); if(pick) pick.onclick=()=>{ F.ui.open=!F.ui.open; F.refresh();
+      if(F.ui.open && window.matchMedia && window.matchMedia("(hover: hover)").matches){ const q=$("Q"); if(q) q.focus(); } };
+    const q=$("Q"); if(q){ q.oninput=()=>{ F.ui.q=q.value; applyGramFilter(px); };
+      q.onkeydown=e=>{ if(e.key==="Escape"){ F.ui.open=false; F.refresh(); } }; }
+    const all=$("All"); if(all) all.onchange=()=>{ setSel(null); F.refresh(); };
+    document.querySelectorAll(`#${px}Panel [data-gk]`).forEach(cb=>cb.onchange=()=>{ const k=cb.dataset.gk; let sel=(F.sel()||[]).slice();
       if(cb.checked){ if(!sel.includes(k)) sel.push(k); } else sel=sel.filter(x=>x!==k);
-      setGramSel(sel.length?sel:null); refreshGramCard(); });
-    const tick=document.getElementById("gdTick"); if(tick) tick.onclick=()=>{
-      const shown=[...document.querySelectorAll("#gdPanel .rv-list .rv-row")].filter(r=>!r.hidden).map(r=>r.dataset.g); if(!shown.length) return;
-      const D=gramData(), allKeys=D?gramGroups(D.nouns).map(g=>g.key):[], sel=[...new Set([...(gramSel()||[]), ...shown])];
-      setGramSel(sel.length>=allKeys.length ? null : sel); refreshGramCard(); };
-    applyGramFilter();
+      setSel(sel.length?sel:null); F.refresh(); });
+    const tick=$("Tick"); if(tick) tick.onclick=()=>{
+      const shown=[...document.querySelectorAll(`#${px}Panel .rv-list .rv-row`)].filter(r=>!r.hidden).map(r=>r.dataset.g); if(!shown.length) return;
+      const D=gramData(), allKeys=D?gramGroups(F.pool(D)).map(g=>g.key):[], sel=[...new Set([...(F.sel()||[]), ...shown])];
+      setSel(sel.length>=allKeys.length ? null : sel); F.refresh(); };
+    applyGramFilter(px);
+  }
+  function wireGram(){
+    document.querySelectorAll("#gdCard [data-go], #gpCard [data-go]").forEach(b=>b.onclick=()=>startGramRound(b.dataset.go));
+    const su=document.getElementById("gdSetup"); if(su) su.onclick=()=>{ openSettings(); setDojo="gram"; paintSettings(); const f=document.getElementById("gArts"); if(f) f.focus(); };
+    wireGramFrom("gd"); wireGramFrom("gp");
   }
 
   // ---- a round: blocks by gap (the buttons stay put within a block), shuffled inside each block, one gap per noun ----
   function startGramRound(slot){
-    const D=gramData(); if(!D || !D.cfg.arts.length) return;
-    if(!D.cfg.slots.includes(slot)) slot=D.cfg.slots[0];
-    const items=gramItems(D.cfg, D.nouns, slot), size=gramSize(), used=new Set(), pick=[];
+    const D=gramData(); if(!D) return;
+    const pre=slot==="pre";   // v26: a round of prepositions (one block; the buttons are the same for every card)
+    if(pre){ if(!D.preps.length || !D.popts.length) return; }
+    else { if(!D.cfg.arts.length) return; if(!D.cfg.slots.includes(slot)) slot=D.cfg.slots[0]; }
+    const items=gramItems(D.cfg, pre?D.preps:D.nouns, slot), size=pre?prepSize():gramSize(), used=new Set(), pick=[];
     const capDue=Math.max(2, Math.round(size/5)), late=[]; let nDue=0;   // v25.3: due automatic forms, a few per round
     const take=it=>{ if(pick.length>=size || used.has(it.e.key)) return; used.add(it.e.key); pick.push(it); };
     for(const it of items){ if(pick.length>=size) break;
@@ -1468,10 +1552,10 @@
     late.forEach(take);
     hideGramToast(); gramStop();
     if(!pick.length){ S.view="library"; save(); render(); return; }
-    const seq=[]; gramSlots(D.cfg).forEach(s=>seq.push(...gShuffle(pick.filter(it=>it.s===s))));
+    const seq=[]; (pre?["pre"]:gramSlots(D.cfg)).forEach(s=>seq.push(...gShuffle(pick.filter(it=>it.s===s))));
     seq.forEach((it,k)=>{ it.first = k===0 || seq[k-1].s!==it.s; if(it.s==="dem") it.far=Math.random()<.5; if(it.s==="rel") it.tail=REL_TAILS[Math.floor(Math.random()*REL_TAILS.length)]; });
-    gdUI.open=false;
-    GR={cfg:D.cfg, slot, seq, i:0, res:[], phase:"play", timer:null, unlockT:null, lock:true, answered:false, shownAt:0, pillsFor:null};
+    gdUI.open=false; gpUI.open=false;
+    GR={cfg:D.cfg, slot, popts:pre?D.popts.slice():null, seq, i:0, res:[], phase:"play", timer:null, unlockT:null, lock:true, answered:false, shownAt:0, pillsFor:null, typed:""};
     S.view="gram"; save(); window.scrollTo(0,0); render();
   }
   function gramStop(){ if(GR){ clearTimeout(GR.timer); clearTimeout(GR.unlockT); } GR=null; }
@@ -1488,7 +1572,7 @@
         <div class="gmeaning" id="gMeaning" translate="no" hidden></div>
         <div class="pills" id="gPills" role="group" aria-label="Your answer"></div>
         <div class="gfb" id="gFb" aria-live="polite"></div>
-        <div class="gfoot"><button type="button" class="link quiet" id="gNotNoun" title="Leave this card out of the Grammar Dojo">Not a noun</button></div>
+        <div class="gfoot">${GR.slot==="pre"?`<span class="gkeys" aria-hidden="true">Or type its first letters</span>`:""}<button type="button" class="link quiet" id="gNotNoun" title="${GR.slot==="pre"?"Leave this card out of Prepositions":"Leave this card out of the Grammar Dojo"}">${GR.slot==="pre"?"Not a fixed preposition":"Not a noun"}</button></div>
       </div>`;
     document.getElementById("backBtn").onclick=leaveStudy;
     document.getElementById("helpBtn").onclick=()=>openHelp("grammar");
@@ -1504,29 +1588,32 @@
     document.getElementById("gSlot").textContent=GRAM_LABEL[it.s]+(it.retry?" · again":"");
     document.getElementById("gCount").textContent=`${GR.i+1} / ${GR.seq.length}`;
     document.getElementById("gProg").style.width=(GR.i/GR.seq.length*100).toFixed(1)+"%";
-    const f=document.getElementById("gFrame"); f.className="gframe"; f.innerHTML=`${esc(fr.pre)}<span class="gap"></span>${esc(fr.post)}`;
+    const f=document.getElementById("gFrame"); f.className="gframe"+(it.s==="pre" && (fr.pre+fr.post).trim().length>12 ? " long" : ""); f.innerHTML=`${esc(fr.pre)}<span class="gap"></span>${esc(fr.post)}`;
     const m=document.getElementById("gMeaning"); m.hidden=!it.e.meaning; m.textContent=it.e.meaning||"";
     document.getElementById("gFb").innerHTML="";
-    const gs=gramSet(), mix=gs.mix===true, n=fr.opts.length;   // v25.3: mixed-up buttons change places on every card
+    const pre=it.s==="pre";   // v26: prepositions keep their places (never mixed), no number keys: you type the first letters
+    GR.typed="";
+    const gs=gramSet(), mix=gs.mix===true && !pre, n=fr.opts.length;   // v25.3: mixed-up buttons change places on every card
     const perm=[...Array(n).keys()]; if(mix) gShuffle(perm); GR.perm=perm;   // place → which form sits there
     const showLab=!mix && gs.labels!==false, rows=showLab?fr.rows:null, cols=showLab?fr.cols:null;   // v25.2: the labels can be switched off (and point nowhere once the buttons move)
     const sig=(mix?"mix:"+n:fr.opts.join("|"))+"/"+(rows||[]).join("|")+"/"+(cols||[]).join("|"), box=document.getElementById("gPills"), rebuild=GR.pillsFor!==sig;
     if(rebuild){
       // v25.1: the grid explains itself — de / het above the columns, hier / daar beside the rows
-      const pill=pos=>{ const i=perm[pos]; return `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no" aria-keyshortcuts="${pos+1}">${esc(fr.opts[i])}<span class="pk" aria-hidden="true">${pos+1}</span></button>`; };
+      const pill=pos=>{ const i=perm[pos]; return pre ? `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no">${esc(fr.opts[i])}</button>`
+        : `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no" aria-keyshortcuts="${pos+1}">${esc(fr.opts[i])}<span class="pk" aria-hidden="true">${pos+1}</span></button>`; };
       const lab=(c,t)=>`<span class="${c}" translate="no" aria-hidden="true">${esc(t)}</span>`;
       let h="";
       if(rows){ const w=cols.length; h=lab("pl-c","")+cols.map(c=>lab("pl-h",c)).join("");
         rows.forEach((r,ri)=>{ h+=lab("pl-r",r); for(let k=0;k<w;k++) h+=pill(ri*w+k); }); }
       else { h=cols?cols.map(c=>lab("pl-h",c)).join(""):""; for(let pos=0;pos<n;pos++) h+=pill(pos); }
-      box.className="pills n"+Math.min(n,6)+(rows?" lab rows":cols?" lab":"");
+      box.className=(pre?"pills prep":"pills n"+Math.min(n,6))+(rows?" lab rows":cols?" lab":"");
       box.innerHTML=h;
       box.querySelectorAll(".pill").forEach(p=>{
         p.addEventListener("pointerdown",e=>{ if(e.button!==0) return; e.preventDefault(); gramAnswer(+p.dataset.i); });
         p.addEventListener("click",e=>{ if(e.detail===0) gramAnswer(+p.dataset.i); });   // Enter or Space on a focused button
       });
       GR.pillsFor=sig;
-    } else box.querySelectorAll(".pill").forEach(p=>{ p.classList.remove("ok","no","right");
+    } else box.querySelectorAll(".pill").forEach(p=>{ p.classList.remove("ok","no","right","dim");
       if(mix){ const i=perm[+p.dataset.pos]; p.dataset.i=i; p.firstChild.textContent=fr.opts[i]; } });   // the same buttons, new words: nothing pops in
     delete box.dataset.ready;
     const still=window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1537,10 +1624,11 @@
   // the buttons pop out of the middle and glide to their places — once per block, never per card (five spin a little)
   function gramPop(box){
     const pills=[...box.querySelectorAll(".pill")], br=box.getBoundingClientRect(), cx=br.left+br.width/2, cy=br.top+br.height/2;
+    const lag=pills.length>6 ? 12 : 25;   // v26: a dozen prepositions pop out quicker one after another
     pills.forEach((p,k)=>{ const r=p.getBoundingClientRect(), dx=cx-(r.left+r.width/2), dy=cy-(r.top+r.height/2);
-      p.animate([{transform:`translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) scale(.3)`, opacity:0},{transform:"none", opacity:1}],{duration:340, delay:k*25, easing:"cubic-bezier(.2,1.25,.45,1)", fill:"backwards"}); });
+      p.animate([{transform:`translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px) scale(.3)`, opacity:0},{transform:"none", opacity:1}],{duration:340, delay:k*lag, easing:"cubic-bezier(.2,1.25,.45,1)", fill:"backwards"}); });
     if(pills.length===5) box.animate([{transform:"rotate(-80deg)"},{transform:"none"}],{duration:420, easing:"cubic-bezier(.25,1,.5,1)"});
-    return Math.max(420, 340+25*(pills.length-1));
+    return Math.max(420, 340+lag*(pills.length-1));
   }
   function gramAnswer(i){
     if(!GR || GR.phase!=="play" || GR.lock || GR.answered || document.querySelector(".overlay.open")) return;
@@ -1569,14 +1657,15 @@
     save();
     // the whole phrase in green or red; the buttons say which was which
     const form=fr.opts[fr.ans], f=document.getElementById("gFrame"), card=document.getElementById("card");
-    f.className="gframe "+(right?"ok":"no"); const gap=f.querySelector(".gap"); if(gap) gap.textContent=form;
+    f.classList.add(right?"ok":"no"); const gap=f.querySelector(".gap"); if(gap) gap.textContent=form;   // (keeps "long")
+    document.querySelectorAll("#gPills .pill.dim").forEach(p=>p.classList.remove("dim"));   // v26: letters typed so far
     const pOf=k=>document.querySelector(`#gPills .pill[data-i="${k}"]`), pi=pOf(i), pa=pOf(fr.ans);   // v25.3: by form, not by place
     if(pi) pi.classList.add(right?"ok":"no"); if(!right && pa) pa.classList.add("right");
     if(document.activeElement && document.activeElement.blur && document.activeElement.classList && document.activeElement.classList.contains("pill")) document.activeElement.blur();
     if(card) card.classList.add(right?"flash-good":"flash-bad");
-    const art=GR.cfg.arts[g]+" "+it.e.noun;
+    const why=(it.s==="dem"||it.s==="rel") ? GR.cfg.arts[g]+" "+it.e.noun : "";   // this/that and relative: say the noun's article
     document.getElementById("gFb").innerHTML = right ? (fast ? '<span class="ok">Fast</span>' : '<span class="slow">Right, a bit slow</span>')
-      : `<span class="no" translate="no">${esc(form)}</span>, not ${esc(fr.opts[i])}${it.s!=="art"?` <span class="art" translate="no">· ${esc(art)}</span>`:""}`;
+      : `<span class="no" translate="no">${esc(form)}</span>, not ${esc(fr.opts[i])}${why?` <span class="art" translate="no">· ${esc(why)}</span>`:""}`;
     if(!right) shake(card);
     GR.timer=setTimeout(gramNext, right ? (fast?480:800) : 1600);
   }
@@ -1587,31 +1676,32 @@
     if(!GR || GR.phase!=="play") return;
     clearTimeout(GR.timer); GR.timer=null;
     GR.i++; GR.answered=false;
-    while(GR.i<GR.seq.length && GR.seq[GR.i].e.ws.some(w=>w.gr&&w.gr.x)) GR.i++;   // marked "Not a noun" in the meantime
+    while(GR.i<GR.seq.length && gOut(GR.seq[GR.i])) GR.i++;   // marked "Not a noun" (or "Not a fixed preposition") in the meantime
     if(GR.i>=GR.seq.length){ showGramDone(); return; }
     gramShow(false);
   }
   function gramNotNoun(){
     if(!GR || GR.phase!=="play") return;
-    const e=GR.seq[GR.i].e;
-    e.ws.forEach(w=>{ if(!w.gr || typeof w.gr!=="object") w.gr={}; w.gr.x=1; });
+    const it=GR.seq[GR.i], e=it.e, k=it.s==="pre"?"px":"x";   // v26: px = not a fixed preposition (it stays a noun, if it is one)
+    e.ws.forEach(w=>{ if(!w.gr || typeof w.gr!=="object") w.gr={}; w.gr[k]=1; });
     save();
-    showGramToast(`“${e.noun}” won't come back here.`, ()=>{ e.ws.forEach(w=>{ if(w.gr) delete w.gr.x; }); save(); });
+    showGramToast(`“${e.noun}” won't come back here.`, ()=>{ e.ws.forEach(w=>{ if(w.gr) delete w.gr[k]; }); save(); });
     if(!GR.answered) gramNext();
   }
   function gramChip(it){ const fr=gramFrame(it), form=fr.opts[fr.ans];
+    if(it.s==="pre") return (it.e.pre+form+it.e.post).trim();   // v26: "leiden tot"
     return it.s==="rel" ? `${it.e.noun}, ${form}` : `${form} ${it.e.noun}`; }
   function showGramDone(){
     clearTimeout(GR.timer); GR.timer=null; clearTimeout(GR.unlockT); GR.phase="done";
-    const out=r=>r.it.e.ws.some(w=>w.gr&&w.gr.x);
+    const out=r=>gOut(r.it), pre=GR.slot==="pre";
     const res=GR.res.filter(r=>!r.retry && !out(r)), n=res.length, right=res.filter(r=>r.right).length, fast=res.filter(r=>r.right&&r.fast).length, auto=res.filter(r=>r.auto).length;
     const miss=GR.res.map((r,k)=>({r,k})).filter(x=>!x.r.retry && !x.r.right && !out(x.r));
-    const D=gramData(), more=!!(D && gramItems(D.cfg, D.nouns, GR.slot).length);
+    const D=gramData(), more=!!(D && gramItems(D.cfg, pre?D.preps:D.nouns, GR.slot).length);
     const chips=miss.map(x=>`<button type="button" class="gchip${x.r.slip?" slip":""}" data-k="${x.k}" aria-pressed="${x.r.slip}" translate="no">${esc(gramChip(x.r.it))}</button>`).join("");
     stage.innerHTML=`<div class="backbar"><button class="link" id="backBtn">‹ Grammar Dojo</button></div>
       <div class="card"><div class="screen">
-        <div class="biggram" lang="ja" aria-hidden="true">法</div>
-        <h2>${n} ${n===1?"noun":"nouns"} done</h2>
+        <div class="biggram" lang="ja" aria-hidden="true">${pre?"前":"法"}</div>
+        <h2>${n} ${pre?(n===1?"preposition":"prepositions"):(n===1?"noun":"nouns")} done</h2>
         ${n?`<p id="gdSum">${right} right · ${fast} of them fast${auto?` · ${auto} newly automatic`:""}</p>`:""}
         ${miss.length?`<div class="gmiss" id="gMiss"><div class="gm-h">Coming back first next round</div><div class="gm-chips">${chips}</div><p class="gm-hint">Just a slip? Tap it, and it won't come back first.</p></div>`:(n?`<p>No misses this round.</p>`:"")}
         ${more?"":`<p>That's everything you picked, for today.</p>`}
@@ -1639,19 +1729,37 @@
     gramToastT=setTimeout(hideGramToast, undo?8000:2500);
   }
   function hideGramToast(){ clearTimeout(gramToastT); gramToastT=null; gramToastEl.hidden=true; gramToastEl.classList.remove("show"); gramToastEl.innerHTML=""; }
-  // keys: ← → for two buttons, 1–6 for any
+  // keys: ← → for two buttons, 1–6 for any; v26: for prepositions, their first letters
   document.addEventListener("keydown",e=>{
     if(!GR || GR.phase!=="play" || S.view!=="gram" || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(".overlay.open")) return;
     const tag=(e.target&&e.target.tagName)||""; if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+    if(GR.seq[GR.i] && GR.seq[GR.i].s==="pre"){ prepKey(e); return; }
     const n=gramFrame(GR.seq[GR.i]).opts.length; let i=-1;
     if(/^[1-9]$/.test(e.key)) i=+e.key-1; else if(n===2 && e.key==="ArrowLeft") i=0; else if(n===2 && e.key==="ArrowRight") i=1;
     if(i>=0 && i<n){ e.preventDefault(); gramAnswer(GR.perm && GR.perm.length===n ? GR.perm[i] : i); }   // a key names a place
   });
+  // v26: type a preposition's first letters: "t" waits while tot and tegen both fit, "to" answers tot; the others fade as you type.
+  // Enter (or Space) takes a whole word that's also the start of another ("tegen" when "tegenover" is there too); Backspace takes a letter back.
+  function prepKey(e){
+    if(GR.lock || GR.answered) return;
+    const opts=gramFrame(GR.seq[GR.i]).opts, k=e.key;
+    if(k==="Backspace"){ if(GR.typed){ e.preventDefault(); GR.typed=GR.typed.slice(0,-1); prepTyped(); } return; }
+    if(k==="Escape"){ if(GR.typed){ GR.typed=""; prepTyped(); } return; }
+    if(k==="Enter" || k===" "){ const j=opts.indexOf(GR.typed); if(GR.typed && j>=0){ e.preventDefault(); GR.typed=""; gramAnswer(j); } return; }
+    if(k.length!==1 || !/\p{L}/u.test(k)) return;
+    e.preventDefault();
+    let t=GR.typed+k.toLowerCase(), fit=opts.filter(o=>o.startsWith(t));
+    if(!fit.length){ t=k.toLowerCase(); fit=opts.filter(o=>o.startsWith(t)); }   // no button starts like that: start again from this letter
+    if(fit.length===1){ GR.typed=""; gramAnswer(opts.indexOf(fit[0])); return; }
+    GR.typed=fit.length ? t : ""; prepTyped();
+  }
+  function prepTyped(){ const t=GR?GR.typed:"", opts=GR?gramFrame(GR.seq[GR.i]).opts:[];
+    document.querySelectorAll("#gPills .pill").forEach(p=>p.classList.toggle("dim", !!t && !String(opts[+p.dataset.i]||"").startsWith(t))); }
   // time spent in Help, Settings or another tab never counts as a slow answer
   const gramResume=()=>{ if(GR && GR.phase==="play" && !GR.answered && !GR.lock && !document.hidden && !document.querySelector(".overlay.open")) GR.shownAt=performance.now(); };
   { const mo=new MutationObserver(gramResume); document.querySelectorAll(".overlay").forEach(o=>mo.observe(o,{attributes:true, attributeFilter:["class"]})); }
   document.addEventListener("visibilitychange", gramResume);
-  function gramNotNounCount(){ let n=0; S.lists.forEach(l=>l.words.forEach(w=>{ if(w.gr && w.gr.x) n++; })); return n; }
+  function gramNotNounCount(k){ k=k||"x"; let n=0; S.lists.forEach(l=>l.words.forEach(w=>{ if(w.gr && w.gr[k]) n++; })); return n; }
   function paintGramPane(){
     const D=gramData(), cfg=D&&D.cfg, gs=gramSet();
     document.getElementById("gLangSel").value=speakSet("word").lang || (cfg && cfg.code) || dojoLang("word");
@@ -1664,6 +1772,8 @@
     document.getElementById("gNoArts").hidden=!!cfg;
     const nn=gramNotNounCount(); document.getElementById("gNotBox").hidden=!nn;
     document.getElementById("gNotCount").textContent=`${nn} ${nn===1?"card":"cards"} you marked “Not a noun” ${nn===1?"stays":"stay"} out of the Grammar Dojo.`;
+    const np=gramNotNounCount("px"); document.getElementById("gPxBox").hidden=!np;   // v26
+    document.getElementById("gPxCount").textContent=`${np} ${np===1?"card":"cards"} you marked “Not a fixed preposition” ${np===1?"stays":"stay"} out of Prepositions.`;
   }
   function startHardDrill(){ const ws=hardWords(); if(!ws.length) return; hardList={ id:"__hard__", name:"Rivals", kind:isSent()?"sentence":"word", _virtual:true, completions:[], words:ws }; startSession(hardList); }
   function introduceIfNeeded(l){
@@ -1721,7 +1831,7 @@
   }
   function paintHeader(){
     const crumb=document.getElementById("crumb"), tally=document.getElementById("tally"), setH=document.getElementById("setBtnHdr"), helpH=document.getElementById("helpBtnHdr"), fbH=document.getElementById("fbHdr");
-    if(S.view==="gram" && GR){ crumb.textContent="· Articles"; tally.innerHTML=""; if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
+    if(S.view==="gram" && GR){ crumb.textContent=GR.slot==="pre"?"· Prepositions":"· Articles"; tally.innerHTML=""; if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
     else if(S.view==="study" && activeList()){ const l=activeList(); crumb.textContent="· "+l.name; tally.innerHTML = l._virtual ? "" : shuriRow(listRank(l),(l.completions||[]).length); if(setH) setH.style.display="none"; if(helpH) helpH.style.display="none"; if(fbH) fbH.style.display="none"; }
     else { crumb.textContent=""; tally.innerHTML=""; if(setH) setH.style.display=""; if(helpH) helpH.style.display=""; if(fbH) fbH.style.display=""; }
     document.querySelector("header").classList.toggle("hnav", !helpH || helpH.style.display!=="none");
@@ -1769,7 +1879,7 @@
     let g=""; if(D){ const n=D.nouns.filter(e=>!e.x).length; g=t("gram","法","Grammar Dojo<span class=\"beta\">beta</span>", D.cfg.arts.length ? `${fmtN(n)} noun${n===1?"":"s"}` : "Set up"); }
     return `<nav class="dojos${D?" three":""}" aria-label="Dojos">${t("word","語","Word Dojo",nl(S.lists.length))}${t("sentence","文","Sentence Dojo<span class=\"beta\">beta</span>",nl((S.sLists||[]).length))}${g}</nav>`;
   }
-  function wireTiles(){ stage.querySelectorAll("[data-dojo]").forEach(b=>b.onclick=()=>{ if(S.dojo===b.dataset.dojo) return; S.dojo=b.dataset.dojo; gdUI.open=false; save(); window.scrollTo(0,0); renderLibrary(); paintHeader(); }); }
+  function wireTiles(){ stage.querySelectorAll("[data-dojo]").forEach(b=>b.onclick=()=>{ if(S.dojo===b.dataset.dojo) return; S.dojo=b.dataset.dojo; gdUI.open=false; gpUI.open=false; save(); window.scrollTo(0,0); renderLibrary(); paintHeader(); }); }
   function folderHtml(fk,label,n,withAdd){
     const shut=!!(S.collapsed && S.collapsed[folderKey(fk)]);
     const empty = fk==="learn" ? "No lists here." : "Nothing here yet — lists you master or already know land here.";
@@ -3022,8 +3132,14 @@
       : `<li id="hGramGaps">${esc(cfg.name||"Your language")}: the <b>article</b> gap${m?` (<i translate="no">__ ${esc(m[2])}</i> → ${esc(m[1])})`:""}, with the buttons <b translate="no">${cfg.arts.map(esc).join(", ")}</b>.</li>`;
     const btns = nl ? `<li>The buttons stay in place: de-forms on the left, het-forms on the right, so your hand learns the split. In this / that, <i>hier</i> and <i>daar</i> label the rows: the sentence tells you the row, and you decide de or het. For a harder round, hide the labels or <b>mix up the buttons</b> in ${set}: then they change places on every card, so you read the word instead of following where it sits. On a keyboard, press ← → or 1–4.</li>`
       : `<li>The buttons stay in place, so your hand learns where each one is. For a harder round, <b>mix up the buttons</b> in ${set}: then they change places on every card, so you read the word instead of following where it sits. On a keyboard, press ${n===2?"← → or 1–2":"1–"+n}.</li>`;
-    return `<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, shows a noun with a gap, and you tap the right form as fast as you can.</p><ul>
-      <li>The nouns come from your <b>Word Dojo</b> cards whose word starts with an article${ex?`, like <code translate="no">${esc(ex)}</code>`:""}, so there's nothing new to type. To practise particular nouns, put them in a list or group and pick it under <b>From</b>.</li>${gaps}${btns}
+    // v26: Dutch has a second mode, Prepositions
+    const P=PREP_LANGS[cfg.base], intro = P ? `<p>The <b>Grammar Dojo</b> drills grammar at speed: you see a gap and tap the right word as fast as you can. <b>Articles</b> drills the articles of your nouns, <b>Prepositions</b> the fixed prepositions that go with your words.</p>`
+      : `<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, shows a noun with a gap, and you tap the right form as fast as you can.</p>`;
+    const prep = P ? `<li id="hGramPrep"><b>Prepositions</b>, the second card, drills fixed prepositions (<i translate="no">${esc(P.term)}</i>): every Word Dojo card whose word ends with its preposition, like <code translate="no">${esc(P.ex)}</code> or <code translate="no">${esc(P.ex2)}</code>, comes up as <i translate="no">leiden __</i> → tot. <i translate="no">iets</i> or <i translate="no">iemand</i> after it is fine (<i translate="no">iemand bedanken voor iets</i>). For more of them, use <b>Get words</b> with a topic like “verbs with fixed prepositions”.</li>
+      <li>The twelve common prepositions always have a button, in alphabetical order (<span translate="no">${P.common.join(", ")}</span>), so your hand learns where each one sits. A rarer one that your cards use, like <i translate="no">tegen</i>, gets its own button after them. These buttons never mix up. On a keyboard, type the first letters: <i translate="no">to</i> for tot.</li>
+      <li>The same words with another preposition, like <i translate="no">denken aan</i> and <i translate="no">denken over</i>? The meaning shows under the gap. A card that isn't a fixed preposition, like <i translate="no">kom op</i>? Tap <b>Not a fixed preposition</b>, and it stays out of Prepositions. ${set} brings it back.</li>` : "";
+    return `${intro}<ul>
+      <li>The nouns come from your <b>Word Dojo</b> cards whose word starts with an article${ex?`, like <code translate="no">${esc(ex)}</code>`:""}, so there's nothing new to type. To practise particular nouns, put them in a list or group and pick it under <b>From</b>.</li>${gaps}${btns}${prep}
       <li><b>Speed counts.</b> A right answer that's much slower than your usual comes back sooner. Right and fast on three separate days makes a form <b>automatic</b>: the gold part of each bar on the card.</li>
       <li>Automatic forms rest, then come back for a check, a few per round: after two weeks, then a month, two months and four months. A miss sends a form back to practice.</li>
       <li>Each round brings your misses first, then slow answers, then nouns in progress, then automatic forms that are due, then new ones (words you've already mastered first). A form you got right and fast waits until tomorrow.</li>
@@ -3031,13 +3147,14 @@
       <li>The line under the tiles counts today's answers and the forms that became automatic.</li>
       <li>A card that isn't a noun${nl?`, like <i>het spijt me</i>`:""}? Tap <b>Not a noun</b>, and it stays out. ${set} brings it back.</li>${other}</ul>`;
   }
-  function gramListsLi(){ const D=gramData(), cfg=D&&D.cfg, ex=cfg && cfg.arts.length ? (cfg.ex||gramOwnEx(D)) : "";
-    return ex ? `<li>Write nouns with their article on the side you type, like <code translate="no">${esc(ex)}</code>: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`
-      : `<li>In a language with articles, write nouns with their article on the side you type: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`; }
+  function gramListsLi(){ const D=gramData(), cfg=D&&D.cfg, ex=cfg && cfg.arts.length ? (cfg.ex||gramOwnEx(D)) : "", P=cfg&&PREP_LANGS[cfg.base];
+    const pre = P ? `<li>Words with a fixed preposition: put the preposition last, like <code translate="no">${esc(P.ex)}</code>, and the ${hl("help:grammar","Grammar Dojo")} drills it too.</li>` : "";   // v26
+    return (ex ? `<li>Write nouns with their article on the side you type, like <code translate="no">${esc(ex)}</code>: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`
+      : `<li>In a language with articles, write nouns with their article on the side you type: the ${hl("help:grammar","Grammar Dojo")} drills them.</li>`)+pre; }
   const HELP=[
     {id:"start", t:"Getting started", h:`<p>Language Senpai trains vocabulary and sentences with spaced practice. Everything happens in this browser; nothing leaves your device.</p><ol>
       <li id="hSimple">New here? The library starts simple: your lists, <b>+ New list</b> and <b>Get words</b>. Rivals, Revisit and the other dojos appear once you practise a list of your own, or tap <b>Show everything now</b> at the bottom.</li>
-      <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on the articles of your nouns).</li>
+      <li><b>Pick a dojo</b> at the top: the <b>Word Dojo</b> (you type words), the <b>Sentence Dojo</b> (you build sentences from word tiles) or, if your language has articles, the ${hl("help:grammar","<b>Grammar Dojo</b>")} (rapid fire on the articles of your nouns, and in Dutch on fixed prepositions).</li>
       <li><b>Try the sample list</b> (a short demo in Japanese), or make your own: <b>+ New list</b> to type or paste words, or <b>Get words</b> to let your own AI write a list for you.</li>
       <li id="hGold">Press <b>Study</b> on a list. Each word needs a few correct answers; when a whole list is mastered on three separate days, its three shurikens turn gold.</li>
       <li>Words you've mastered come back in <b>Revisit</b>, above Master — the ones you haven't seen for longest first.</li>
@@ -3264,6 +3381,7 @@
   document.getElementById("gLabToggle").onclick=()=>{ const gs=gramSet(); gs.labels=gs.labels===false; save(); paintGramPane(); };
   document.getElementById("gMixToggle").onclick=()=>{ const gs=gramSet(); gs.mix=gs.mix!==true; save(); paintGramPane(); };
   document.getElementById("gNotBack").onclick=()=>{ S.lists.forEach(l=>l.words.forEach(w=>{ if(w.gr && w.gr.x) delete w.gr.x; })); save(); paintGramPane(); };
+  document.getElementById("gPxBack").onclick=()=>{ S.lists.forEach(l=>l.words.forEach(w=>{ if(w.gr && w.gr.px) delete w.gr.px; })); save(); paintGramPane(); };   // v26
   document.getElementById("wAutoToggle").onclick=()=>setSpeak("word","auto",!speakSet("word").auto);
   document.getElementById("sAutoToggle").onclick=()=>setSpeak("sentence","auto",!speakSet("sentence").auto);
   document.getElementById("prevToggle").onclick=()=>{ S.settings.showPrev = S.settings.showPrev===false; save(); paintSettings(); };

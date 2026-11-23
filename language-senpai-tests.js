@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (852 at V25.12)
+ * Language Senpai — automated checks (887 at V26)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="25.12"')), 'version 25.12');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="26"')), 'version 26');
     await ctx.close();
   }
   {
@@ -2493,7 +2493,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const tops = await page.$$eval('.dojo', e => e.map(x => Math.round(x.getBoundingClientRect().top)));
       ok(tops[0] === tops[1] && tops[1] === tops[2], 'the three tiles sit side by side');
       await page.click('[data-dojo="gram"]'); await page.waitForTimeout(300);
-      ok((await getS(page)).dojo === 'gram' && !!(await page.$('#gdCard')) && /Rapid fire on the nouns in your Word Dojo lists/.test(await page.textContent('.lib-intro')), 'tapping it opens the Grammar Dojo (remembered), with its own intro and the Articles card');
+      ok((await getS(page)).dojo === 'gram' && !!(await page.$('#gdCard')) && /Rapid fire on the nouns (and fixed prepositions )?in your Word Dojo lists/.test(await page.textContent('.lib-intro')), 'tapping it opens the Grammar Dojo (remembered), with its own intro and the Articles card');
       ok(!(await page.$('.listcard')) && !(await page.$('.hardcard')) && !(await page.$('#revCard')), 'no lists, Rivals or Revisit here');
       await page.reload(); await page.waitForTimeout(350);
       ok(!!(await page.$('#gdCard')), 'still the Grammar Dojo after a reload');
@@ -2787,7 +2787,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
       ok(/__ verzoek → het/.test(h) && /__ antwoord hier → dit/.test(h) && /mijn nummer, __ je al kent → dat/.test(h) && /Not a noun/.test(h) && /three separate days/.test(h) && /ο η το/.test(h), 'Help explains the three gaps, speed, Not a noun and other languages');
       await page.click('#helpNav [data-help="start"]'); await page.waitForTimeout(80);
-      ok(/Grammar Dojo \(rapid fire on the articles of your nouns\)/.test(await page.textContent('#helpBody')), 'Getting started names the Grammar Dojo');
+      ok(/Grammar Dojo \(rapid fire on the articles of your nouns, and in Dutch on fixed prepositions\)/.test(await page.textContent('#helpBody')), 'Getting started names the Grammar Dojo');
       await page.click('#helpClose'); await ctx.close();
     }
     // --- From: one group; settings: switching gaps
@@ -3395,6 +3395,182 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const wn = (await p.textContent('#wnList')).replace(/\s+/g, ' ');
       ok(wn.indexOf('Version 25.12') >= 0 && wn.indexOf('Version 25.12') < wn.indexOf('Version 25.11') && /spaces don’t count/.test(wn) && /between several meanings/.test(wn), "What's new lists 25.12 first");
       await c.close();
+    }
+
+    console.log('\n[44] V26: the Grammar Dojo — Prepositions (fixed prepositions, Dutch)');
+    {
+      const NLp = { speak: { word: { lang: 'nl-NL', auto: false }, sentence: { lang: '', auto: false } } };
+      const dayP = (off = 0) => { const d = new Date(); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5) + off; };
+      const P13 = 'aan,bij,in,met,naar,om,op,over,tot,uit,van,voor,tegen';
+      const betoog = () => Object.assign(list('Betoog', [word('leiden tot', 'führen zu'), word('trots op', 'stolz auf'), word('de zeggenschap over', 'die Mitsprache über'),
+        word('iemand bedanken voor iets', 'sich bei jdm. für etw. bedanken'), word('wachten op (iemand)', 'warten auf'), word('bestand tegen', 'beständig gegen'),
+        word('op tijd', 'pünktlich'), word('aan', 'an'), word('lopen', 'laufen'), word('het huis', 'das Haus')]), { group: 'Betoog' });
+      const discussie = () => Object.assign(list('Discussie', [word('denken aan', 'denken an'), word('denken over', 'nachdenken über'), word('leiden tot', 'zu etwas führen')]), { group: 'Discussie' });
+      const ANS = { 'leiden __': 'tot', 'trots __': 'op', 'de zeggenschap __': 'over', 'iemand bedanken __ iets': 'voor', 'wachten __': 'op', 'bestand __': 'tegen', 'denken __|denken an': 'aan', 'denken __|nachdenken über': 'over' };
+      const pItem = page => page.evaluate(() => { const g = document.getElementById('gFrame'); if (!g) return null;
+        return { f: [...g.childNodes].map(n => n.nodeType === 3 ? n.textContent : '__').join('').replace(/\s+/g, ' ').trim(), m: document.getElementById('gMeaning').hidden ? '' : document.getElementById('gMeaning').textContent,
+          slot: document.getElementById('gSlot').textContent, pills: [...document.querySelectorAll('#gPills .pill')].map(p => p.textContent).join(',') }; });
+      const pAns = it => ANS[it.f + '|' + it.m] || ANS[it.f];
+      const pReady = page => page.waitForFunction(() => !document.getElementById('gFrame') || !!document.querySelector('#gPills[data-ready]'), null, { timeout: 6000 });
+      async function pTap(page, w) { await page.waitForSelector('#gPills[data-ready]', { timeout: 6000 }); const i = await page.$$eval('#gPills .pill', (e, x) => e.findIndex(p => p.textContent === x), w); await page.click(`#gPills .pill[data-i="${i}"]`, { force: true }); }
+      async function pPlay(page, wrong = () => '') {   // answers every card (wrong(it) can name a wrong preposition); returns what was shown
+        const seen = []; let guard = 0;
+        while (guard++ < 60) { await pReady(page); const it = await pItem(page); if (!it) break;
+          const bad = wrong(it); seen.push(Object.assign({ right: !bad }, it)); await pTap(page, bad || pAns(it)); await page.waitForTimeout(30); }
+        return seen;
+      }
+      const prepOf = (S, nl) => { for (const l of S.lists) for (const w of l.words) if (w.nl === nl) return (w.gr && w.gr.pre) || null; return undefined; };
+      const open = async (lists, settings = NLp, extra = {}) => { const st = Object.assign(state(lists, settings), { dojo: 'gram' }, extra); return freshD(st); };
+
+      // --- the card and what counts as a fixed preposition
+      {
+        const { ctx, page } = await open([betoog(), discussie()]);
+        ok(!!(await page.$('#gdCard')) && !!(await page.$('#gdCard + #gpCard')) && /Rapid fire on the nouns and fixed prepositions in your Word Dojo lists/.test(await page.textContent('.lib-intro')), 'Dutch: a second card under Articles, and the intro names fixed prepositions');
+        ok(await page.textContent('#gpCard .gd-name') === 'Prepositions' && await page.textContent('#gpCard .gd-sub') === 'vaste voorzetsels' && await page.textContent('#gpCard .gd-ico') === '前', 'the card: 前 Prepositions, “vaste voorzetsels”');
+        ok((await page.$$eval('#gpCard button.gd-row', e => e.map(x => x.dataset.go))).join() === 'pre' && /Preposition\s*0 of 8 automatic/.test(await page.textContent('#gpCard .gd-row')), 'one row: “Preposition, 0 of 8 automatic” (leiden tot in two lists counts once; op tijd, aan, lopen and het huis are not)');
+        ok(/2 nouns/.test(await page.textContent('.dojo[data-dojo="gram"] .ds')) && /0 of 2 automatic/.test(await page.textContent('#gdCard .gd-row[data-slot="art"]')), 'the nouns are counted as before (het huis, de zeggenschap over)');
+        ok(!!(await page.$('#gpPick')) && !!(await page.$('#gpSize')) && await page.$eval('#gpSize', e => e.value) === '25', 'its own From and Per round');
+        // From: groups that hold prepositions, with counts; picking one leaves the Articles card alone
+        await page.click('#gpPick'); await page.waitForTimeout(120);
+        const rows = await page.$$eval('#gpPanel .rv-list .rv-row', e => e.map(x => x.dataset.g + ':' + x.querySelector('.n').textContent));
+        ok(rows.join('|') === 'Betoog:6|Discussie:3' && await page.$eval('#gdPanel', e => e.hidden), 'From lists the groups with prepositions (Betoog 6, Discussie 3); the Articles panel stays shut');
+        await page.check('#gpPanel [data-gk="Discussie"]'); await page.waitForTimeout(120);
+        let S = await getS(page);
+        ok(JSON.stringify(S.settings.gram.pfrom) === '["Discussie"]' && S.settings.gram.from === null && /Discussie/.test(await page.textContent('#gpPick')) && /0 of 3 automatic/.test(await page.textContent('#gpCard .gd-row')), 'picking Discussie: the row counts its 3, remembered apart from the Articles’ From');
+        await page.check('#gpAll'); await page.waitForTimeout(120);
+        await page.selectOption('#gpSize', '10'); await page.waitForTimeout(80);
+        S = await getS(page);
+        ok(S.settings.gram.pfrom === null && S.settings.gram.psize === 10 && S.settings.gram.size === 25, 'All groups again; Per round 10 for prepositions, 25 for articles');
+        await page.selectOption('#gpSize', '25'); await page.waitForTimeout(80);
+        // a round
+        await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30); await pReady(page);
+        let it = await pItem(page);
+        ok(it.pills === P13 && await page.getAttribute('#gPills', 'class') === 'pills prep' && !(await page.$('#gPills .pk')), 'the buttons: the twelve common ones in alphabetical order, then tegen (a card uses it); no number keys');
+        const tops = await page.$$eval('#gPills .pill', e => e.map(x => Math.round(x.getBoundingClientRect().top)));
+        ok(tops[0] === tops[3] && tops[4] > tops[3] && tops[8] > tops[4] && tops[12] > tops[8], 'four to a row');
+        ok(/· Prepositions/.test(await page.textContent('#crumb')) && (await page.textContent('#gNotNoun')).trim() === 'Not a fixed preposition' && /type its first letters/.test(await page.textContent('.gfoot')) && /^Preposition/.test(it.slot) && /^1 \/ 8$/.test(await page.textContent('#gCount')), 'in a round: “· Prepositions”, “Preposition”, 1 / 8, “Not a fixed preposition”, the letters hint');
+        // keys: the first letters (wait for the right card types; t waits while tot and tegen both fit)
+        const seen = []; let typed = false, missed = false, again = false, guard = 0;
+        while (guard++ < 30) {
+          await pReady(page); it = await pItem(page); if (!it) break; seen.push(it);
+          if (it.f === 'leiden __' && !/again/.test(it.slot)) {
+            await pTap(page, 'naar'); await page.waitForTimeout(120);
+            missed = /tot, not naar/.test(await page.textContent('#gFb')) && await page.$eval('#gPills .pill[data-i="8"]', e => e.classList.contains('right')) && await page.$eval('#gPills .pill[data-i="4"]', e => e.classList.contains('no'))
+              && /^leiden tot$/.test((await page.textContent('#gFrame')).trim()) && /^\d+m0tot!$/.test(prepOf(await getS(page), 'leiden tot'));
+          } else if (it.f === 'trots __' && !typed) {
+            await page.keyboard.press('t'); await page.waitForTimeout(60);
+            const dimT = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.textContent).join());
+            await page.keyboard.press('Backspace'); await page.waitForTimeout(40);
+            typed = dimT === 'tot,tegen' && await page.$$eval('#gPills .pill.dim', e => e.length) === 0 && !!(await page.$('#gPills[data-ready]'));
+            await pTap(page, 'op');
+          } else { if (/again/.test(it.slot)) again = it.f === 'leiden __'; await pTap(page, pAns(it)); }
+          await page.waitForTimeout(30);
+        }
+        ok(missed, 'a miss: “tot, not naar”, the phrase in red, tot ringed, naar red; stored as a miss today');
+        ok(again, 'the missed card comes back once more in the round (“Preposition · again”)');
+        ok(typed, 'keys: “t” waits while tot and tegen both fit (the others fade); Backspace takes it back');
+        const frames = seen.filter(x => !/again/.test(x.slot)).map(x => x.f + (x.m ? ' [' + x.m + ']' : '')).sort();
+        ok(frames.join('|') === ['bestand __', 'de zeggenschap __', 'denken __ [denken an]', 'denken __ [nachdenken über]', 'iemand bedanken __ iets', 'leiden __', 'trots __', 'wachten __'].join('|'), 'the frames: “leiden __”, “iemand bedanken __ iets” (iets stays), “wachten __” (the hint left out); the meaning only where the same words take another preposition (denken aan / over)');
+        S = await getS(page);
+        ok(/^\d+f1op$/.test(prepOf(S, 'wachten op (iemand)')) && /^\d+f1over$/.test(prepOf(S, 'denken over')) && prepOf(S, 'op tijd') === null && Array.isArray(S.gram.rt.pre) && S.gram.rt.pre.length >= 6, 'progress sits on the card (“…f1op”), the prepositions keep their own speed record');
+        // the end of the round
+        const sc = (await page.textContent('.screen')).replace(/\s+/g, ' ');
+        ok(/前/.test(sc) && /8 prepositions done/.test(sc) && /7 right/.test(sc) && (await page.$$eval('.gchip', e => e.map(x => x.textContent))).join() === 'leiden tot', 'the end: 前, “8 prepositions done · 7 right”, the miss as a phrase (leiden tot)');
+        await ctx.close();
+      }
+      // --- typing the first letters answers; Not a fixed preposition; Settings brings it back
+      {
+        const { ctx, page } = await open([Object.assign(list('T', [word('trots op', 'stolz auf'), word('kom op!', 'komm schon'), word('wachten op', 'warten auf')]), { group: 'T' })]);
+        await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30);
+        let typedOk = false, notOk = false, guard = 0;
+        while (guard++ < 8) {
+          await pReady(page); const it = await pItem(page); if (!it) break;
+          if (it.f === 'trots __' && !typedOk) {
+            await page.keyboard.press('o'); await page.waitForTimeout(40);
+            const dimO = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.textContent).join());
+            await page.keyboard.press('p'); await page.waitForTimeout(120);
+            typedOk = dimO === 'om,op,over' && /Fast/.test(await page.textContent('#gFb')) && /^\d+f1op$/.test(prepOf(await getS(page), 'trots op'));
+          } else if (it.f === 'kom __' && !notOk) {
+            await page.click('#gNotNoun'); await page.waitForTimeout(150);
+            const S = await getS(page);
+            notOk = /“kom op” won't come back here/.test(await page.textContent('#gramToast')) && !!(await page.$('#gramUndo')) && S.lists[0].words[1].gr.px === 1 && !S.lists[0].words[1].gr.x;
+          } else await pTap(page, 'op');
+          await page.waitForTimeout(30);
+        }
+        ok(typedOk, 'typing “o” fades all but om, op, over; “p” answers op');
+        ok(notOk, '“Not a fixed preposition”: a note with Undo; marked for Prepositions only (not “Not a noun”)');
+        await page.click('#gdLib'); await page.waitForTimeout(250);
+        await page.click('#gpPick'); await page.waitForTimeout(100);
+        ok((await page.$$eval('#gpPanel .rv-list .rv-row', e => e.map(x => x.dataset.g + ':' + x.querySelector('.n').textContent))).join() === 'T:2', 'the card counts one fewer (2)');
+        await page.click('#setBtnHdr'); await page.waitForTimeout(150);
+        ok(await page.$eval('#gPxBox', e => !e.hidden) && /1 card you marked “Not a fixed preposition” stays out of Prepositions/.test(await page.textContent('#gPxBox')) && await page.$eval('#gNotBox', e => e.hidden), 'Settings → Grammar Dojo lists it, apart from “Not a noun”');
+        await page.click('#gPxBack'); await page.waitForTimeout(100);
+        const SB = await getS(page);
+        ok(!SB.lists[0].words[1].gr.px && await page.$eval('#gPxBox', e => e.hidden), '“Bring them back” brings it back');
+        await ctx.close();
+      }
+      // --- automatic on the third fast day; a corrected card starts afresh; mixed-up buttons leave prepositions in place
+      {
+        const l = Object.assign(list('A', [word('leiden tot', 'führen zu', { gr: { pre: dayP(-1) + 'f2tot' } }), word('trots op', 'stolz auf', { gr: { pre: dayP(-1) + 'f2naar' } }), word('wachten op', 'warten auf')]), { group: 'A' });
+        const { ctx, page } = await open([l], Object.assign({ gram: { mix: true } }, NLp));
+        await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30); await pReady(page);
+        const first = await pItem(page);
+        await pPlay(page);
+        const S = await getS(page);
+        ok(/1 newly automatic/.test(await page.textContent('#gdSum')) && /^\d+f3tot$/.test(prepOf(S, 'leiden tot')), 'right and fast on the third day: automatic (“1 newly automatic”)');
+        ok(/^\d+f1op$/.test(prepOf(S, 'trots op')), 'progress written for another preposition (a corrected card) starts afresh');
+        ok(first.pills === 'aan,bij,in,met,naar,om,op,over,tot,uit,van,voor' && Array.isArray(S.gram.rt.pre) && !S.gram.rt['pre~m'], '“Mix up the buttons” is for Articles: the prepositions keep their places and their own speed record');
+        await page.click('#gdLib'); await page.waitForTimeout(250);
+        ok(/All caught up for today/.test(await page.textContent('#gpCard .gd-row')) && await page.$eval('#gpCard .gd-bar .a', e => e.style.width) === '33.3%', 'back on the card: all caught up for today, a third of the bar gold (1 of 3 automatic)');
+        await ctx.close();
+      }
+      // --- other cases: "/" forms that disagree, no prepositions yet, German, a duplicate in Master
+      {
+        let { ctx, page } = await open([list('X', [word('denken aan / denken over', 'denken'), word('trots op', 'stolz auf')])]);
+        ok(/0 of 1 automatic/.test(await page.textContent('#gpCard .gd-row')), 'a card whose “/” forms take different prepositions after the same words is left out');
+        await ctx.close();
+        ({ ctx, page } = await open([list('N', [word('de appel', 'der Apfel'), word('het huis', 'das Haus')])]));
+        ok(/No fixed prepositions yet/.test(await page.textContent('#gpCard')) && /leiden tot = to lead to/.test(await page.textContent('#gpCard')) && /verbs with fixed prepositions/.test(await page.textContent('#gpCard')) && !(await page.$('#gpCard [data-go]')), 'no prepositions yet: the card says how to write them (leiden tot = to lead to) and how to get some');
+        await ctx.close();
+        ({ ctx, page } = await open([list('D', [word('das Haus', 'house'), word('warten auf', 'to wait for')])], { speak: { word: { lang: 'de-DE', auto: false }, sentence: { lang: '', auto: false } } }));
+        ok(!!(await page.$('#gdCard')) && !(await page.$('#gpCard')) && !/prepositions/.test(await page.textContent('.lib-intro')), 'German: Articles only, no Prepositions card (Dutch for now)');
+        await page.click('#helpBtnHdr'); await page.waitForTimeout(120);
+        ok(!/Prepositions|fixed preposition/.test(await page.textContent('#helpBody')), 'German: Help → Grammar Dojo doesn’t mention Prepositions');
+        await ctx.close();
+      }
+      // --- Help, Getting started, Your lists, What's new
+      {
+        const { ctx, page } = await open([betoog()]);
+        await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
+        const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+        ok(/Prepositions, the second card/.test(h) && /leiden __ → tot/.test(h) && /aan, bij, in, met, naar, om, op, over, tot, uit, van, voor/.test(h) && /type the first letters/.test(h) && /Not a fixed preposition/.test(h) && /denken aan and denken over/.test(h) && /__ verzoek → het/.test(h), 'Help → Grammar Dojo (Dutch): Prepositions, the twelve buttons, the letters, the meaning, Not a fixed preposition — and Articles as before');
+        await page.click('#helpNav [data-help="lists"]'); await page.waitForTimeout(80);
+        ok(/put the preposition last, like leiden tot = to lead to/.test((await page.textContent('#helpBody')).replace(/\s+/g, ' ')), 'Help → Your lists: put the preposition last');
+        await page.click('#helpNav [data-help="start"]'); await page.waitForTimeout(80);
+        ok(/rapid fire on the articles of your nouns, and in Dutch on fixed prepositions/.test(await page.textContent('#helpBody')), 'Getting started names the prepositions');
+        await page.click('#helpClose'); await page.waitForTimeout(80);
+        await page.click('#setBtnHdr'); await page.waitForTimeout(120);
+        await page.evaluate(() => document.getElementById('wnBtn').click()); await page.waitForTimeout(120);
+        const wn = (await page.textContent('#wnList')).replace(/\s+/g, ' ');
+        ok(wn.indexOf('Version 26') >= 0 && wn.indexOf('Version 26') < wn.indexOf('Version 25.12') && /Prepositions/.test(wn) && /type the first letters/.test(wn), "What's new lists 26 first");
+        await ctx.close();
+      }
+      // --- a phone: all the buttons in view, four to a row
+      {
+        const o = Object.assign({}, require('playwright').devices['iPhone 14']); delete o.defaultBrowserType;
+        const c = await browser.newContext(o); const p = await c.newPage();
+        p.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        const st = Object.assign(state([betoog(), discussie()], NLp), { dojo: 'gram' });
+        await p.goto(FILE); await p.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, st]); await p.reload(); await p.waitForTimeout(700);
+        await p.screenshot({ path: SHOT('shot_v26_home.png'), fullPage: true });
+        await p.tap('#gpCard [data-go="pre"]'); await p.waitForSelector('#gPills[data-ready]'); await p.waitForTimeout(100);
+        const m = await p.evaluate(() => { const ps = [...document.querySelectorAll('#gPills .pill')].map(x => x.getBoundingClientRect()); return { n: ps.length, row: ps.filter(r => Math.round(r.top) === Math.round(ps[0].top)).length, bottom: Math.round(ps[ps.length - 1].bottom), right: Math.round(Math.max(...ps.map(r => r.right))), vh: innerHeight, vw: innerWidth }; });
+        ok(m.n === 13 && m.row === 4 && m.bottom <= m.vh && m.right <= m.vw, `iPhone: 13 buttons, four to a row, all in view (bottom ${m.bottom} of ${m.vh})`);
+        await p.screenshot({ path: SHOT('shot_v26_card.png') });
+        const it = await pItem(p); await p.tap(`#gPills .pill[data-i="${it.f === 'bestand __' ? 0 : 12}"]`, { force: true }); await p.waitForTimeout(150);
+        await p.screenshot({ path: SHOT('shot_v26_miss.png') });
+        await c.close();
+      }
     }
 
   // ---------------- screenshots ----------------
