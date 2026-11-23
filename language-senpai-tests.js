@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (887 at V26)
+ * Language Senpai — automated checks (911 at V26.1)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -967,7 +967,7 @@ async function headSum(page) { const t = await page.textContent('.progress .head
     await ctx.close();
   }
   {
-    const big = list('Big', Array.from({ length: 400 }, (_, i) => word('w' + i, 'W' + i)));
+    const big = list('Frequency 1-400', Array.from({ length: 400 }, (_, i) => word('w' + i, 'W' + i)));   // V26.1: only lists gathered as common words count
     const st = state([big]); st.gw = { learn: 'Dutch', meaning: 'German', history: [{ id: 'h1', dojo: 'word', learn: 'Dutch', meaning: 'German', topic: 'everything', level: '', listIds: [big.id], at: 1 }] };
     const { ctx, page } = await freshD(st);
     await page.click('#gwBtn'); await page.waitForTimeout(150);
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="26"')), 'version 26');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="26.1"')), 'version 26.1');
     await ctx.close();
   }
   {
@@ -3409,10 +3409,10 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
       const ANS = { 'leiden __': 'tot', 'trots __': 'op', 'de zeggenschap __': 'over', 'iemand bedanken __ iets': 'voor', 'wachten __': 'op', 'bestand __': 'tegen', 'denken __|denken an': 'aan', 'denken __|nachdenken über': 'over' };
       const pItem = page => page.evaluate(() => { const g = document.getElementById('gFrame'); if (!g) return null;
         return { f: [...g.childNodes].map(n => n.nodeType === 3 ? n.textContent : '__').join('').replace(/\s+/g, ' ').trim(), m: document.getElementById('gMeaning').hidden ? '' : document.getElementById('gMeaning').textContent,
-          slot: document.getElementById('gSlot').textContent, pills: [...document.querySelectorAll('#gPills .pill')].map(p => p.textContent).join(',') }; });
+          slot: document.getElementById('gSlot').textContent, pills: [...document.querySelectorAll('#gPills .pill')].map(p => p.firstChild.textContent).join(',') }; });
       const pAns = it => ANS[it.f + '|' + it.m] || ANS[it.f];
       const pReady = page => page.waitForFunction(() => !document.getElementById('gFrame') || !!document.querySelector('#gPills[data-ready]'), null, { timeout: 6000 });
-      async function pTap(page, w) { await page.waitForSelector('#gPills[data-ready]', { timeout: 6000 }); const i = await page.$$eval('#gPills .pill', (e, x) => e.findIndex(p => p.textContent === x), w); await page.click(`#gPills .pill[data-i="${i}"]`, { force: true }); }
+      async function pTap(page, w) { await page.waitForSelector('#gPills[data-ready]', { timeout: 6000 }); const i = await page.$$eval('#gPills .pill', (e, x) => e.findIndex(p => p.firstChild.textContent === x), w); await page.click(`#gPills .pill[data-i="${i}"]`, { force: true }); }
       async function pPlay(page, wrong = () => '') {   // answers every card (wrong(it) can name a wrong preposition); returns what was shown
         const seen = []; let guard = 0;
         while (guard++ < 60) { await pReady(page); const it = await pItem(page); if (!it) break;
@@ -3445,10 +3445,10 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         // a round
         await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30); await pReady(page);
         let it = await pItem(page);
-        ok(it.pills === P13 && await page.getAttribute('#gPills', 'class') === 'pills prep' && !(await page.$('#gPills .pk')), 'the buttons: the twelve common ones in alphabetical order, then tegen (a card uses it); no number keys');
+        ok(it.pills === P13 && await page.getAttribute('#gPills', 'class') === 'pills prep' && (await page.$$eval('#gPills .pk', e => e.map(x => x.textContent).join())) === 'a,b,i,m,n,om,op,ov,to,u,va,vo,te', 'the buttons: the twelve common ones in alphabetical order, then tegen (a card uses it); letters, not numbers, in their corners (V26.1)');
         const tops = await page.$$eval('#gPills .pill', e => e.map(x => Math.round(x.getBoundingClientRect().top)));
         ok(tops[0] === tops[3] && tops[4] > tops[3] && tops[8] > tops[4] && tops[12] > tops[8], 'four to a row');
-        ok(/· Prepositions/.test(await page.textContent('#crumb')) && (await page.textContent('#gNotNoun')).trim() === 'Not a fixed preposition' && /type its first letters/.test(await page.textContent('.gfoot')) && /^Preposition/.test(it.slot) && /^1 \/ 8$/.test(await page.textContent('#gCount')), 'in a round: “· Prepositions”, “Preposition”, 1 / 8, “Not a fixed preposition”, the letters hint');
+        ok(/· Prepositions/.test(await page.textContent('#crumb')) && (await page.textContent('#gNotNoun')).trim() === 'Not a fixed preposition' && !(await page.$('.gfoot .gkeys')) && /^Preposition/.test(it.slot) && /^1 \/ 8$/.test(await page.textContent('#gCount')), 'in a round: “· Prepositions”, “Preposition”, 1 / 8, “Not a fixed preposition” (the letters sit in the buttons\' corners since V26.1)');
         // keys: the first letters (wait for the right card types; t waits while tot and tegen both fit)
         const seen = []; let typed = false, missed = false, again = false, guard = 0;
         while (guard++ < 30) {
@@ -3459,7 +3459,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
               && /^leiden tot$/.test((await page.textContent('#gFrame')).trim()) && /^\d+m0tot!$/.test(prepOf(await getS(page), 'leiden tot'));
           } else if (it.f === 'trots __' && !typed) {
             await page.keyboard.press('t'); await page.waitForTimeout(60);
-            const dimT = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.textContent).join());
+            const dimT = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.firstChild.textContent).join());
             await page.keyboard.press('Backspace'); await page.waitForTimeout(40);
             typed = dimT === 'tot,tegen' && await page.$$eval('#gPills .pill.dim', e => e.length) === 0 && !!(await page.$('#gPills[data-ready]'));
             await pTap(page, 'op');
@@ -3487,7 +3487,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
           await pReady(page); const it = await pItem(page); if (!it) break;
           if (it.f === 'trots __' && !typedOk) {
             await page.keyboard.press('o'); await page.waitForTimeout(40);
-            const dimO = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.textContent).join());
+            const dimO = await page.$$eval('#gPills .pill', e => e.filter(x => !x.classList.contains('dim')).map(x => x.firstChild.textContent).join());
             await page.keyboard.press('p'); await page.waitForTimeout(120);
             typedOk = dimO === 'om,op,over' && /Fast/.test(await page.textContent('#gFb')) && /^\d+f1op$/.test(prepOf(await getS(page), 'trots op'));
           } else if (it.f === 'kom __' && !notOk) {
@@ -3530,7 +3530,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         ok(/0 of 1 automatic/.test(await page.textContent('#gpCard .gd-row')), 'a card whose “/” forms take different prepositions after the same words is left out');
         await ctx.close();
         ({ ctx, page } = await open([list('N', [word('de appel', 'der Apfel'), word('het huis', 'das Haus')])]));
-        ok(/No fixed prepositions yet/.test(await page.textContent('#gpCard')) && /leiden tot = to lead to/.test(await page.textContent('#gpCard')) && /verbs with fixed prepositions/.test(await page.textContent('#gpCard')) && !(await page.$('#gpCard [data-go]')), 'no prepositions yet: the card says how to write them (leiden tot = to lead to) and how to get some');
+        ok(/No fixed prepositions yet/.test(await page.textContent('#gpCard')) && /leiden tot = to lead to/.test(await page.textContent('#gpCard')) && !!(await page.$('#gpCard #gpGet')) && !(await page.$('#gpCard [data-go]')), 'no prepositions yet: the card says how to write them (leiden tot = to lead to) and how to get some');
         await ctx.close();
         ({ ctx, page } = await open([list('D', [word('das Haus', 'house'), word('warten auf', 'to wait for')])], { speak: { word: { lang: 'de-DE', auto: false }, sentence: { lang: '', auto: false } } }));
         ok(!!(await page.$('#gdCard')) && !(await page.$('#gpCard')) && !/prepositions/.test(await page.textContent('.lib-intro')), 'German: Articles only, no Prepositions card (Dutch for now)');
@@ -3569,6 +3569,130 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         await p.screenshot({ path: SHOT('shot_v26_card.png') });
         const it = await pItem(p); await p.tap(`#gPills .pill[data-i="${it.f === 'bestand __' ? 0 : 12}"]`, { force: true }); await p.waitForTimeout(150);
         await p.screenshot({ path: SHOT('shot_v26_miss.png') });
+        await c.close();
+      }
+    }
+
+    console.log('\n[45] V26.1: prepositions after er/daar, letters in the corners, Get prepositions; Get words with an empty topic');
+    {
+      const NLq = { speak: { word: { lang: 'nl-NL', auto: false }, sentence: { lang: '', auto: false } } };
+      const qItem = page => page.evaluate(() => { const g = document.getElementById('gFrame'); if (!g) return null;
+        return { f: [...g.childNodes].map(n => n.nodeType === 3 ? n.textContent : '__').join('').replace(/\s+/g, ' ').trim(), slot: document.getElementById('gSlot').textContent,
+          pills: [...document.querySelectorAll('#gPills .pill')].map(p => p.firstChild.textContent).join(','), keys: [...document.querySelectorAll('#gPills .pill .pk')].map(k => k.textContent).join(',') }; });
+      const qReady = page => page.waitForFunction(() => !document.getElementById('gFrame') || !!document.querySelector('#gPills[data-ready]'), null, { timeout: 6000 });
+      async function qTap(page, w) { await page.waitForSelector('#gPills[data-ready]', { timeout: 6000 }); const i = await page.$$eval('#gPills .pill', (e, x) => e.findIndex(p => p.firstChild.textContent === x), w); await page.click(`#gPills .pill[data-i="${i}"]`, { force: true }); }
+      const ANSq = { 'daar wil ik even __ inhaken': 'op', 'ergens niet __ geven': 'om', 'daar ben ik het __ eens': 'mee', 'waar ik al lang __ wacht': 'op', 'leiden __': 'tot', 'trots __': 'op' };
+      const openQ = async (lists, settings = NLq) => freshD(Object.assign(state(lists, settings), { dojo: 'gram' }));
+      // --- the preposition right before the last word, after er/daar/waar/ergens; mee and toe only there
+      {
+        const l = Object.assign(list('Discussie', [word('daar wil ik even op inhaken', 'da möchte ich kurz einhaken'), word('ergens niet om geven', 'sich nichts aus etwas machen'),
+          word('daar ben ik het mee eens', 'da stimme ich zu'), word('waar ik al lang op wacht', 'worauf ich schon lange warte'), word('er staat een boom in de tuin', 'im Garten steht ein Baum'),
+          word('ga je mee?', 'kommst du mit?'), word('leiden tot', 'führen zu'), word('trots op', 'stolz auf')]), { group: 'Discussie' });
+        const { ctx, page } = await openQ([l]);
+        ok(/0 of 6 automatic/.test(await page.textContent('#gpCard .gd-row')), 'after er/daar/waar/ergens, a preposition right before the last word counts too: 6 items ("er staat een boom in de tuin" and "ga je mee?" don\'t)');
+        await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30); await qReady(page);
+        let it = await qItem(page);
+        ok(it.pills === 'aan,bij,in,met,naar,om,op,over,tot,uit,van,voor,mee', 'mee gets a button after the twelve (a card uses it in that position)');
+        ok(it.keys === 'a,b,i,met,n,om,op,ov,t,u,va,vo,mee' && !(await page.$('.gfoot .gkeys')), 'each button\'s corner shows the letters that answer it (met and mee need three, tot one); the grey footer line is gone');
+        const seen = []; let guard = 0;
+        while (guard++ < 20) { await qReady(page); it = await qItem(page); if (!it) break; seen.push(it.f); await qTap(page, ANSq[it.f]); await page.waitForTimeout(30); }
+        ok(seen.sort().join('|') === Object.keys(ANSq).sort().join('|'), 'the frames: "daar wil ik even __ inhaken", "ergens niet __ geven", "daar ben ik het __ eens", "waar ik al lang __ wacht"');
+        const S = await getS(page), pre = nl => { for (const w of S.lists[0].words) if (w.nl === nl) return (w.gr && w.gr.pre) || ''; return ''; };
+        ok(/^\d+f1mee$/.test(pre('daar ben ik het mee eens')) && /^\d+f1op$/.test(pre('daar wil ik even op inhaken')) && /6 prepositions done/.test(await page.textContent('.screen')), 'answered right: progress on the card ("…f1mee"), "6 prepositions done"');
+        await ctx.close();
+      }
+      // --- keys: a whole word that starts another one waits for Enter (na in naar)
+      {
+        const { ctx, page } = await openQ([list('K', [word('op een paar na', 'bis auf ein paar'), word('trots op', 'stolz auf')])]);
+        await page.click('#gpCard [data-go="pre"]'); await page.waitForTimeout(30); await qReady(page);
+        let it = await qItem(page), guard = 0;
+        while (it && it.f !== 'op een paar __' && guard++ < 3) { await qTap(page, 'op'); await page.waitForTimeout(30); await qReady(page); it = await qItem(page); }
+        const naKey = await page.$$eval('#gPills .pill', e => { const p = e.find(x => x.firstChild.textContent === 'na'); return p ? p.querySelector('.pk').textContent : ''; });
+        await page.keyboard.press('n'); await page.keyboard.press('a'); await page.waitForTimeout(60);
+        const waiting = !(await page.textContent('#gFb')).trim();
+        await page.keyboard.press('Enter'); await page.waitForTimeout(120);
+        ok(naKey === 'na ↵' && waiting && /Fast/.test(await page.textContent('#gFb')), '"na" (also the start of naar) shows "na ↵" in its corner: typing n a waits, Enter answers');
+        await ctx.close();
+      }
+      // --- Get prepositions from the card
+      {
+        let { ctx, page } = await openQ([list('N', [word('het huis', 'das Haus')])]);
+        ok((await page.textContent('#gpCard #gpGet')).trim() === 'Get prepositions' && /Your AI can write you a list of them/.test(await page.textContent('#gpCard')), 'no prepositions yet: a Get prepositions button on the card');
+        await ctx.close();
+        const st = Object.assign(state([list('B', [word('leiden tot', 'führen zu')])], NLq), { dojo: 'gram' }); st.gw = { learn: 'French', meaning: 'German', history: [] };
+        ({ ctx, page } = await freshD(st));
+        ok((await page.textContent('#gpCard .gd-top #gpGet')).trim() === 'Get more', 'with prepositions: Get more at the top of the card');
+        await page.click('#gpGet'); await page.waitForTimeout(200);
+        const f = await page.evaluate(() => { const v = id => document.getElementById(id); return { learn: v('gwLearn').value, topic: v('gwTopic').value, name: v('gwName').value, group: v('gwGroup').value, note: !v('gwGramNote').hidden, title: v('gwTitle').textContent, open: v('gwOverlay').classList.contains('open') }; });
+        ok(f.open && f.title === 'Get words' && f.learn === 'Dutch' && f.topic === 'words with a fixed preposition (vaste voorzetsels)' && f.name === 'Prepositions' && f.group === 'Prepositions' && f.note, 'it opens Get words set up for prepositions: Dutch (not the last list\'s French), the topic, name and group "Prepositions", and a line saying the list goes into the Word Dojo');
+        const msg = await page.inputValue('#gwPrompt');
+        ok(/Put the fixed preposition last on the Dutch side, with nothing after it/.test(msg) && /Topic: words with a fixed preposition \(vaste voorzetsels\)\./.test(msg), 'the message asks for the preposition last');
+        await page.fill('#gwPaste', ['1. bijdragen aan = beitragen zu', '2. afhangen van = abhängen von', '3. zich ergeren aan = sich ärgern über', '4. leiden tot = führen zu', '5. de invloed op = der Einfluss auf'].join('\n')); await page.waitForTimeout(250);
+        await page.click('#gwCreate'); await page.waitForTimeout(400);
+        const S = await getS(page), made = S.lists.find(l => l.group === 'Prepositions');
+        ok(!!made && made.name === 'Prepositions' && made.words.length === 4 && S.gw.history.some(h => h.dojo === 'word' && /fixed preposition/.test(h.topic)) && S.dojo === 'gram' && /0 of 5 automatic/.test(await page.textContent('#gpCard .gd-row')), 'Create: a Word Dojo list in the group Prepositions (leiden tot skipped, it was there), still in the Grammar Dojo, the card counts 5');
+        await page.click('#gpGet'); await page.waitForTimeout(200);
+        ok(/already know: de invloed op, /.test(await page.inputValue('#gwPrompt')), 'Get more again: the message leaves out the prepositions you got before');
+        await page.click('#gwClose'); await page.waitForTimeout(80);
+        await page.click('[data-dojo="word"]'); await page.waitForTimeout(250);
+        await page.click('#gwBtn'); await page.waitForTimeout(150);
+        ok(await page.$eval('#gwGramNote', e => e.hidden) && await page.inputValue('#gwTopic') === '' && await page.inputValue('#gwLearn') === 'Dutch', 'Get words in the Word Dojo opens as usual (no preposition line, no topic)');
+        await page.click('#gwClose'); await ctx.close();
+      }
+      // --- Get words: an empty topic means the most common words; the count only includes words gathered as common words
+      {
+        const lessons = list('Lesson 1-12', Array.from({ length: 400 }, (_, i) => word('l' + i, 'L' + i)));
+        let { ctx, page } = await freshD(Object.assign(state([lessons]), { gw: { learn: 'English', meaning: 'Portuguese', history: [] } }));
+        await page.click('#gwBtn'); await page.waitForTimeout(150);
+        ok(await page.textContent('#gwTopicNote') === 'Leave it empty for the most common everyday words.' && await page.getAttribute('#gwTopic', 'placeholder') === 'e.g. psychology, travel' && await page.$eval('#gwGramNote', e => e.hidden), 'a grey line under Topic: "Leave it empty for the most common everyday words."');
+        let m = await page.inputValue('#gwPrompt');
+        ok(/Topic: the most common, most useful everyday words \(no special subject\)\./.test(m) && !/I already know roughly/.test(m), 'an empty topic asks for the most common everyday words; 400 words from a teacher\'s lessons don\'t count as knowing the basics');
+        await page.fill('#gwTopic', 'frequency'); await page.waitForTimeout(80); const fq = /Topic: the most common, most useful everyday words/.test(await page.inputValue('#gwPrompt'));
+        await page.fill('#gwTopic', 'physics frequency'); await page.waitForTimeout(80); const ph = /Topic: physics frequency\./.test(await page.inputValue('#gwPrompt'));
+        await page.fill('#gwTopic', 'less common words'); await page.waitForTimeout(80); const lc = /Topic: less common words\./.test(await page.inputValue('#gwPrompt'));
+        ok(fq && ph && lc, '"frequency" means the most common words (no hertz); "physics frequency" and "less common words" stay as typed');
+        await page.click('#gwClose'); await ctx.close();
+        const freq = Object.assign(list('Frequency 1-400', Array.from({ length: 400 }, (_, i) => word('f' + i, 'F' + i))), { group: 'Frequency (1-500)' });
+        ({ ctx, page } = await freshD(Object.assign(state([freq]), { gw: { learn: 'Dutch', meaning: 'German', history: [] } })));
+        await page.click('#gwBtn'); await page.waitForTimeout(150);
+        ok(/I already know roughly the 400 most common Dutch words, so choose less common ones/.test(await page.inputValue('#gwPrompt')), 'lists in a Frequency group count: an empty topic steers past the 400 most common words');
+        await page.click('#gwClose'); await ctx.close();
+        const made = list('Words 1', Array.from({ length: 350 }, (_, i) => word('c' + i, 'C' + i)));
+        const st = state([made]); st.gw = { learn: 'Dutch', meaning: 'German', history: [{ id: 'g1', dojo: 'word', learn: 'Dutch', meaning: 'German', topic: '', level: '', listIds: [made.id], at: 1 }] };
+        ({ ctx, page } = await freshD(st));
+        await page.click('#gwBtn'); await page.waitForTimeout(150);
+        await page.fill('#gwTopic', 'basic words'); await page.waitForTimeout(80); m = await page.inputValue('#gwPrompt');
+        ok(/I already know roughly the 300 most common Dutch words/.test(m) && /already know: c349, /.test(m), 'words from an earlier request without a topic count, and "basic words" leaves them out just like an empty topic');
+        await page.click('#gwClose'); await ctx.close();
+        ({ ctx, page } = await freshD(Object.assign(state([list('W', [word('a', 'b')])]), { dojo: 'sentence' })));
+        await page.click('#gwBtn'); await page.waitForTimeout(150);
+        ok(await page.textContent('#gwTopicNote') === 'Leave it empty for everyday sentences.', 'Get sentences: "Leave it empty for everyday sentences."');
+        await page.click('#gwClose'); await ctx.close();
+      }
+      // --- Help, What's new; Get more on a phone
+      {
+        const { ctx, page } = await openQ([list('B', [word('leiden tot', 'führen zu')])]);
+        await page.click('#helpBtnHdr'); await page.waitForTimeout(150);
+        const h = (await page.textContent('#helpBody')).replace(/\s+/g, ' ');
+        ok(/daar wil ik even __ inhaken → op/.test(h) && /met becomes mee/.test(h) && /Get prepositions/.test(h) && /shown small in each button's corner/.test(h), 'Help → Grammar Dojo: the er/daar form, mee and toe, Get prepositions, the letters in the corners');
+        await page.click('#helpNav [data-help="get"]'); await page.waitForTimeout(80);
+        ok(/Leave it empty for the most common everyday words/.test((await page.textContent('#helpBody')).replace(/\s+/g, ' ')), 'Help → Get words: leave the topic empty');
+        await page.click('#helpNav [data-help="settings"]'); await page.waitForTimeout(80);
+        ok(/Not a fixed preposition/.test(await page.textContent('#helpBody')), 'Help → Settings names "Not a fixed preposition" too');
+        await page.click('#helpClose'); await page.waitForTimeout(80);
+        await page.click('#setBtnHdr'); await page.waitForTimeout(120);
+        await page.evaluate(() => document.getElementById('wnBtn').click()); await page.waitForTimeout(120);
+        const wn = (await page.textContent('#wnList')).replace(/\s+/g, ' ');
+        ok(wn.indexOf('Version') === wn.indexOf('Version 26.1') && /Get prepositions/.test(wn) && /leave the topic empty/.test(wn), "What's new lists 26.1 first");
+        await ctx.close();
+        const o = Object.assign({}, require('playwright').devices['iPhone 14']); delete o.defaultBrowserType;
+        const c = await browser.newContext(o); const p = await c.newPage();
+        p.on('pageerror', e => errors.push('pageerror: ' + e.message));
+        await p.goto(FILE); await p.evaluate(([k, s]) => localStorage.setItem(k, JSON.stringify(s)), [KEY, Object.assign(state([list('B', [word('leiden tot', 'führen zu'), word('daar wil ik even op inhaken', 'einhaken')])], NLq), { dojo: 'gram' })]); await p.reload(); await p.waitForTimeout(700);
+        const g = await p.evaluate(() => { const b = document.getElementById('gpGet').getBoundingClientRect(), c = document.getElementById('gpCard').getBoundingClientRect(), n = document.querySelector('#gpCard .gd-name').getBoundingClientRect();
+          return { inCard: b.right <= c.right && b.left > n.right, oneLine: n.height < 30, sameRow: Math.abs((b.top + b.bottom) / 2 - (n.top + n.bottom) / 2) < 22 }; });
+        ok(g.inCard && g.oneLine && g.sameRow, 'iPhone: Get more sits at the top right of the card, beside the title');
+        await p.screenshot({ path: SHOT('shot_v261_card.png'), fullPage: true });
         await c.close();
       }
     }

@@ -145,6 +145,8 @@
   .gw h4{margin:18px 0 8px}
   .gwgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:6px 0 12px}
   .gwf{display:flex;flex-direction:column;min-width:0}
+  .gw-tnote{font-size:12.5px;color:var(--faint);line-height:1.4;margin:5px 2px 0}   /* v26.1: under Topic */
+  .gw-gram{color:var(--indigo)}
   .gwf.wide{grid-column:1/-1}
   .gwf .flabel{margin:0 0 5px}
   .gwf[hidden]{display:none}
@@ -571,6 +573,7 @@
   .pills .pl-h{font-family:var(--sans);font-size:12px;color:var(--faint);text-align:center;line-height:1.2}
   .pills .pl-r{font-family:var(--sans);font-size:12.5px;color:var(--faint);text-align:right;padding-right:2px;align-self:center}
   .gd-go{width:100%;margin-top:14px}
+  .gd-top .gd-get{margin-left:auto;flex:none}   /* v26.1: Get more, top right of the Prepositions card */
   .gd-empty,.gd-done{color:var(--muted);font-size:14px;margin:4px 0 0}
   .gd-done{margin-top:14px;text-align:center}
   /* v25: a round — no fade-in for the card (rapid fire), the buttons pop out instead */
@@ -609,8 +612,6 @@
   .gfb .art{color:var(--muted)}
   .gfoot{display:flex;justify-content:flex-end;margin-top:6px}
   .gfoot .link{font-size:12.5px}
-  .gfoot .gkeys{margin-right:auto;align-self:center;font-size:12.5px;color:var(--faint)}
-  @media (hover:none), (pointer:coarse){ .gfoot .gkeys{display:none} }
   .gframe.long{font-size:clamp(22px,5.6vw,34px)}   /* v26: "zich zorgen maken __" stays on one line on a phone */
   /* v25: the end of a round */
   .biggram{width:66px;height:66px;margin:4px auto 18px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--indigo-soft);border:1px solid #C9D3E3;font-family:var(--serif);font-size:32px;color:var(--indigo);animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
@@ -685,12 +686,13 @@
   <div class="modal gw" role="dialog" aria-labelledby="gwTitle">
     <h3 id="gwTitle">Get words</h3>
     <p class="hint">Your AI writes the list. Language Senpai makes you remember it.</p>
+    <p class="hint gw-gram" id="gwGramNote" hidden>The new list goes into your Word Dojo, in the group “Prepositions”, and the Grammar Dojo drills its prepositions right away.</p>
     <div id="gwMore"></div>
     <h4>1 · Describe the list</h4>
     <div class="gwgrid">
       <label class="gwf"><span class="flabel">Learning</span><input type="text" class="field" id="gwLearn" placeholder="e.g. Japanese" autocomplete="off"></label>
       <label class="gwf"><span class="flabel">Meanings in</span><input type="text" class="field" id="gwMeaning" placeholder="e.g. English" autocomplete="off"></label>
-      <label class="gwf wide"><span class="flabel">Topic</span><input type="text" class="field" id="gwTopic" placeholder="e.g. psychology, travel, the most common words" autocomplete="off"></label>
+      <label class="gwf wide"><span class="flabel">Topic</span><input type="text" class="field" id="gwTopic" placeholder="e.g. psychology, travel" autocomplete="off"><span class="gw-tnote" id="gwTopicNote">Leave it empty for the most common everyday words.</span></label>
       <label class="gwf wide" id="gwFromWrap"><span class="flabel">Use the words from <small>(optional)</small></span><select class="field" id="gwFrom"></select></label>
       <label class="gwf"><span class="flabel">Level</span><select class="field" id="gwLevel"><option value="">Any level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
       <label class="gwf"><span class="flabel">How many</span><select class="field" id="gwCount"></select></label>
@@ -842,9 +844,10 @@
 (function(){
   "use strict";
   const KEY="language_senpai_v1";
-  const APP_VERSION="26";
+  const APP_VERSION="26.1";
   const FEEDBACK_HREF="https://tally.so/r/OQ7Q4K?version="+encodeURIComponent(APP_VERSION);   // v25.4: the feedback form, with the version filled in
   const CHANGELOG=[   // v22.2: shown in the "What's new" window (latest first)
+    {v:"26.1", items:["Prepositions: also when the preposition comes right before the last word, after er, daar, waar or ergens: “daar wil ik even __ inhaken” → op. There met becomes mee, and tot becomes toe.","On a computer, each preposition button shows in its corner the letters that answer it (to for tot).","The Prepositions card has its own Get prepositions button: your AI writes a list, which goes into your Word Dojo in the group Prepositions.","Get words: leave the topic empty for the most common everyday words. “Frequency” or “basic words” mean the same, and each time you get more, they get less common."]},
     {v:"26", items:["Grammar Dojo, for Dutch: a second card, Prepositions. Every card in your Word Dojo lists whose word ends with its fixed preposition (leiden tot, trots op, de zeggenschap over) comes up with a gap, “leiden __”: tap the right preposition, as fast as you can.","The twelve common prepositions always sit in the same places, in alphabetical order, and a rarer one that your cards use gets its own button after them. On a computer, type the first letters.","It works like Articles: its own From and Per round, misses first, right and fast on three separate days makes it automatic, and “Not a fixed preposition” for a card that isn’t one."]},
     {v:"25.12", items:["Japanese, Chinese and Korean: spaces don’t count when you type the Latin letters, so “shigotonaiyō” is as right as “shigoto naiyō”.","Get words asks the AI to put “ / ” between several meanings, so any one of them counts when you’re asked the meaning."]},
     {v:"25.11", items:["Get words asks for the reading of Japanese, Chinese and Korean words (心理学 / しんりがく / shinrigaku), so you can type a word in its own script or in Latin letters, and every answer shows the characters with their reading.","A short line under “Group” says what it does: lists with the same group sit together under one heading, like in a folder."]},
@@ -1307,7 +1310,10 @@
   // a rarer one gets a button after them only when one of your cards uses it.
   const PREP_LANGS={ nl:{common:["aan","bij","in","met","naar","om","op","over","tot","uit","van","voor"],
     more:["achter","door","jegens","na","onder","tegen","tegenover","tussen","zonder"],
-    fill:["iets","iemand","iem"], term:"vaste voorzetsels", ex:"leiden tot = to lead to", ex2:"trots op = proud of"} };
+    fill:["iets","iemand","iem"], term:"vaste voorzetsels", ex:"leiden tot = to lead to", ex2:"trots op = proud of",
+    // v26.1: after er/daar/… the preposition can sit right before the last word ("daar wil ik even op inhaken");
+    // there met and tot become mee and toe ("daar ben ik het mee eens"), which never count at the end ("ga je mee")
+    pro:["er","daar","hier","waar","ergens","nergens","overal"], split:["mee","toe"]} };
   const GD_PLAY='<svg viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></svg>';
   const REL_TAILS=["je al kent","ik je liet zien","je gisteren zag"];
   let GR=null, gramMemo=null, gramToastT=null;
@@ -1367,9 +1373,16 @@
     const t=String(s||"").replace(/\s+/g," ").trim().split(" "), bare=x=>x.toLowerCase().replace(/[.,;:!?…]+$/,"");
     let k=t.length; while(k>1 && (!bare(t[k-1]) || P.fill.includes(bare(t[k-1])))) k--;   // "iets", "iemand", "…" may follow it
     if(k<2) return null;
-    const p=bare(t[k-1]); if(!P.common.includes(p) && !P.more.includes(p)) return null;
-    const before=t.slice(0,k-1).join(" "), after=t.slice(k).join(" ");
-    return {p, pre:before+" ", post:after?" "+after:"", fk:before.toLowerCase(), phrase:before+" "+p+(after?" "+after:"")};
+    const p=bare(t[k-1]);
+    if(P.common.includes(p) || P.more.includes(p)){
+      const before=t.slice(0,k-1).join(" "), after=t.slice(k).join(" ");
+      return {p, pre:before+" ", post:after?" "+after:"", fk:before.toLowerCase(), phrase:before+" "+p+(after?" "+after:"")};
+    }
+    // v26.1: er/daar/waar/ergens … preposition + the last word: "daar wil ik even __ inhaken" → op
+    const j=t.length-2, q=j>=1 ? bare(t[j]) : "";
+    if(!P.pro || !(P.common.includes(q) || P.more.includes(q) || P.split.includes(q)) || !t.slice(0,j).some(x=>P.pro.includes(bare(x)))) return null;
+    const before=t.slice(0,j).join(" "), after=t.slice(j+1).join(" ");
+    return {p:q, pre:before+" ", post:" "+after, fk:(before+" | "+after).toLowerCase(), phrase:before+" "+q+" "+after};
   }
   // one entry per phrase (words + preposition), like the nouns: its progress sits on the copy that has some (else the first, Master first)
   function gramPreps(cfg){
@@ -1392,6 +1405,11 @@
   // the buttons: the common ones, then (alphabetically) any rarer one your cards use
   function prepOpts(cfg, preps){ const P=PREP_LANGS[cfg.base]; if(!P) return [];
     return P.common.concat([...new Set(preps.filter(e=>!e.x && !P.common.includes(e.g)).map(e=>e.g))].sort((a,b)=>a.localeCompare(b))); }
+  // v26.1: the fewest first letters that answer each button: tot → "to" while tegen is there, bij → "b"; a word that starts
+  // another one (na in naar) gets ↵, since Enter or Space answers it
+  function prepKeys(opts){ const k={};
+    opts.forEach(o=>{ let p=""; for(let n=1;n<=o.length;n++){ const c=o.slice(0,n); if(!opts.some(x=>x!==o && x.startsWith(c))){ p=c; break; } } k[o]=p||o+" ↵"; });
+    return k; }
   function prepSel(){ const f=gramSet().pfrom; return Array.isArray(f)&&f.length?f:null; }
   function prepSize(){ return gramSet().psize||25; }
   function prepStats(D){ const sel=prepSel(), st={auto:0, prog:0, total:0};
@@ -1475,8 +1493,9 @@
   // v26: the Prepositions card (Dutch): one row, its own From and Per round
   function prepCardHtml(D, noAnim){
     const P=PREP_LANGS[D.cfg.base], cls=`revcard gdcard gpcard${noAnim?" noanim":""}`;
-    const head=`<div class="gd-top"><span class="gd-ico" lang="ja" aria-hidden="true">前</span><div><div class="gd-name">Prepositions</div><div class="gd-sub" translate="no">${esc(P.term)}</div></div></div>`;
-    if(!D.preps.some(e=>!e.x)) return `<div class="${cls}" id="gpCard">${head}<p class="gd-empty">No fixed prepositions yet. Word Dojo cards whose word ends with its preposition, like <b translate="no">${esc(P.ex)}</b>, show up here. To get some, use Get words with a topic like “verbs with fixed prepositions”.</p></div>`;
+    const none=!D.preps.some(e=>!e.x);   // v26.1: a way to get more without leaving the Grammar Dojo
+    const head=`<div class="gd-top"><span class="gd-ico" lang="ja" aria-hidden="true">前</span><div><div class="gd-name">Prepositions</div><div class="gd-sub" translate="no">${esc(P.term)}</div></div>${none?"":`<button type="button" class="btn ghost sm gd-get" id="gpGet">Get more</button>`}</div>`;
+    if(none) return `<div class="${cls}" id="gpCard">${head}<p class="gd-empty">No fixed prepositions yet. Word Dojo cards whose word ends with its preposition, like <b translate="no">${esc(P.ex)}</b>, show up here. Your AI can write you a list of them.</p><button class="btn gd-go" id="gpGet">Get prepositions</button></div>`;
     const sel=prepSel(), st=prepStats(D), from=gramFromHtml("gp", gpUI, sel, prepSize(), gramGroups(D.preps), "Prepositions");
     if(!st.total) return `<div class="${cls}" id="gpCard">${head}${from}<p class="gd-done">No prepositions in the groups you picked.</p></div>`;
     const n=gramItems(D.cfg, D.preps, "pre").length;
@@ -1533,6 +1552,7 @@
   function wireGram(){
     document.querySelectorAll("#gdCard [data-go], #gpCard [data-go]").forEach(b=>b.onclick=()=>startGramRound(b.dataset.go));
     const su=document.getElementById("gdSetup"); if(su) su.onclick=()=>{ openSettings(); setDojo="gram"; paintSettings(); const f=document.getElementById("gArts"); if(f) f.focus(); };
+    const gg=document.getElementById("gpGet"); if(gg) gg.onclick=()=>openGetWords({prep:true});   // v26.1
     wireGramFrom("gd"); wireGramFrom("gp");
   }
 
@@ -1555,7 +1575,7 @@
     const seq=[]; (pre?["pre"]:gramSlots(D.cfg)).forEach(s=>seq.push(...gShuffle(pick.filter(it=>it.s===s))));
     seq.forEach((it,k)=>{ it.first = k===0 || seq[k-1].s!==it.s; if(it.s==="dem") it.far=Math.random()<.5; if(it.s==="rel") it.tail=REL_TAILS[Math.floor(Math.random()*REL_TAILS.length)]; });
     gdUI.open=false; gpUI.open=false;
-    GR={cfg:D.cfg, slot, popts:pre?D.popts.slice():null, seq, i:0, res:[], phase:"play", timer:null, unlockT:null, lock:true, answered:false, shownAt:0, pillsFor:null, typed:""};
+    GR={cfg:D.cfg, slot, popts:pre?D.popts.slice():null, pkeys:pre?prepKeys(D.popts):null, seq, i:0, res:[], phase:"play", timer:null, unlockT:null, lock:true, answered:false, shownAt:0, pillsFor:null, typed:""};
     S.view="gram"; save(); window.scrollTo(0,0); render();
   }
   function gramStop(){ if(GR){ clearTimeout(GR.timer); clearTimeout(GR.unlockT); } GR=null; }
@@ -1572,7 +1592,7 @@
         <div class="gmeaning" id="gMeaning" translate="no" hidden></div>
         <div class="pills" id="gPills" role="group" aria-label="Your answer"></div>
         <div class="gfb" id="gFb" aria-live="polite"></div>
-        <div class="gfoot">${GR.slot==="pre"?`<span class="gkeys" aria-hidden="true">Or type its first letters</span>`:""}<button type="button" class="link quiet" id="gNotNoun" title="${GR.slot==="pre"?"Leave this card out of Prepositions":"Leave this card out of the Grammar Dojo"}">${GR.slot==="pre"?"Not a fixed preposition":"Not a noun"}</button></div>
+        <div class="gfoot"><button type="button" class="link quiet" id="gNotNoun" title="${GR.slot==="pre"?"Leave this card out of Prepositions":"Leave this card out of the Grammar Dojo"}">${GR.slot==="pre"?"Not a fixed preposition":"Not a noun"}</button></div>
       </div>`;
     document.getElementById("backBtn").onclick=leaveStudy;
     document.getElementById("helpBtn").onclick=()=>openHelp("grammar");
@@ -1599,7 +1619,8 @@
     const sig=(mix?"mix:"+n:fr.opts.join("|"))+"/"+(rows||[]).join("|")+"/"+(cols||[]).join("|"), box=document.getElementById("gPills"), rebuild=GR.pillsFor!==sig;
     if(rebuild){
       // v25.1: the grid explains itself — de / het above the columns, hier / daar beside the rows
-      const pill=pos=>{ const i=perm[pos]; return pre ? `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no">${esc(fr.opts[i])}</button>`
+      // v26.1: a preposition's corner shows the letters that answer it on a keyboard ("to" on tot), like the Articles' numbers
+      const pill=pos=>{ const i=perm[pos]; return pre ? `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no">${esc(fr.opts[i])}<span class="pk" aria-hidden="true">${esc((GR.pkeys||{})[fr.opts[i]]||"")}</span></button>`
         : `<button type="button" class="pill" data-i="${i}" data-pos="${pos}" translate="no" aria-keyshortcuts="${pos+1}">${esc(fr.opts[i])}<span class="pk" aria-hidden="true">${pos+1}</span></button>`; };
       const lab=(c,t)=>`<span class="${c}" translate="no" aria-hidden="true">${esc(t)}</span>`;
       let h="";
@@ -2900,11 +2921,25 @@
     });
     return out;
   }
+  // v26.1: Get words opened from the Grammar Dojo makes Word Dojo lists, so its requests count as the Word Dojo's
+  function gwDojo(){ return S.dojo==="sentence" ? "sentence" : "word"; }
   function gwMatch(){
     const H=gwState().history;
     if(gwReq){ const h=H.find(x=>x.id===gwReq); if(h) return h; }
     const t=gwe("gwTopic").value.trim().toLowerCase(), le=gwe("gwLearn").value.trim().toLowerCase(), me=gwe("gwMeaning").value.trim().toLowerCase();
-    return H.find(h=>h.dojo===S.dojo && (h.topic||"").toLowerCase()===t && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me)||null;
+    return H.find(h=>h.dojo===gwDojo() && (h.topic||"").toLowerCase()===t && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me)||null;
+  }
+  // v26.1: a topic that only asks for common words ("", "basic words", "frequency", "most common words") — not "less common words",
+  // not "physics frequency": the message then asks plainly for the most common everyday words
+  const GW_GENERAL=new Set(["common","commonest","basic","basics","general","everyday","frequent","frequency","frequencies","high","used","useful","essential","core","beginner","beginners","starter","top","most","words","word","vocabulary","vocab","the","a","an","of","list","häufig","häufige","häufigste","häufigsten","wörter","grundwortschatz","alltag","alltagswörter","frequentie","frequente","meest","gebruikte","gebruikelijke","basiswoorden","woorden","alledaagse"]);
+  function gwGeneral(t){ return String(t||"").toLowerCase().split(/[^\p{L}]+/u).filter(Boolean).every(w=>GW_GENERAL.has(w)); }
+  // "I already know roughly N common words" counts only words gathered as common words: earlier such requests, and lists or groups
+  // named for them (Frequency 1-500, Basic words…) — not every list (300 words from a teacher's lessons aren't the basics)
+  const GW_GEN_NAME=/frequen|häufig|\bcommon\b|\bbasic|\bbasis|\bgeneral\b|\beveryday\b|most used/i;
+  function gwGeneralCount(learn){
+    const le=String(learn||"").trim().toLowerCase(), ids=new Set();
+    gwState().history.forEach(h=>{ if(h.dojo===gwDojo() && (h.learn||"").toLowerCase()===le && gwGeneral(h.topic)) h.listIds.forEach(id=>ids.add(id)); });
+    return curLists().reduce((n,l)=>n+((ids.has(l.id) || GW_GEN_NAME.test(l.name||"") || GW_GEN_NAME.test(l.group||"")) ? l.words.length : 0), 0);
   }
   // v23.3: related topics leave out each other's words too ("emotions" ~ "emotions and feelings": a shared meaningful word)
   const GW_STOP=new Set(["and","or","the","a","an","of","for","in","on","at","to","with","about","my","some","more","words","word","vocabulary","vocab","list","lists","sentences","sentence","basic","common","general","everyday","useful","important"]);
@@ -2912,8 +2947,10 @@
   function gwRelated(){
     const H=gwState().history, first=gwMatch();
     const le=gwe("gwLearn").value.trim().toLowerCase(), me=gwe("gwMeaning").value.trim().toLowerCase();
-    const tw=new Set(topicWords(first ? first.topic : gwe("gwTopic").value));
-    const rel = tw.size ? H.filter(h=>h!==first && h.dojo===S.dojo && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me && topicWords(h.topic).some(w=>tw.has(w))) : [];
+    const t0=first ? first.topic : gwe("gwTopic").value, tw=new Set(topicWords(t0)), gen=!isSent() && gwGeneral(t0);
+    const same=h=>h!==first && h.dojo===gwDojo() && (h.learn||"").toLowerCase()===le && (h.meaning||"").toLowerCase()===me;
+    // v26.1: every way of asking for common words ("", "basic words", "frequency") shares its words
+    const rel = gen ? H.filter(h=>same(h) && gwGeneral(h.topic)) : (tw.size ? H.filter(h=>same(h) && topicWords(h.topic).some(w=>tw.has(w))) : []);
     return first ? [first, ...rel] : rel;
   }
   function gwExclusions(entries, sent){
@@ -2952,11 +2989,11 @@
     const excl=gwExclusions(gwRelated(), sent), L=[];
     if(!sent){
       L.push(`Make a vocabulary list for someone learning ${learn}, with the meanings in ${meaning}.`);
-      L.push(`Topic: ${topic||"general, everyday vocabulary"}.`);
+      const general=gwGeneral(topic);   // v26.1: no topic, or only "common / basic / frequency…": no subject the AI could misread
+      L.push(`Topic: ${general ? "the most common, most useful everyday words (no special subject)" : topic}.`);
       if(level) L.push(`Level: ${level} (CEFR) — choose words that fit that level.`);
-      const general=!topic || /\b(common|general|frequent|basic|everyday|most used)\b/i.test(topic);
-      const have=curLists().reduce((a,l)=>a+l.words.length,0);
-      if(general && have>300) L.push(`I already know roughly the ${Math.floor(have/100)*100} most common ${learn} words, so choose less common ones beyond those.`);
+      const have=general ? gwGeneralCount(learn) : 0;
+      if(have>300) L.push(`I already know roughly the ${Math.floor(have/100)*100} most common ${learn} words, so choose less common ones beyond those.`);
       L.push(`Give ${ask} words or short expressions, one per line, in exactly this format:`);
       L.push(`${learn} word = ${meaning} meaning`);
       const rd=gwReading(learn, meaning); if(rd) L.push(rd);   // v25.11: the reading, so any keyboard can answer
@@ -2964,6 +3001,7 @@
       L.push(`- Double-check every article before you answer.`);
       L.push(`- If two ${learn} words mean exactly the same, put both on the left, separated by " / ".`);
       L.push(`- If a word has more than one ${meaning} meaning, separate them with " / " too, not with commas or semicolons.`);   // v25.12: then any one counts
+      if(/prepos|voorzetsel|präpos|praepos/i.test(topic)) L.push(`- Put the fixed preposition last on the ${learn} side, with nothing after it (no words like "someone" or "something").`);   // v26.1: then the Grammar Dojo finds it
     } else {
       L.push(`Write ${ask} natural sentences in ${learn} for a learner, with translations in ${meaning}.`);
       L.push(`Topic: ${topic||"everyday life"}.`);
@@ -2989,7 +3027,7 @@
   function gwRemember(){ const g=gwState(); g.learn=gwe("gwLearn").value.trim(); g.meaning=gwe("gwMeaning").value.trim(); g.level=gwe("gwLevel").value; if(isSent()) g.sCount=+gwe("gwCount").value; else g.count=+gwe("gwCount").value; save(); }
   function gwFieldsChanged(){ gwe("gwPrompt").value=gwPrompt(); gwSetDefaults(); if(gwe("gwPaste").value.trim()) gwRefresh(); }
   function renderGwMore(){
-    const hs=gwState().history.filter(h=>h.dojo===S.dojo).slice(-5).reverse();
+    const hs=gwState().history.filter(h=>h.dojo===gwDojo()).slice(-5).reverse();
     gwe("gwMore").innerHTML = hs.length ? `<div class="gwmore"><span class="flabel">Get more of:</span>${hs.map(h=>`<button type="button" class="chip" data-h="${h.id}">${esc(h.topic?cap1(h.topic):"General")}${h.level?" · "+h.level:""} <small>${h.listIds.length} list${h.listIds.length===1?"":"s"}</small></button>`).join("")}</div>` : "";
     gwe("gwMore").querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
       const h=gwState().history.find(x=>x.id===b.dataset.h); if(!h) return;
@@ -2997,17 +3035,25 @@
       gwFieldsChanged(); gwe("gwStatus").textContent="Continuing \u201c"+(h.topic?cap1(h.topic):"General")+"\u201d — the words you already have from it are left out.";
     });
   }
-  function openGetWords(){
-    const g=gwState(), sent=isSent();
+  function openGetWords(preset){
+    const g=gwState(), sent=isSent(), prep=!!(preset && preset.prep && !sent);   // v26.1: from the Prepositions card
     gwe("gwTitle").textContent = sent ? "Get sentences" : "Get words";
     gwe("gwLearn").value=g.learn||""; gwe("gwMeaning").value=g.meaning||"";
     gwe("gwTopic").value=""; gwe("gwLevel").value=g.level||"";
+    gwe("gwTopicNote").textContent = sent ? "Leave it empty for everyday sentences." : "Leave it empty for the most common everyday words.";
     gwe("gwCount").innerHTML=(sent?[5,10,20,50]:[10,25,50,100]).map(n=>`<option>${n}</option>`).join("");   // v22.2: smaller sentence batches
     gwe("gwCount").value=String(sent?(g.sCount||10):(g.count||25));
     gwe("gwFromWrap").hidden=!sent;
     if(sent) gwe("gwFrom").innerHTML='<option value="">— none —</option>'+S.lists.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join("");
     gwReq=null; gwParsed=null; gwe("gwPaste").value=""; gwe("gwSum").innerHTML=""; gwe("gwDups").innerHTML=""; gwe("gwStatus").textContent="";
     ["gwName","gwGroup"].forEach(id=>{ gwe(id).value=""; delete gwe(id).dataset.touched; });
+    const D=prep?gramData():null, P=D&&PREP_LANGS[D.cfg.base];
+    gwe("gwGramNote").hidden=!P;
+    if(P){   // the language of the Grammar Dojo, a topic the AI can't misread, and the group "Prepositions"
+      const c=langCodeFromName(gwe("gwLearn").value); if(!c || c.split("-")[0]!==D.cfg.base) gwe("gwLearn").value=D.cfg.name;
+      gwe("gwTopic").value=`words with a fixed preposition (${P.term})`;
+      gwe("gwName").value="Prepositions"; gwe("gwGroup").value="Prepositions"; gwe("gwName").dataset.touched=gwe("gwGroup").dataset.touched="1";
+    }
     gwe("gwCreate").disabled=true; gwe("gwCreate").textContent="Create list";
     gwFieldsChanged(); renderGwMore();
     gwOverlay.classList.add("open");
@@ -3062,7 +3108,7 @@
     let items=gwItems(); if(!items.length) return;
     const sent=isSent(); gwRemember();
     const g=gwState(); let entry=gwMatch();
-    if(!entry){ entry={id:uid(), dojo:S.dojo, learn:g.learn, meaning:g.meaning, topic:gwe("gwTopic").value.trim(), level:g.level, listIds:[], at:Date.now()}; g.history.push(entry); }
+    if(!entry){ entry={id:uid(), dojo:gwDojo(), learn:g.learn, meaning:g.meaning, topic:gwe("gwTopic").value.trim(), level:g.level, listIds:[], at:Date.now()}; g.history.push(entry); }
     entry.level=g.level; entry.at=Date.now();
     const base=gwe("gwName").value.trim()||gwBase(), group=gwe("gwGroup").value.trim();
     // v22.1: fill the topic's last unfinished list up to 25 first (only while it's still in Student)
@@ -3135,8 +3181,8 @@
     // v26: Dutch has a second mode, Prepositions
     const P=PREP_LANGS[cfg.base], intro = P ? `<p>The <b>Grammar Dojo</b> drills grammar at speed: you see a gap and tap the right word as fast as you can. <b>Articles</b> drills the articles of your nouns, <b>Prepositions</b> the fixed prepositions that go with your words.</p>`
       : `<p>The <b>Grammar Dojo</b> drills grammar at speed. Its first mode, <b>Articles</b>, shows a noun with a gap, and you tap the right form as fast as you can.</p>`;
-    const prep = P ? `<li id="hGramPrep"><b>Prepositions</b>, the second card, drills fixed prepositions (<i translate="no">${esc(P.term)}</i>): every Word Dojo card whose word ends with its preposition, like <code translate="no">${esc(P.ex)}</code> or <code translate="no">${esc(P.ex2)}</code>, comes up as <i translate="no">leiden __</i> → tot. <i translate="no">iets</i> or <i translate="no">iemand</i> after it is fine (<i translate="no">iemand bedanken voor iets</i>). For more of them, use <b>Get words</b> with a topic like “verbs with fixed prepositions”.</li>
-      <li>The twelve common prepositions always have a button, in alphabetical order (<span translate="no">${P.common.join(", ")}</span>), so your hand learns where each one sits. A rarer one that your cards use, like <i translate="no">tegen</i>, gets its own button after them. These buttons never mix up. On a keyboard, type the first letters: <i translate="no">to</i> for tot.</li>
+    const prep = P ? `<li id="hGramPrep"><b>Prepositions</b>, the second card, drills fixed prepositions (<i translate="no">${esc(P.term)}</i>): every Word Dojo card whose word ends with its preposition, like <code translate="no">${esc(P.ex)}</code> or <code translate="no">${esc(P.ex2)}</code>, comes up as <i translate="no">leiden __</i> → tot. <i translate="no">iets</i> or <i translate="no">iemand</i> after it is fine (<i translate="no">iemand bedanken voor iets</i>). So does a preposition right before the last word, after <i translate="no">er</i>, <i translate="no">daar</i>, <i translate="no">waar</i> or <i translate="no">ergens</i>: <i translate="no">daar wil ik even __ inhaken</i> → op (there <i translate="no">met</i> becomes <i translate="no">mee</i>, and <i translate="no">tot</i> becomes <i translate="no">toe</i>). For more, tap <b>Get prepositions</b> on the card (<b>Get more</b> once you have some): your AI writes a list, and it goes into your Word Dojo in the group <i>Prepositions</i>.</li>
+      <li>The twelve common prepositions always have a button, in alphabetical order (<span translate="no">${P.common.join(", ")}</span>), so your hand learns where each one sits. A rarer one that your cards use, like <i translate="no">tegen</i>, gets its own button after them. These buttons never mix up. On a keyboard, type the first letters: they're shown small in each button's corner (<i translate="no">to</i> for tot).</li>
       <li>The same words with another preposition, like <i translate="no">denken aan</i> and <i translate="no">denken over</i>? The meaning shows under the gap. A card that isn't a fixed preposition, like <i translate="no">kom op</i>? Tap <b>Not a fixed preposition</b>, and it stays out of Prepositions. ${set} brings it back.</li>` : "";
     return `${intro}<ul>
       <li>The nouns come from your <b>Word Dojo</b> cards whose word starts with an article${ex?`, like <code translate="no">${esc(ex)}</code>`:""}, so there's nothing new to type. To practise particular nouns, put them in a list or group and pick it under <b>From</b>.</li>${gaps}${btns}${prep}
@@ -3202,13 +3248,13 @@
       <li>Tap a group's heading to fold it away. <b>▲ ▼</b> move the whole group, and <b>✎</b> renames it — its lists come along.</li>
       <li id="hSort"><b>Sort</b> with <span class="help-ico srtico">${SORT_ICON}</span>: next to a group's name it sorts that group's lists; next to <b>Student</b> or <b>Master</b> it sorts their groups (in a folder without groups, its lists). Sort by <b>name</b> (1-500 comes before 501-1000), by the <b>date created</b>, or by when you <b>last practised</b> — either way round. It sorts once, so ↑ ↓ and ▲ ▼ still move things by hand afterwards, and <b>Undo</b> appears for a few seconds. Lists created before V24.4 count as oldest; lists you've never practised go last; Ungrouped stays the last group.</li>
       <li>New lists start in <b>Student</b>; move mastered ones to <b>Master</b>. Folders fold away too.</li></ul>`; }},
-    {id:"get", t:"Get words", h:`<p>Describe the list (language, topic, level, how many), then tap your AI: <b>ChatGPT</b> and <b>Claude</b> open with the message already filled in, <b>Gemini</b> opens and you paste it, and <b>Copy for another AI</b> works with any other one (DeepSeek, Mistral, one on your own computer). Every button also copies the message. Send it, copy the AI's whole answer, come back, paste it into step 3 and create the list. For Japanese, Chinese and Korean the message also asks for each word's reading (<code>心理学 / しんりがく / shinrigaku = psychology</code>), so you can type a word in its own script or in Latin letters, and every answer shows both. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
+    {id:"get", t:"Get words", h:`<p>Describe the list (language, topic, level, how many). No topic in mind? Leave it empty for the most common everyday words; each time you get more, they get less common. Then tap your AI: <b>ChatGPT</b> and <b>Claude</b> open with the message already filled in, <b>Gemini</b> opens and you paste it, and <b>Copy for another AI</b> works with any other one (DeepSeek, Mistral, one on your own computer). Every button also copies the message. Send it, copy the AI's whole answer, come back, paste it into step 3 and create the list. For Japanese, Chinese and Korean the message also asks for each word's reading (<code>心理学 / しんりがく / shinrigaku = psychology</code>), so you can type a word in its own script or in Latin letters, and every answer shows both. The AI numbers its lines and puts them in a box: copy them with that box's <b>Copy</b> button rather than selecting the text, because on a phone selecting can lose the line breaks. If they get lost anyway, Language Senpai splits the list at its numbers, or tells you instead of making one giant card. Other AI habits are handled too: a table, bold or italic words, bullets or emoji, arrows instead of “=”, and quotes around words. Words you already have are skipped — or kept, if you choose. <b>Get more</b> continues a topic without repeats, and related topics you asked for before (say, "emotions" and "emotions and feelings") don't repeat each other's words either.</p>`},
     {id:"settings", t:"Settings", h:`<p>Each dojo has its own settings: the essentials first, the rest under <b>More options</b>.</p><ul>
       <li><b>Language you're learning</b> (at the top): picks the speaker's voice and how characters are drawn — e.g. Taiwanese or mainland shapes for Chinese.</li>
       <li><b>Reading aloud:</b> have each word read aloud automatically, if you like.</li>
       <li>Under ${hl("settings:more-word","<b>More options</b>")} you can hide the previous word under the answer box.</li>
       <li>The <b>accent bar</b> adds one-tap special letters — try <b>From my lists</b>, or keep your own set under <b>My own</b>.</li>
-      <li>The <b>Grammar Dojo</b> has its own: <b>Mix up the buttons</b> (and, for Dutch, the labels), the articles of a language that doesn't have them built in, and the cards you marked <b>Not a noun</b>.</li>
+      <li>The <b>Grammar Dojo</b> has its own: <b>Mix up the buttons</b> (and, for Dutch, the labels), the articles of a language that doesn't have them built in, and the cards you marked <b>Not a noun</b> (or, for Dutch, <b>Not a fixed preposition</b>).</li>
       <li><b>Backups</b> are shared by all dojos: ${hl("settings:backup","<b>Export backup</b>")} saves everything to a file, and <b>Import backup</b> brings it back. The backup area also shows how much room your saved data takes.</li></ul>`},
     {id:"save", t:"Saving your progress", h:`<p>Your progress is saved in this browser, for this address. To keep it safe:</p><ul>
       <li><b>Back up regularly</b> — once a week is a good habit (${hl("settings:backup","Settings &amp; backup → Export backup")}). <b>Import backup</b> brings everything back, in any browser.</li>
