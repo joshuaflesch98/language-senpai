@@ -1,5 +1,5 @@
 /*
- * Language Senpai — automated checks (911 at V26.1)
+ * Language Senpai — automated checks (922 at V26.2)
  * ------------------------------------------------
  * What this is: a script that opens the app in an invisible browser and uses it like a person would —
  * typing answers, building sentences, quitting drills, pasting AI answers, corrupting a save on purpose —
@@ -1361,7 +1361,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
     const lh = await page.textContent('#listHelp');
     ok(/dōjō \/ dojo = training hall/.test(lh) && /sensei \[shishō\]/.test(lh) && /arigatō \(gozaimasu\)/.test(lh) && !/lopen|nahe|wassen/.test(lh), 'list editor help uses Japanese examples');
     ok(await page.getAttribute('#gwLearn', 'placeholder') === 'e.g. Japanese' && await page.getAttribute('#gwMeaning', 'placeholder') === 'e.g. English', 'Get words examples: Japanese, English');
-    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="26.1"')), 'version 26.1');
+    ok(await page.evaluate(() => document.documentElement.innerHTML.includes('APP_VERSION="26.2"')), 'version 26.2');
     await ctx.close();
   }
   {
@@ -3683,7 +3683,7 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         await page.click('#setBtnHdr'); await page.waitForTimeout(120);
         await page.evaluate(() => document.getElementById('wnBtn').click()); await page.waitForTimeout(120);
         const wn = (await page.textContent('#wnList')).replace(/\s+/g, ' ');
-        ok(wn.indexOf('Version') === wn.indexOf('Version 26.1') && /Get prepositions/.test(wn) && /leave the topic empty/.test(wn), "What's new lists 26.1 first");
+        ok(wn.indexOf('Version 26.1') >= 0 && wn.indexOf('Version 26.1') < wn.indexOf('Version 25.12') && /Get prepositions/.test(wn) && /leave the topic empty/.test(wn), "What's new lists 26.1, newest first");
         await ctx.close();
         const o = Object.assign({}, require('playwright').devices['iPhone 14']); delete o.defaultBrowserType;
         const c = await browser.newContext(o); const p = await c.newPage();
@@ -3695,6 +3695,54 @@ Dat is goed. = Das ist gut. / Das ist schön.`); await page.waitForTimeout(120);
         await p.screenshot({ path: SHOT('shot_v261_card.png'), fullPage: true });
         await c.close();
       }
+    }
+
+    console.log('\n[46] V26.2: Help that is easier to read — Get words in three steps, one layout for every section');
+    {
+      const NLh = { speak: { word: { lang: 'nl-NL', auto: false }, sentence: { lang: '', auto: false } } };
+      const DEh = { speak: { word: { lang: 'de-DE', auto: false }, sentence: { lang: '', auto: false } } };
+      const helpMap = async (st, viewport) => {
+        const { ctx, page } = await freshD(st, viewport);
+        await page.click('#helpBtnHdr'); await page.waitForTimeout(120);
+        const out = {};
+        for (const id of await page.$$eval('#helpNav [data-help]', b => b.map(x => x.dataset.help))) {
+          await page.click(`#helpNav [data-help="${id}"]`); await page.waitForTimeout(40);
+          out[id] = await page.$eval('#helpBody', body => {
+            const len = e => (e.textContent || '').replace(/\s+/g, ' ').trim().length, kids = [...body.children], h5 = body.querySelector(':scope > h5'), sh = body.querySelector('#hShorthand h5');
+            return { tags: kids.map(k => k.tagName.toLowerCase()).join(','), first: kids[1] ? kids[1].tagName.toLowerCase() : '', firstLen: kids[1] ? len(kids[1]) : 0,
+              ols: body.querySelectorAll('ol').length, h5: kids.filter(k => k.tagName === 'H5').map(k => k.textContent.trim()).join(','),
+              maxLi: Math.max(0, ...[...body.querySelectorAll('li')].map(len)), maxP: Math.max(0, ...[...body.querySelectorAll(':scope > p')].map(len)),
+              olItems: [...body.querySelectorAll('ol > li')].map(li => (li.querySelector('b') || li).textContent.trim()), lis: body.querySelectorAll('li').length,
+              goldInOl: !!body.querySelector('ol > #hGold'), simpleAfterH5: !!body.querySelector('h5 + ul > #hSimple'), sortAfterH5: !!body.querySelector('h5 + ul > #hSort'),
+              h5Weight: h5 ? getComputedStyle(h5).fontWeight : '', shMargin: sh ? getComputedStyle(sh).marginTop : '' };
+          });
+        }
+        return { ctx, page, out };
+      };
+      const nl = await helpMap(state([list('N', [word('het huis', 'das Haus'), word('de tafel', 'der Tisch'), word('leiden tot', 'führen zu')])], NLh));
+      const H = nl.out, secs = Object.keys(H).filter(id => id !== 'about');
+      ok(secs.length === 11 && secs.every(id => H[id].first === 'p' && H[id].firstLen <= 250), 'every Help section (but About, the personal note) opens with a short intro paragraph');
+      ok(secs.every(id => H[id].maxP <= 300 && H[id].maxLi <= 400), 'no paragraph over 300 characters and no point over 400 anywhere in Help (Get words was one paragraph of 1,367)');
+      ok(secs.filter(id => H[id].ols > 0).sort().join(',') === 'get,start', 'numbers only where you follow steps (Getting started, Get words); bullet points everywhere else');
+      ok(H.get.tags === 'h4,p,ol,h5,ul' && H.get.olItems.length === 3 && H.get.h5 === 'Good to know', 'Help → Get words: a one-line intro, three numbered steps, then Good to know');
+      await nl.page.click('#helpClose'); await nl.page.waitForTimeout(80); await nl.page.click('#gwBtn'); await nl.page.waitForTimeout(150);
+      const win = await nl.page.$$eval('#gwOverlay h4', h => h.map(x => x.textContent.trim()).filter(t => /^\d\s*·/.test(t)).map(t => t.replace(/^\d\s*·\s*/, '')));
+      ok(win.length === 3 && H.get.olItems.every((s, i) => win[i].startsWith(s.replace(/[.:]$/, ''))), 'its steps carry the names of the window\'s own steps: ' + H.get.olItems.join(' / '));
+      ok(H.start.olItems.length === 4 && H.start.goldInOl && H.start.h5 === 'Good to know' && H.start.simpleAfterH5, 'Getting started: four numbered steps (Study keeps its link target), the rest under Good to know');
+      ok(H.grammar.h5 === 'Articles,Prepositions,How rounds work', 'Grammar Dojo (Dutch): small headings for Articles, Prepositions and How rounds work');
+      ok(H.lists.h5 === 'Organizing your lists' && H.lists.sortAfterH5 && H.lists.h5Weight === '700' && H.lists.shMargin === '0px', 'Your lists: groups and sorting under their own heading; the Card shorthand box looks as before');
+      ok(H.rivals.tags === 'h4,p,ul' && H.rivals.lis === 3, 'Rivals: what a rival is, then three points instead of one paragraph');
+      await nl.ctx.close();
+      const de = await helpMap(state([list('D', [word('das Haus', 'house'), word('der Tisch', 'table')])], DEh), { width: 390, height: 844 });
+      ok(de.out.grammar.h5 === 'Articles,How rounds work' && de.out.get.olItems.length === 3, 'German: Articles and How rounds work, no Prepositions heading');
+      await de.page.click('#helpNav [data-help="get"]'); await de.page.waitForTimeout(80);
+      await de.page.screenshot({ path: SHOT('shot_v262_help_get.png') });
+      await de.page.click('#helpClose'); await de.page.waitForTimeout(80);
+      await de.page.click('#setBtnHdr'); await de.page.waitForTimeout(120);
+      await de.page.evaluate(() => document.getElementById('wnBtn').click()); await de.page.waitForTimeout(120);
+      const wn = (await de.page.textContent('#wnList')).replace(/\s+/g, ' ');
+      ok(wn.indexOf('Version') === wn.indexOf('Version 26.2') && /Get words now comes in three steps/.test(wn), "What's new lists 26.2 first");
+      await de.ctx.close();
     }
 
   // ---------------- screenshots ----------------
